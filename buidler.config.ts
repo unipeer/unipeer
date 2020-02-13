@@ -2,6 +2,7 @@ import { task, usePlugin } from "@nomiclabs/buidler/config";
 import { BuidlerConfig } from "@nomiclabs/buidler/config";
 
 usePlugin("@nomiclabs/buidler-truffle5");
+usePlugin("buidler-typechain");
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
@@ -25,6 +26,10 @@ const config: BuidlerConfig = {
   },
   solc: {
     version: "0.5.15",
+  },
+  typechain: {
+    outDir: "src/types",
+    target: "truffle"
   }
 };
 

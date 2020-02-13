@@ -1,6 +1,7 @@
 import { web3, artifacts, assert, contract } from "@nomiclabs/buidler";
+import { GreeterContract } from "../src/types"
 
-const Greeter = artifacts.require("Greeter");
+const Greeter: GreeterContract = artifacts.require("Greeter");
 
 // Traditional Truffle test
 contract("Greeter", accounts => {
