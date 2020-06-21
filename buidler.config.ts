@@ -3,7 +3,6 @@ import { BuidlerConfig } from "@nomiclabs/buidler/config";
 
 usePlugin("@nomiclabs/buidler-truffle5");
 usePlugin("@nomiclabs/buidler-solhint");
-usePlugin("buidler-typechain");
 usePlugin("buidler-gas-reporter");
 
 // This is a sample Buidler task. To learn how to create your own go to
@@ -28,10 +27,6 @@ const config: BuidlerConfig = {
   },
   solc: {
     version: "0.5.15",
-  },
-  typechain: {
-    outDir: "src/types",
-    target: "truffle"
   },
   gasReporter: {
     currency: 'USD',
