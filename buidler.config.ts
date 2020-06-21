@@ -26,7 +26,11 @@ const config: BuidlerConfig = {
     }
   },
   solc: {
-    version: "0.5.15",
+    version: "0.6.10",
+    optimizer: {
+      enabled: true,
+      runs: 200
+    }
   },
   gasReporter: {
     currency: 'USD',
