@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "prettier": "prettier --write **/*.sol",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "generate-types": "typechain --target=truffle-v5 'artifacts/*.json'"
   },
-  "generate-types": "typechain --target=truffle-v5 'artifacts/*.json'",
   "postinstall": "npx buidler compile && npm generate-types",
   "author": "Shaleen Jain <shaleen@jain.sh>",
   "license": "ISC",
@@ -16,6 +16,7 @@
     "@nomiclabs/buidler-solhint": "^1.3.3",
     "@nomiclabs/buidler-truffle5": "^1.3.4",
     "@nomiclabs/buidler-web3": "^1.3.4",
+    "@openzeppelin/contracts": "^3.0.2",
     "@typechain/ethers-v4": "^1.0.0",
     "@typechain/truffle-v4": "^2.0.0",
     "@typechain/truffle-v5": "^2.0.2",

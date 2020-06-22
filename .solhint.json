@@ -2,6 +2,6 @@
   "extends": "solhint:recommended",
   "plugins": [],
   "rules": {
-    "indent": ["error",2]
+    "indent": ["ignore",2]
   }
 }
