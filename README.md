@@ -17,7 +17,7 @@ npx buidler compile
 ## Generate Types for contracts
 
 ```
-npx buidler compile && npm generate-types
+npx buidler compile && npm run generate-types
 ```
 
 ## Debug
