@@ -5,7 +5,9 @@
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "typeRoots": ["./node_modules/@types", "./types"],
+    "types": ["node", "truffle-contracts"]
   },
   "include": [
     "./scripts",
@@ -13,7 +15,8 @@
     "./test/*.ts",
     "./src/**/*.ts",
     "./test/**/*.ts"
-],
+  ],
+  "exclude": ["node_modules", "example", "build"],
   "files": [
     "./buidler.config.ts",
     "./node_modules/@nomiclabs/buidler-web3/src/type-extensions.d.ts",
