@@ -27,15 +27,15 @@ import "./Proxy.sol";
  *
  */
 contract StaticStorage {
-  address internal _implementation;
+  address internal implementation;
 }
 
 contract StaticProxy is Proxy, StaticStorage {
-  constructor(address implementation) public {
-    _implementation = implementation;
+  constructor(address _implementation) public {
+    implementation = _implementation;
   }
 
-  function implementation() public override view returns (address) {
-    return _implementation;
+  function _implementation() public override view returns (address) {
+    return implementation;
   }
 }

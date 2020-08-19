@@ -10,11 +10,10 @@ pragma solidity >=0.4.21 <0.7.0;
  * returned by the abstract implementation() public function.
  */
 abstract contract Proxy {
-
   /**
    * @return The Address of the implementation.
    */
-  function implementation() public virtual view returns (address);
+  function _implementation() public virtual view returns (address);
 
   /**
    * @dev Fallback function.
@@ -37,7 +36,7 @@ abstract contract Proxy {
    * Extracted to enable manual triggering.
    */
   function _fallback() internal {
-    address _impl = implementation();
+    address _impl = _implementation();
     require(_impl != address(0), "impl is empty");
 
     _delegate(_impl);
