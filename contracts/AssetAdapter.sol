@@ -17,17 +17,13 @@ abstract contract AssetAdapter {
    * @param _amount Amount to transfer in the lowest unit (wei for ether)
    * @param _to Address to send the funds from the contract
    */
-  function rawSendAsset(
-    uint256 _amount,
-    address payable _to
-  ) internal virtual returns (bool success);
-
-  /**
-  * Get the current balance of the Asset held by the implementing contract.
-  */
-  function getAmount()
+  function rawSendAsset(uint256 _amount, address payable _to)
     internal
     virtual
-    view
-    returns (uint256);
+    returns (bool success);
+
+  /**
+   * Get the current balance of the Asset held by the implementing contract.
+   */
+  function getAmount() internal virtual view returns (uint256);
 }

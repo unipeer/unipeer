@@ -5,39 +5,22 @@ pragma solidity ^0.6.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@nomiclabs/buidler/console.sol";
 import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
+
 import "./StaticProxy.sol";
+import "./EthAdapter.sol";
 
-contract Escrow is StaticStorage, ChainlinkClient {
-  bytes32 private jobId;
-  uint256 private fee;
-
+contract Escrow is StaticStorage, ChainlinkClient, EthAdapter, Ownable {
   bool public fiatPaymentSuccessful;
 
-  /**
-  *
-  * @param _oracle The chainlink node oracle address to send requests
-  * @param _jobId The JobId for the Request
-  */
-  constructor(address _oracle, bytes32 _jobId) public {
-    setPublicChainlinkToken();
-    setChainlinkOracle(_oracle);
-    jobId = _jobId;
-    fee = 0.1 * 10**18; // 0.1 LINK
+  constructor() public {
   }
 
-  function requestFiatPayment() public {
-    Chainlink.Request memory req = buildChainlinkRequest(
-      jobId,
-      address(this),
-      this.fulfillFiatPayment.selector
-    );
-    sendChainlinkRequest(req, fee);
+  function expectResponseFor(address _oracle, bytes32 _requestId) public onlyOwner {
+    addChainlinkExternalRequest(_oracle, _requestId);
   }
 
-  function fulfillFiatPayment(bytes32 _requestId, bool successful)
-    public
-    recordChainlinkFulfillment(_requestId)
-  {
+  function fulfillFiatPayment(bytes32 _requestId, bool successful) public {
+    validateChainlinkCallback(_requestId);
     fiatPaymentSuccessful = successful;
   }
 }
