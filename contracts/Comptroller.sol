@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.6.0;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@nomiclabs/buidler/console.sol";
@@ -12,6 +13,12 @@ contract Comptroller is ChainlinkClient {
   bytes32 private jobId;
   uint256 private fee;
 
+  struct PaymentDetails {
+    string sender;
+    string receiver;
+    uint256 amount;
+  }
+
   /**
    *
    * @param _oracle The chainlink node oracle address to send requests
@@ -21,16 +28,22 @@ contract Comptroller is ChainlinkClient {
     setPublicChainlinkToken();
     setChainlinkOracle(_oracle);
     jobId = _jobId;
-    fee = 0.1 * 10**18; // 0.1 LINK
+    fee = 0.01 * 10**18; // 0.01 LINK
   }
 
-  function requestFiatPayment(address _seller, details) public {
+  function requestFiatPayment(address _seller, PaymentDetails memory details) public {
     Escrow escrow = Escrow(_seller);
+
     Chainlink.Request memory req = buildChainlinkRequest(
-      jobId,
-      _seller,
-      escrow.fulfillFiatPayment.selector
+      jobId,                              // Chainlink JobId
+      _seller,                            // contract address with the callback function
+      escrow.fulfillFiatPayment.selector  // callback function selector
     );
+    req.add("method", "collectrequest");
+    req.add("sender", details.sender);
+    req.add("receiver", details.receiver);
+    req.addUint("amount", details.amount);
+
     bytes32 reqId = sendChainlinkRequest(req, fee);
     escrow.expectResponseFor(chainlinkOracleAddress(), reqId);
   }

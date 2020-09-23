@@ -10,6 +10,11 @@ abstract contract AssetAdapter {
   }
 
   /**
+   * Get the current balance of the Asset held by the implementing contract.
+   */
+  function getAmount() internal virtual view returns (uint256);
+
+  /**
    * Ensure the described asset is sent to the given address.
    * Should revert if the transfer failed, but callers must also handle `false` being returned,
    * much like ERC-20's `transfer`.
@@ -21,9 +26,4 @@ abstract contract AssetAdapter {
     internal
     virtual
     returns (bool success);
-
-  /**
-   * Get the current balance of the Asset held by the implementing contract.
-   */
-  function getAmount() internal virtual view returns (uint256);
 }

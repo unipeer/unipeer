@@ -1,5 +1,17 @@
 # Unipeer
 
+## Variables
+
+Kovan chainlink oracle
+```
+0x98cbfb4f664e6b35a32930c90e43f03b5eab50da
+```
+
+Runlog Job Id
+```
+10cb58b1b1cc43268d0928f62cec31bb
+```
+
 ## Install
 
 ```

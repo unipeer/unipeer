@@ -7,7 +7,7 @@ import "@nomiclabs/buidler/console.sol";
 import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 
 import "./StaticProxy.sol";
-import "./EthAdapter.sol";
+import "./adapters/EthAdapter.sol";
 
 contract Escrow is StaticStorage, ChainlinkClient, EthAdapter, Ownable {
   bool public fiatPaymentSuccessful;
