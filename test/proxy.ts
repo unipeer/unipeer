@@ -9,7 +9,7 @@ contract("Static Proxy", accounts => {
     const greeter = await Greeter.new("Hello, world!");
     const proxy = await Proxy.new(greeter.address);
 
-    assert.equal(await proxy.implementation(), greeter.address)
+    assert.equal(await proxy._implementation(), greeter.address)
   });
 
   it("Should delegate calls to the implementation contract", async function() {
