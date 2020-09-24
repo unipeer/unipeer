@@ -31,20 +31,33 @@ contract Comptroller is ChainlinkClient {
     fee = 0.01 * 10**18; // 0.01 LINK
   }
 
-  function requestFiatPayment(address _seller, PaymentDetails memory details) public {
+  function requestFiatPayment(
+    address _seller,
+    address _buyer,
+    PaymentDetails memory payment
+  ) public {
     Escrow escrow = Escrow(_seller);
+    require(
+      escrow.getUnlockedBalance() > payment.amount,
+      "Comptroller: not enough funds in escrow"
+    );
 
     Chainlink.Request memory req = buildChainlinkRequest(
-      jobId,                              // Chainlink JobId
-      _seller,                            // contract address with the callback function
-      escrow.fulfillFiatPayment.selector  // callback function selector
+      jobId, // Chainlink JobId
+      _seller, // contract address with the callback function
+      escrow.fulfillFiatPayment.selector // callback function selector
     );
     req.add("method", "collectrequest");
-    req.add("sender", details.sender);
-    req.add("receiver", details.receiver);
-    req.addUint("amount", details.amount);
+    req.add("sender", payment.sender);
+    req.add("receiver", payment.receiver);
+    req.addUint("amount", payment.amount);
 
     bytes32 reqId = sendChainlinkRequest(req, fee);
-    escrow.expectResponseFor(chainlinkOracleAddress(), reqId);
+    escrow.expectResponseFor(
+      chainlinkOracleAddress(),
+      reqId,
+      _buyer,
+      payment.amount
+    );
   }
 }

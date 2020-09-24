@@ -9,7 +9,10 @@ contract EthAdapter is AssetAdapter {
 
   constructor() internal AssetAdapter(ETH_TYPE_ID) {}
 
-  function getAmount() internal override view returns (uint256 amount) {
+  /**
+   * @dev Get the current balance of the Asset held by the implementing contract.
+   */
+  function getBalance() internal override view returns (uint256 amount) {
     return address(this).balance;
   }
 
