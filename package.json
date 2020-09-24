@@ -11,7 +11,7 @@
     "test": "npx buidler test"
   },
   "author": "Shaleen Jain <shaleen@jain.sh>",
-  "license": "ISC",
+  "license": "UNLICENSED",
   "devDependencies": {
     "@chainlink/contracts": "0.0.9",
     "@codechecks/client": "^0.1.10",
@@ -27,6 +27,7 @@
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.13.15",
     "buidler-gas-reporter": "^0.1.3",
+    "buidler-spdx-license-identifier": "^1.0.4",
     "chai": "^4.2.0",
     "prettier": "^2.0.5",
     "prettier-plugin-solidity": "^1.0.0-alpha.56",

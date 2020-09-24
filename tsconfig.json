@@ -22,6 +22,7 @@
     "./node_modules/@nomiclabs/buidler-web3/src/type-extensions.d.ts",
     "./node_modules/@nomiclabs/buidler-truffle5/src/type-extensions.d.ts",
     "./node_modules/buidler-gas-reporter/src/type-extensions.d.ts",
+    "./node_modules/buidler-spdx-license-identifier/type-extensions.d.ts",
     "./node_modules/truffle-typings/index.d.ts",
     "./types/truffle-contracts/index.d.ts"
   ]

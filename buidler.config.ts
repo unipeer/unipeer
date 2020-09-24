@@ -1,9 +1,10 @@
-import { task, usePlugin } from "@nomiclabs/buidler/config";
-import { BuidlerConfig } from "@nomiclabs/buidler/config";
+import {task, usePlugin} from "@nomiclabs/buidler/config";
+import {BuidlerConfig} from "@nomiclabs/buidler/config";
 
 usePlugin("@nomiclabs/buidler-truffle5");
 usePlugin("@nomiclabs/buidler-solhint");
 usePlugin("buidler-gas-reporter");
+usePlugin("buidler-spdx-license-identifier");
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
@@ -19,24 +20,28 @@ const config: BuidlerConfig = {
   defaultNetwork: "buidlerevm",
   networks: {
     localhost: {
-      url: "http://127.0.0.1:8545"
+      url: "http://127.0.0.1:8545",
     },
     buidlerevm: {
       // See its defaults
-    }
+    },
   },
   solc: {
     version: "0.6.12",
     optimizer: {
       enabled: false,
-      runs: 200
-    }
+      runs: 200,
+    },
   },
   gasReporter: {
-    currency: 'USD',
+    currency: "USD",
     gasPrice: 21,
-    enabled: (process.env.REPORT_GAS) ? true : false
-  }
+    enabled: process.env.REPORT_GAS ? true : false,
+  },
+  spdxLicenseIdentifier: {
+    overwrite: true,
+    runOnCompile: true,
+  },
 };
 
 export default config;
