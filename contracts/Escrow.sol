@@ -11,9 +11,13 @@ import "./StaticProxy.sol";
 import "./adapters/EthAdapter.sol";
 
 contract Escrow is StaticStorage, ChainlinkClient, EthAdapter, Ownable {
-  address public comptroller;
 
+  event AmountLocked(address indexed seller, uint256 amount);
+  event AmountUnlocked(address indexed seller, uint256 amount);
+
+  address public comptroller;
   uint256 lockedAmount;
+
   struct Job {
     address buyer;
     uint256 amount;
@@ -41,14 +45,28 @@ contract Escrow is StaticStorage, ChainlinkClient, EthAdapter, Ownable {
     return rawSendAsset(_amount, payable(_to));
   }
 
+  function lockAmount(uint256 _amount) internal {
+    require(
+      getUnlockedBalance() > _amount,
+      "Escrow: insufficient funds to lock"
+    );
+    lockedAmount.add(_amount);
+    emit AmountLocked(address(this), _amount);
+  }
+
+  function unlockAmount(uint256 _amount) internal {
+    lockedAmount.sub(_amount);
+    emit AmountUnlocked(address(this), _amount);
+  }
+
   function expectResponseFor(
     address _oracle,
     bytes32 _requestId,
     address _buyer,
     uint256 _amount
   ) public onlyComptroller {
+    lockAmount(_amount);
     jobs[_requestId] = Job({buyer: _buyer, amount: _amount});
-    lockedAmount.add(_amount);
     addChainlinkExternalRequest(_oracle, _requestId);
   }
 
@@ -61,7 +79,7 @@ contract Escrow is StaticStorage, ChainlinkClient, EthAdapter, Ownable {
     if (successful) {
       rawSendAsset(job.amount, payable(job.buyer));
     } else {
-      lockedAmount.sub(job.amount);
+      unlockAmount(job.amount);
     }
   }
 }
