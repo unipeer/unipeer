@@ -1,10 +1,14 @@
 import {task, usePlugin} from "@nomiclabs/buidler/config";
 import {BuidlerConfig} from "@nomiclabs/buidler/config";
 
-usePlugin("@nomiclabs/buidler-truffle5");
+usePlugin('@nomiclabs/buidler-ethers');
 usePlugin("@nomiclabs/buidler-solhint");
+
+usePlugin('@openzeppelin/buidler-upgrades');
+
 usePlugin("buidler-gas-reporter");
 usePlugin("buidler-spdx-license-identifier");
+// usePlugin("buidler-typechain");
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
@@ -41,6 +45,10 @@ const config: BuidlerConfig = {
   spdxLicenseIdentifier: {
     overwrite: true,
     runOnCompile: true,
+  },
+  typechain: {
+    outDir: "types",
+    target: "ethers-v4", // TODO: change to ethers-v5 when buidler-typechain updates
   },
 };
 

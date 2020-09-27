@@ -7,10 +7,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "@nomiclabs/buidler/console.sol";
 
-import "./StaticProxy.sol";
 import "./adapters/EthAdapter.sol";
 
-contract Escrow is StaticStorage, ChainlinkClient, EthAdapter, Ownable {
+contract Escrow is ChainlinkClient, EthAdapter, Ownable {
 
   event AmountLocked(address indexed seller, uint256 amount);
   event AmountUnlocked(address indexed seller, uint256 amount);
