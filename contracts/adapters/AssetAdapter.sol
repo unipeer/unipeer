@@ -15,14 +15,24 @@ abstract contract AssetAdapter {
   function getBalance() internal virtual view returns (uint256 amount);
 
   /**
-   * Ensure the described asset is sent to the given address.
+   * @dev Safe alternative to transfer/send for ether.
+   * Reverts on failure.
+   *
+   * @param _recipient Address to send the funds from the contract
+   * @param _amount Amount to transfer in the lowest unit (wei for ether)
+   */
+  function sendValue(address payable _recipient, uint256 _amount) internal virtual;
+
+
+  /**
+   * @dev Ensure the described asset is sent to the given address.
    * Should revert if the transfer failed, but callers must also handle `false` being returned,
    * much like ERC-20's `transfer`.
    *
-   * @param _amount Amount to transfer in the lowest unit (wei for ether)
    * @param _to Address to send the funds from the contract
+   * @param _amount Amount to transfer in the lowest unit (wei for ether)
    */
-  function rawSendAsset(uint256 _amount, address payable _to)
+  function rawSendAsset(address payable _to, uint256 _amount)
     internal
     virtual
     returns (bool success);

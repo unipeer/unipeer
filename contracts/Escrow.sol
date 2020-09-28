@@ -38,12 +38,12 @@ contract Escrow is Initializable, Ownable, EthAdapter, ChainlinkClient {
     return getBalance().sub(lockedAmount);
   }
 
-  function withdraw(uint256 _amount, address _to) public onlyOwner() returns (bool success) {
+  function withdraw(uint256 _amount, address _to) public onlyOwner() {
     require(
       getUnlockedBalance() > _amount,
       "Escrow: cannot withdraw more than unlocked balance"
     );
-    return rawSendAsset(_amount, payable(_to));
+    sendValue(payable(_to), _amount);
   }
 
   function lockAmount(uint256 _amount) internal {
@@ -78,7 +78,7 @@ contract Escrow is Initializable, Ownable, EthAdapter, ChainlinkClient {
     delete jobs[_requestId]; // cleanup storage
 
     if (successful) {
-      rawSendAsset(job.amount, payable(job.buyer));
+      sendValue(payable(job.buyer), job.amount);
     } else {
       unlockAmount(job.amount);
     }

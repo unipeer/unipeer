@@ -2,6 +2,8 @@
 
 pragma solidity ^0.6.0;
 
+import "@openzeppelin/contracts/utils/Address.sol";
+
 import "./AssetAdapter.sol";
 
 contract EthAdapter is AssetAdapter {
@@ -16,7 +18,11 @@ contract EthAdapter is AssetAdapter {
     return address(this).balance;
   }
 
-  function rawSendAsset(uint256 _amount, address payable _to)
+  function sendValue(address payable _recipient, uint256 _amount) internal override {
+    Address.sendValue(_recipient, _amount);
+  }
+
+  function rawSendAsset(address payable _to, uint256 _amount)
     internal
     override
     returns (bool success)
