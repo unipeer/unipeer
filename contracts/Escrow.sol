@@ -4,26 +4,28 @@ pragma solidity ^0.6.0;
 
 import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/proxy/Initializable.sol";
 
 import "@nomiclabs/buidler/console.sol";
 
 import "./adapters/EthAdapter.sol";
 
-contract Escrow is ChainlinkClient, EthAdapter, Ownable {
+contract Escrow is Initializable, Ownable, EthAdapter, ChainlinkClient {
 
   event AmountLocked(address indexed seller, uint256 amount);
   event AmountUnlocked(address indexed seller, uint256 amount);
-
-  address public comptroller;
-  uint256 lockedAmount;
 
   struct Job {
     address buyer;
     uint256 amount;
   }
+
+  address public comptroller;
+  uint256 lockedAmount;
   mapping(bytes32 => Job) jobs;
 
-  constructor(address _comptroller) public {
+  // TODO: change this to be static with solpp?
+  function initialize(address _comptroller) public initializer {
     comptroller = _comptroller;
   }
 
