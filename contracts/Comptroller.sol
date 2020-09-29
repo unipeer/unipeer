@@ -33,7 +33,7 @@ contract Comptroller is ChainlinkClient {
   function requestFiatPayment(
     address _seller,
     address _buyer,
-    PaymentDetails memory payment
+    PaymentDetails calldata payment
   ) public {
     Escrow escrow = Escrow(_seller);
     require(

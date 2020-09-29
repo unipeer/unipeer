@@ -11,13 +11,17 @@ contract EthAdapter is AssetAdapter {
 
   constructor() internal AssetAdapter(ETH_TYPE_ID) {}
 
-  /**
-   * @dev Get the current balance of the Asset held by the implementing contract.
-   */
   function getBalance() internal override view returns (uint256 amount) {
     return address(this).balance;
   }
 
+  /**
+   * Use openzeppelins Address#sendValue to circumvent gas price increase after
+   * the istanbul fork.
+   *
+   * See Address#sendValue for more details or
+   * https://diligence.consensys.net/blog/2019/09/stop-using-soliditys-transfer-now/.
+   */
   function sendValue(address payable _recipient, uint256 _amount) internal override {
     Address.sendValue(_recipient, _amount);
   }
