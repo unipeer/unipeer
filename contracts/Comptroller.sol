@@ -15,7 +15,6 @@ contract Comptroller is ChainlinkClient {
 
   struct PaymentDetails {
     string sender;
-    string receiver;
     uint256 amount;
   }
 
@@ -48,8 +47,8 @@ contract Comptroller is ChainlinkClient {
       escrow.fulfillFiatPayment.selector // callback function selector
     );
     req.add("method", "collectrequest");
+    req.add("receiver", escrow.paymentid());
     req.add("sender", payment.sender);
-    req.add("receiver", payment.receiver);
     req.addUint("amount", payment.amount);
 
     bytes32 reqId = sendChainlinkRequest(req, fee);

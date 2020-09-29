@@ -21,12 +21,13 @@ contract Escrow is Initializable, Ownable, EthAdapter, ChainlinkClient {
   }
 
   address public comptroller;
+  string public paymentid;
   uint256 lockedAmount;
   mapping(bytes32 => Job) jobs;
 
-  // TODO: change this to be static with solpp?
-  function initialize(address _comptroller) public initializer {
-    comptroller = _comptroller;
+  function initialize(address _comptroller, string calldata _paymentid) public initializer {
+    comptroller = _comptroller;  // TODO: change this to be static with solpp?
+    paymentid = _paymentid;
   }
 
   modifier onlyComptroller() {
@@ -34,7 +35,7 @@ contract Escrow is Initializable, Ownable, EthAdapter, ChainlinkClient {
     _;
   }
 
-  function getUnlockedBalance() public view returns (uint256 amount) {
+  function getUnlockedBalance() public view returns (uint256) {
     return getBalance().sub(lockedAmount);
   }
 
