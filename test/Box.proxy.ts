@@ -13,7 +13,6 @@ describe('Box (proxy)', function () {
     const Box = await new BoxFactory(signer[0]);
 
     box = <BoxContract> await upgrades.deployProxy(Box, [42], {initializer: 'store'});
-    await box.deployed();
 
     console.log("Box deployed to:", box.address);
   });

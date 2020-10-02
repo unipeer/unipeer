@@ -13,7 +13,6 @@ describe('Box', function () {
     const Box= await new BoxFactory(signer[0]);
 
     box = await Box.deploy();
-    await box.deployed();
   });
 
   // Test case
