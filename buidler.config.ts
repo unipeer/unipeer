@@ -1,10 +1,10 @@
 import {task, usePlugin} from "@nomiclabs/buidler/config";
 import {BuidlerConfig} from "@nomiclabs/buidler/config";
 
-usePlugin('@nomiclabs/buidler-ethers');
+usePlugin("@nomiclabs/buidler-ethers");
 usePlugin("@nomiclabs/buidler-solhint");
 
-usePlugin('@openzeppelin/buidler-upgrades');
+usePlugin("@openzeppelin/buidler-upgrades");
 
 usePlugin("@blockchangers/buidler-typechain");
 usePlugin("buidler-gas-reporter");
@@ -18,6 +18,13 @@ task("accounts", "Prints the list of accounts", async (taskArgs, bre) => {
   for (const account of accounts) {
     console.log(account);
   }
+});
+
+task("test", "Runs mocha tests").setAction(async (args, {run}, runSuper) => {
+  if (!args.noCompile) {
+    await run("typechain");
+  }
+  await runSuper(args);
 });
 
 const config: BuidlerConfig = {
