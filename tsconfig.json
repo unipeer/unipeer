@@ -7,7 +7,7 @@
     "esModuleInterop": true,
     "outDir": "dist",
     "typeRoots": ["./node_modules/@types", "./types"],
-    "types": ["node", "truffle-contracts"]
+    "types": ["node"]
   },
   "include": [
     "./scripts",
@@ -24,7 +24,8 @@
     "./node_modules/@openzeppelin/buidler-upgrades/src/type-extensions.d.ts",
     "./node_modules/buidler-gas-reporter/src/type-extensions.d.ts",
     "./node_modules/buidler-spdx-license-identifier/type-extensions.d.ts",
-    "./node_modules/buidler-typechain/src/type-extensions.d.ts",
-    "./types/ethers-contracts/index.d.ts"
+    "./node_modules/@blockchangers/buidler-typechain/src/type-extensions.d.ts",
+    "./node_modules/ethers/lib/index.d.ts",
+    "./node_modules/ethers/lib/utils.d.ts",
   ]
 }

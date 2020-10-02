@@ -6,9 +6,9 @@ usePlugin("@nomiclabs/buidler-solhint");
 
 usePlugin('@openzeppelin/buidler-upgrades');
 
+usePlugin("@blockchangers/buidler-typechain");
 usePlugin("buidler-gas-reporter");
 usePlugin("buidler-spdx-license-identifier");
-// usePlugin("buidler-typechain");
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
@@ -48,7 +48,7 @@ const config: BuidlerConfig = {
   },
   typechain: {
     outDir: "types",
-    target: "ethers-v4", // TODO: change to ethers-v5 when buidler-typechain updates
+    target: "ethers-v5",
   },
 };
 
