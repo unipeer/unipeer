@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "./AssetAdapter.sol";
 
 contract EthAdapter is AssetAdapter {
+  event Deposit(address, uint);
+
   uint16 internal constant ETH_TYPE_ID = 1;
 
   constructor() internal AssetAdapter(ETH_TYPE_ID) {}
@@ -32,5 +34,15 @@ contract EthAdapter is AssetAdapter {
     returns (bool success)
   {
     return _to.send(_amount);
+  }
+
+  /**
+   * @dev We have the payable receive function to accept ether payment only
+   * and not the fallback function to avoid delegating calls further.
+   *
+   * TODO: Switch to using a specific deposit function?
+   */
+  receive() external payable {
+      emit Deposit(msg.sender, msg.value);
   }
 }

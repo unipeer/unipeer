@@ -2,6 +2,8 @@
 
 pragma solidity ^0.6.0;
 
+import "@nomiclabs/buidler/console.sol";
+
 contract Box {
     uint256 private value;
 
@@ -10,6 +12,7 @@ contract Box {
 
     // Stores a new value in the contract
     function store(uint256 newValue) public {
+        console.log("Changing value from", value, "to", newValue);
         value = newValue;
         emit ValueChanged(newValue);
     }

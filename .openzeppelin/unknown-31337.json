@@ -1,16 +1,16 @@
 {
   "manifestVersion": "3.1",
   "impls": {
-    "a65cdfa308566facef6065beb9e631bc7782c0699e2093fd7f5bc24c50583bce": {
+    "25fc08b9556efd4739c212551761fd3034cd0486aff22a60054a65d532624ed8": {
       "address": "0x7c2C195CD6D34B8F845992d380aADB2730bB9C6F",
-      "txHash": "0x279d4322ab2cde7028b994bc9dbe84d177137a12ad9610a93675e857caa254f5",
+      "txHash": "0xd99e6e59d34c55f21cb4412d46faa687a90b680becf7d4c4dca94dc285b5bcde",
       "layout": {
         "storage": [
           {
             "contract": "Box",
             "label": "value",
             "type": "t_uint256",
-            "src": "contracts/Box.sol:6"
+            "src": "contracts/Box.sol:8"
           }
         ],
         "types": {

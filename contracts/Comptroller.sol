@@ -35,7 +35,7 @@ contract Comptroller is ChainlinkClient {
     address _buyer,
     PaymentDetails calldata payment
   ) public {
-    Escrow escrow = Escrow(_seller);
+    Escrow escrow = Escrow(payable(_seller));
     require(
       escrow.getUnlockedBalance() > payment.amount,
       "Comptroller: not enough funds in escrow"
