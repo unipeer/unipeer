@@ -10,14 +10,14 @@ let escrow: EscrowContract;
 let accounts: etherstype.Signer[];
 
 describe('Escrow', function () {
-  beforeEach(async function () {
+  before(async function () {
     accounts = await ethers.getSigners();
     const Escrow = await new EscrowFactory(accounts[0]);
 
     escrow = await Escrow.deploy();
   });
 
-  it('can get balance when no amount is locked', async function () {
+  it('can deposit additional funds to the contract', async function () {
     expect((await escrow.getUnlockedBalance()).toString()).to.equal('0');
 
     await accounts[0].sendTransaction({
@@ -26,5 +26,13 @@ describe('Escrow', function () {
     });
 
     expect((await escrow.getUnlockedBalance()).toString()).to.equal('1000000000000000000');
+  });
+
+  it('can withdraw funds from the contract', async function () {
+    expect((await escrow.getUnlockedBalance()).toString()).to.equal('1000000000000000000');
+
+    await escrow.withdraw(ethers.utils.parseEther("1.0"), await accounts[1].getAddress());
+
+    expect((await escrow.getUnlockedBalance()).toString()).to.equal('0');
   });
 });

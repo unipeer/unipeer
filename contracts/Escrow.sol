@@ -42,7 +42,7 @@ contract Escrow is Initializable, Ownable, EthAdapter, ChainlinkClient {
 
   function withdraw(uint256 _amount, address _to) public onlyOwner() {
     require(
-      getUnlockedBalance() > _amount,
+      getUnlockedBalance() >= _amount,
       "Escrow: cannot withdraw more than unlocked balance"
     );
     sendValue(payable(_to), _amount);
