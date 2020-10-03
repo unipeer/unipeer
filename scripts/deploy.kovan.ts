@@ -11,9 +11,13 @@ async function main() {
   await run("compile");
 
   const accounts = await ethers.getSigners();
-  const Comptroller = await new ComptrollerFactory(accounts[0]);
-  console.log("Deploying Comptroller...");
+  const account = accounts[0];
 
+  const Comptroller = await new ComptrollerFactory(account);
+  const Escrow = await new EscrowFactory(account);
+  const Proxy = await new StaticProxyFactory(account);
+
+  console.log("Deploying Comptroller...");
   let comptroller = await Comptroller.deploy(
     "0x98cbfb4f664e6b35a32930c90e43f03b5eab50da",
     web3.utils.toHex("10cb58b1b1cc43268d0928f62cec31bb")
@@ -21,11 +25,9 @@ async function main() {
 
   console.log("Comptroller deployed to:", comptroller.address);
 
-  const Escrow = await new EscrowFactory(accounts[0]);
   const escrow = await Escrow.deploy(comptroller.address);
 
   const data = getInitializerData(Escrow, ["test@upi"], "initialize");
-  const Proxy = await new StaticProxyFactory(accounts[0]);
   const proxy = await Proxy.deploy(escrow.address, data);
 
   console.log("Escrow deployed to:", proxy.address);

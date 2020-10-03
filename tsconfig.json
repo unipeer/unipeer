@@ -10,7 +10,7 @@
     "types": ["node"]
   },
   "include": [
-    "./scripts",
+    "./scripts/*.ts",
     "./src/*.ts",
     "./test/*.ts",
     "./src/**/*.ts",
