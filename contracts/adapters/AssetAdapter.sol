@@ -3,11 +3,6 @@
 pragma solidity ^0.6.0;
 
 abstract contract AssetAdapter {
-  uint16 public ASSET_TYPE;
-
-  constructor(uint16 assetType) internal {
-    ASSET_TYPE = assetType;
-  }
 
   /**
    * @dev Get the current balance of the Asset held by the implementing contract.

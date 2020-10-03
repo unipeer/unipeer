@@ -4,14 +4,13 @@ pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 
 import "@nomiclabs/buidler/console.sol";
 
 import "./adapters/EthAdapter.sol";
 
-contract Escrow is Initializable, Ownable, EthAdapter, ChainlinkClient {
+contract Escrow is Initializable, EthAdapter, ChainlinkClient {
 
   event AmountLocked(address indexed seller, uint256 amount);
   event AmountUnlocked(address indexed seller, uint256 amount);
@@ -21,16 +20,39 @@ contract Escrow is Initializable, Ownable, EthAdapter, ChainlinkClient {
     uint256 amount;
   }
 
+  address public owner;
   address public comptroller;
-  string public paymentid;
-  uint256 lockedAmount;
-  mapping(bytes32 => Job) jobs;
 
-  function initialize(address _comptroller, string calldata _paymentid) public initializer {
+  uint256 private lockedAmount;
+  mapping(bytes32 => Job) private jobs;
+
+  string public paymentid;
+
+  /**
+   * @dev Its safe to have a constructor with a static proxy
+   * for values that are static i.e same for all proxy/users.
+   *
+   */
+  constructor(address _comptroller) public ChainlinkClient() {
     comptroller = _comptroller;  // TODO: change this to be static with solpp?
+  }
+
+  function initialize(string calldata _paymentid) public initializer {
+    owner = msg.sender;
     paymentid = _paymentid;
   }
 
+  /**
+   * @dev Throws if called by any account other than the owner.
+   */
+  modifier onlyOwner() {
+    require(owner == msg.sender, "Ownable: caller is not the owner");
+    _;
+  }
+
+  /**
+   * @dev Throws if called by any account other than the owner.
+   */
   modifier onlyComptroller() {
     require(comptroller == msg.sender, "Escrow: caller is not the comptroller");
     _;

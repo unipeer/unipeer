@@ -11,8 +11,6 @@ contract EthAdapter is AssetAdapter {
 
   uint16 internal constant ETH_TYPE_ID = 1;
 
-  constructor() internal AssetAdapter(ETH_TYPE_ID) {}
-
   function getBalance() internal override view returns (uint256 amount) {
     return address(this).balance;
   }

@@ -1,9 +1,11 @@
-import {run, ethers, upgrades } from "@nomiclabs/buidler";
+import {run, ethers, upgrades} from "@nomiclabs/buidler";
 import web3 from "web3";
+import * as etherstype from "ethers";
 
-import {ComptrollerFactory, EscrowFactory} from "../types";
+import {ComptrollerFactory, EscrowFactory, StaticProxyFactory} from "../types";
 import {Comptroller as ComptrollerContract} from "../types/Comptroller";
 import {Escrow as EscrowContract} from "../types/Escrow";
+import {StaticProxy as StaticProxyContract} from "../types/StaticProxy";
 
 async function main() {
   await run("compile");
@@ -20,11 +22,34 @@ async function main() {
   console.log("Comptroller deployed to:", comptroller.address);
 
   const Escrow = await new EscrowFactory(accounts[0]);
-  const escrow = await upgrades.deployProxy(Escrow, [comptroller.address, ""], {
-    initializer: "initialize",
-  });
+  const escrow = await Escrow.deploy(comptroller.address);
 
-  console.log("Escrow deployed to:", escrow.address);
+  const data = getInitializerData(Escrow, ["test@upi"], "initialize");
+  const Proxy = await new StaticProxyFactory(accounts[0]);
+  const proxy = await Proxy.deploy(escrow.address, data);
+
+  console.log("Escrow deployed to:", proxy.address);
+}
+
+function getInitializerData(
+  ImplFactory: etherstype.ContractFactory,
+  args: unknown[],
+  initializer?: string
+): string {
+  const allowNoInitialization = initializer === undefined && args.length === 0;
+  initializer = initializer ?? "initialize";
+
+  try {
+    const fragment = ImplFactory.interface.getFunction(initializer);
+    return ImplFactory.interface.encodeFunctionData(fragment, args);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      if (allowNoInitialization && e.message.includes("no matching function")) {
+        return "0x";
+      }
+    }
+    throw e;
+  }
 }
 
 main()
