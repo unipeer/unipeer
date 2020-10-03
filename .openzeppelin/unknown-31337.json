@@ -3,7 +3,7 @@
   "impls": {
     "25fc08b9556efd4739c212551761fd3034cd0486aff22a60054a65d532624ed8": {
       "address": "0x7c2C195CD6D34B8F845992d380aADB2730bB9C6F",
-      "txHash": "0xd99e6e59d34c55f21cb4412d46faa687a90b680becf7d4c4dca94dc285b5bcde",
+      "txHash": "0x92054170b6e7bbe3258e08d4f1ec69b5dfa51242920bbdab7e12cad6454b28a7",
       "layout": {
         "storage": [
           {
@@ -23,6 +23,6 @@
   },
   "admin": {
     "address": "0x8858eeB3DfffA017D4BCE9801D340D36Cf895CCf",
-    "txHash": "0xb8662a877fa5b5ebf4b0558f5a3c9c50ac4d4d561d86c00ec53667197413ad53"
+    "txHash": "0xe0970c29652a4ec9640163e2d6ebb5deacc30f81ee15d86aa1f7e041a8d3f2e7"
   }
 }

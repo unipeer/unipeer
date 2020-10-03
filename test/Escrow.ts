@@ -14,7 +14,8 @@ describe('Escrow', function () {
     accounts = await ethers.getSigners();
     const Escrow = await new EscrowFactory(accounts[0]);
 
-    escrow = await Escrow.deploy();
+    escrow = await Escrow.deploy(ethers.constants.AddressZero);
+    await escrow.initialize("test@upi");
   });
 
   it('can deposit additional funds to the contract', async function () {
