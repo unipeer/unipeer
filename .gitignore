@@ -1,6 +1,4 @@
 #Buidler files
-cache
-artifacts
 node_modules
 types
-dist
+build

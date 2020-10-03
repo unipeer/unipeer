@@ -56,6 +56,10 @@ const config: BuidlerConfig = {
     outDir: "types",
     target: "ethers-v5",
   },
+  paths: {
+    cache: "./build/cache",
+    artifacts: "./build/artifacts"
+  }
 };
 
 export default config;
