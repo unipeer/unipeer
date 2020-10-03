@@ -9,6 +9,7 @@ usePlugin("@openzeppelin/buidler-upgrades");
 usePlugin("@blockchangers/buidler-typechain");
 usePlugin("buidler-gas-reporter");
 usePlugin("buidler-spdx-license-identifier");
+usePlugin('buidler-local-networks-config-plugin');
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
@@ -29,12 +30,10 @@ task("test", "Runs mocha tests").setAction(async (args, {run}, runSuper) => {
 
 const config: BuidlerConfig = {
   defaultNetwork: "buidlerevm",
+  localNetworksConfig: '~/.buidler/networks.json',
   networks: {
     localhost: {
       url: "http://127.0.0.1:8545",
-    },
-    buidlerevm: {
-      // See its defaults
     },
   },
   solc: {
