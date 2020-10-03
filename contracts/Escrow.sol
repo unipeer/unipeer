@@ -29,9 +29,9 @@ contract Escrow is Initializable, EthAdapter, ChainlinkClient {
   string public paymentid;
 
   /**
-   * @dev Its safe to have a constructor with a static proxy
-   * for values that are static i.e same for all proxy/users.
    *
+   * @dev Its safe to have a constructor with a static proxy
+   * for values that are static i.e same for all proxies/users.
    */
   constructor(address _comptroller) public ChainlinkClient() {
     comptroller = _comptroller;  // TODO: change this to be static with solpp?

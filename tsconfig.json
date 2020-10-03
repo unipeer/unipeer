@@ -24,7 +24,7 @@
     "./node_modules/@openzeppelin/buidler-upgrades/src/type-extensions.d.ts",
     "./node_modules/buidler-gas-reporter/src/type-extensions.d.ts",
     "./node_modules/buidler-spdx-license-identifier/type-extensions.d.ts",
-    "./node_modules/@blockchangers/buidler-typechain/src/type-extensions.d.ts",
+    "./node_modules/@unipeer/buidler-typechain/src/type-extensions.d.ts",
     "./node_modules/buidler-local-networks-config-plugin/src/type-extensions.d.ts",
     "./node_modules/ethers/lib/index.d.ts",
     "./node_modules/ethers/lib/utils.d.ts"
