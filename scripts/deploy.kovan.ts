@@ -9,6 +9,7 @@ import {StaticProxy as StaticProxyContract} from "../types/StaticProxy";
 
 async function main() {
   await run("compile");
+  await run("typechain");
 
   const accounts = await ethers.getSigners();
   const account = accounts[0];

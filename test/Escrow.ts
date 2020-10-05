@@ -7,21 +7,24 @@ import { EscrowFactory } from "../types"
 import { Escrow as EscrowContract } from "../types/Escrow"
 
 let escrow: EscrowContract;
-let accounts: Signer[];
+let admin: Signer;
+let owner: Signer;
 
 describe('Escrow', function () {
   before(async function () {
-    accounts = await ethers.getSigners();
-    const Escrow = await new EscrowFactory(accounts[0]);
+    [admin, owner] = await ethers.getSigners();
+    const Escrow = await new EscrowFactory(admin);
 
     escrow = await Escrow.deploy(ethers.constants.AddressZero);
-    await escrow.initialize("test@upi");
+    escrow = escrow.connect(owner); // All transactions will be sent from the owner account.
   });
 
   it('can deposit additional funds to the contract', async function () {
     expect((await escrow.getUnlockedBalance()).toString()).to.equal('0');
 
-    await accounts[0].sendTransaction({
+    await escrow.initialize("test@upi");
+
+    await owner.sendTransaction({
       to: escrow.address,
       value: ethers.utils.parseEther("1.0")
     });
@@ -32,7 +35,7 @@ describe('Escrow', function () {
   it('can withdraw funds from the contract', async function () {
     expect((await escrow.getUnlockedBalance()).toString()).to.equal('1000000000000000000');
 
-    await escrow.withdraw(ethers.utils.parseEther("1.0"), await accounts[1].getAddress());
+    await escrow.withdraw(ethers.utils.parseEther("1.0"), await owner.getAddress());
 
     expect((await escrow.getUnlockedBalance()).toString()).to.equal('0');
   });
