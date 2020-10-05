@@ -12,7 +12,7 @@
   "author": "Shaleen Jain <shaleen@jain.sh>",
   "license": "UNLICENSED",
   "devDependencies": {
-    "@unipeer/buidler-typechain": "^0.1.7",
+    "@unipeer/buidler-typechain": "^0.1.8",
     "@chainlink/contracts": "0.0.9",
     "@codechecks/client": "^0.1.10",
     "@nomiclabs/buidler": "^1.4.7",

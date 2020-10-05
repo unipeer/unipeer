@@ -72,7 +72,7 @@ contract Escrow is Initializable, EthAdapter, ChainlinkClient {
 
   function lockAmount(uint256 _amount) internal {
     require(
-      getUnlockedBalance() > _amount,
+      getUnlockedBalance() >= _amount,
       "Escrow: insufficient funds to lock"
     );
     lockedAmount.add(_amount);
