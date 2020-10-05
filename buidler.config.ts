@@ -10,6 +10,7 @@ usePlugin("@unipeer/buidler-typechain");
 usePlugin("buidler-gas-reporter");
 usePlugin("buidler-spdx-license-identifier");
 usePlugin('buidler-local-networks-config-plugin');
+usePlugin('buidler-abi-exporter');
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
@@ -50,6 +51,11 @@ const config: BuidlerConfig = {
     target: "ethers-v5",
     onTest: true,
     onCompile: false
+  },
+  abiExporter: {
+    path: './src/abi',
+    only: ['Comptroller', "Escrow", "StaticProxy"],
+    clear: true,
   },
   paths: {
     cache: "./build/cache",

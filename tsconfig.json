@@ -19,13 +19,14 @@
   ],
   "exclude": ["node_modules", "example", "build"],
   "files": [
-    "./buidler.config.ts",
-    "./node_modules/@nomiclabs/buidler-web3/src/type-extensions.d.ts",
-    "./node_modules/@nomiclabs/buidler-ethers/src/type-extensions.d.ts",
-    "./node_modules/@openzeppelin/buidler-upgrades/src/type-extensions.d.ts",
-    "./node_modules/buidler-gas-reporter/src/type-extensions.d.ts",
-    "./node_modules/buidler-spdx-license-identifier/type-extensions.d.ts",
-    "./node_modules/@unipeer/buidler-typechain/src/type-extensions.d.ts",
-    "./node_modules/buidler-local-networks-config-plugin/src/type-extensions.d.ts",
+    "buidler.config.ts",
+    "node_modules/@nomiclabs/buidler-web3/src/type-extensions.d.ts",
+    "node_modules/@nomiclabs/buidler-ethers/src/type-extensions.d.ts",
+    "node_modules/@openzeppelin/buidler-upgrades/src/type-extensions.d.ts",
+    "node_modules/buidler-gas-reporter/src/type-extensions.d.ts",
+    "node_modules/buidler-spdx-license-identifier/type-extensions.d.ts",
+    "node_modules/@unipeer/buidler-typechain/src/type-extensions.d.ts",
+    "node_modules/buidler-local-networks-config-plugin/src/type-extensions.d.ts",
+    "node_modules/buidler-abi-exporter/type-extensions.d.ts"
   ]
 }
