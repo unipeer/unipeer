@@ -1,4 +1,4 @@
-name: Unit Test
+name: Contracts
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
       - v*
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -33,9 +33,13 @@ jobs:
       run: |
         npx buidler node &
 
+    - name: Compile
+      run: |
+        npx buidler typechain
+
     - name: Test
       run: |
         npx buidler test --network localhost
       env:
-        production: true
-        report_gas: true
+        PRODUCTION: true
+        REPOST_GAS: true
