@@ -3,7 +3,6 @@
 ## TODO
 
 * Fix solhint plugin
-* Fix typechain plugin
 
 ## Constants
 
@@ -28,7 +27,7 @@ npx buidler compile
 ## Generate Types for contracts
 
 ```
-npx buidler compile && npm run generate-types
+npm run generate-types
 ```
 
 ## Debug

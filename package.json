@@ -1,10 +1,10 @@
 {
-  "name": "peer-exchange",
+  "name": "unipeer",
   "version": "0.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "generate-types": "npx typechain --target=ethers-v5 'artifacts/*.json'",
+    "generate-types": "npx buidler typechain",
     "typecheck": "tsc --noEmit",
     "prettier": "prettier --write **/*.sol",
     "test": "npx buidler test"
