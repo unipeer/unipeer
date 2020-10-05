@@ -1,6 +1,6 @@
 import {run, ethers, upgrades} from "@nomiclabs/buidler";
 import web3 from "web3";
-import * as etherstype from "ethers";
+import { ContractFactory } from "ethers";
 
 import {ComptrollerFactory, EscrowFactory, StaticProxyFactory} from "../types";
 import {Comptroller as ComptrollerContract} from "../types/Comptroller";
@@ -34,7 +34,7 @@ async function main() {
 }
 
 function getInitializerData(
-  ImplFactory: etherstype.ContractFactory,
+  ImplFactory: ContractFactory,
   args: unknown[],
   initializer?: string
 ): string {

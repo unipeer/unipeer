@@ -1,5 +1,5 @@
 import { ethers, run } from "@nomiclabs/buidler";
-import * as etherstype from "ethers";
+import { Signer } from "ethers";
 
 import { expect } from 'chai';
 
@@ -7,7 +7,7 @@ import { EscrowFactory } from "../types"
 import { Escrow as EscrowContract } from "../types/Escrow"
 
 let escrow: EscrowContract;
-let accounts: etherstype.Signer[];
+let accounts: Signer[];
 
 describe('Escrow', function () {
   before(async function () {

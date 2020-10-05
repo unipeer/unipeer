@@ -5,6 +5,7 @@
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true,
+    "resolveJsonModule": true,
     "outDir": "build/dist",
     "typeRoots": ["./node_modules/@types", "./types"],
     "types": ["node"]
@@ -26,7 +27,5 @@
     "./node_modules/buidler-spdx-license-identifier/type-extensions.d.ts",
     "./node_modules/@unipeer/buidler-typechain/src/type-extensions.d.ts",
     "./node_modules/buidler-local-networks-config-plugin/src/type-extensions.d.ts",
-    "./node_modules/ethers/lib/index.d.ts",
-    "./node_modules/ethers/lib/utils.d.ts"
   ]
 }
