@@ -42,4 +42,4 @@ jobs:
         npx buidler test --network localhost
       env:
         PRODUCTION: true
-        REPOST_GAS: true
+        REPORT_GAS: true

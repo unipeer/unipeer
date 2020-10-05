@@ -19,10 +19,29 @@
           }
         }
       }
+    },
+    "aedbc0ca3ea7eaf26a6237d833a2b5847ea666db0e633bd90aef5ba01a5b6a89": {
+      "address": "0x78Aeff0658Fa67735fBF99Ce7CDB01Fe5D520259",
+      "txHash": "0x366457dc03d30423ff0af6d2999cd4d257d1eb75879255165fab0cadffcff5ac",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Box",
+            "label": "value",
+            "type": "t_uint256",
+            "src": "contracts/Box.sol:8"
+          }
+        ],
+        "types": {
+          "t_uint256": {
+            "label": "uint256"
+          }
+        }
+      }
     }
   },
   "admin": {
-    "address": "0x8858eeB3DfffA017D4BCE9801D340D36Cf895CCf",
-    "txHash": "0xb8662a877fa5b5ebf4b0558f5a3c9c50ac4d4d561d86c00ec53667197413ad53"
+    "address": "0x0C6c3C47A1f650809B0D1048FDf9603e09473D7E",
+    "txHash": "0x7992b3ac88937eda564c505d4cdb074d4eae2e809a601a3875f036d821fe285a"
   }
 }
