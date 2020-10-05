@@ -1,0 +1,41 @@
+name: Unit Test
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - v*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Use Node.js 10.x
+      uses: actions/setup-node@v1
+      with:
+        node-version: '10.x'
+
+    - name: Cache Node Modules
+      id: cache-npm-modules
+      uses: actions/cache@v1
+      with:
+        path: node_modules
+        key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+    - name: Install
+      if: steps.cache-npm-modules.outputs.cache-hit != 'true'
+      run: |
+        npm install
+
+    - name: Start buidlerevm node
+      run: |
+        npx buidler node &
+
+    - name: Test
+      run: |
+        npx buidler test --network localhost
+      env:
+        production: true
+        report_gas: true
