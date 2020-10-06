@@ -6,8 +6,6 @@ pragma experimental ABIEncoderV2;
 import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 
-import "@nomiclabs/buidler/console.sol";
-
 import "./adapters/EthAdapter.sol";
 
 contract Escrow is Initializable, EthAdapter, ChainlinkClient {
@@ -58,6 +56,20 @@ contract Escrow is Initializable, EthAdapter, ChainlinkClient {
     _;
   }
 
+  function _lockAmount(uint256 _amount) internal {
+    require(
+      getUnlockedBalance() >= _amount,
+      "Escrow: insufficient funds to lock"
+    );
+    lockedAmount.add(_amount);
+    emit AmountLocked(address(this), _amount);
+  }
+
+  function _unlockAmount(uint256 _amount) internal {
+    lockedAmount.sub(_amount);
+    emit AmountUnlocked(address(this), _amount);
+  }
+
   function getUnlockedBalance() public view returns (uint256) {
     return getBalance().sub(lockedAmount);
   }
@@ -68,20 +80,6 @@ contract Escrow is Initializable, EthAdapter, ChainlinkClient {
       "Escrow: cannot withdraw more than unlocked balance"
     );
     sendValue(payable(_to), _amount);
-  }
-
-  function lockAmount(uint256 _amount) internal {
-    require(
-      getUnlockedBalance() >= _amount,
-      "Escrow: insufficient funds to lock"
-    );
-    lockedAmount.add(_amount);
-    emit AmountLocked(address(this), _amount);
-  }
-
-  function unlockAmount(uint256 _amount) internal {
-    lockedAmount.sub(_amount);
-    emit AmountUnlocked(address(this), _amount);
   }
 
   function expectResponseFor(
