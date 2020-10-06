@@ -1,6 +1,10 @@
 import {task, usePlugin} from "@nomiclabs/buidler/config";
 import {BuidlerConfig} from "@nomiclabs/buidler/config";
 
+// Loads environment variables
+// Used only in development
+require('dotenv').config({silent: true});
+
 usePlugin("@nomiclabs/buidler-ethers");
 usePlugin("@nomiclabs/buidler-solhint");
 usePlugin("@nomiclabs/buidler-etherscan");
