@@ -1,8 +1,17 @@
 # Unipeer
 
-## TODO
+Unipeer is non-custodial p2p fiat on/off ramp built using Ethereum Escrow contracts
+and open banking APIs.
 
-* Fix solhint plugin
+We are leveraging India's UPI (Unified Payments Interface) to connect traditional
+payments to the Ethereum blockchain via Chainlink oracles.
+
+## Roadmap
+
+- [x] Integrate a UPI API to a chainlink node as an External Adapter.
+- [ ] Add pricing information between ETH/INR or USD/INR. (UMA or chainlink)
+- [ ] On/Off chain order matching mechanism that matches buyers to sellers.
+- [ ] Move to a zk or optimistic rollup.
 
 ## Constants
 
