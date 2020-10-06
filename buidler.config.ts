@@ -3,6 +3,7 @@ import {BuidlerConfig} from "@nomiclabs/buidler/config";
 
 usePlugin("@nomiclabs/buidler-ethers");
 usePlugin("@nomiclabs/buidler-solhint");
+usePlugin("@nomiclabs/buidler-etherscan");
 
 usePlugin("@openzeppelin/buidler-upgrades");
 
@@ -56,6 +57,11 @@ const config: BuidlerConfig = {
     path: './src/abi',
     only: ['Comptroller', "Escrow", "StaticProxy"],
     clear: true,
+  },
+  etherscan: {
+    // Your API key for Etherscan
+    // Obtain one at https://etherscan.io/
+    apiKey: process.env.ETHERSCAN_API
   },
   paths: {
     cache: "./build/cache",
