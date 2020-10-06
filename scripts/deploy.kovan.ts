@@ -1,6 +1,6 @@
 import {run, ethers, upgrades} from "@nomiclabs/buidler";
 import web3 from "web3";
-import { ContractFactory } from "ethers";
+import {ContractFactory} from "ethers";
 
 import {ComptrollerFactory, EscrowFactory, StaticProxyFactory} from "../types";
 import {Comptroller as ComptrollerContract} from "../types/Comptroller";
@@ -8,7 +8,6 @@ import {Escrow as EscrowContract} from "../types/Escrow";
 import {StaticProxy as StaticProxyContract} from "../types/StaticProxy";
 
 async function main() {
-  await run("compile");
   await run("typechain");
 
   const accounts = await ethers.getSigners();
@@ -32,6 +31,33 @@ async function main() {
   const proxy = await Proxy.deploy(escrow.address, data);
 
   console.log("Escrow deployed to:", proxy.address);
+
+  // Verify the contracts on etherscan
+  // The network will be the same as the one specified
+  // when running this deploy script.
+  // TODO: be DRY with arguments and addresses?
+  await run("verify", {
+    address: comptroller.address,
+    constructorArguments: [
+      "0x98cbfb4f664e6b35a32930c90e43f03b5eab50da",
+      web3.utils.toHex("10cb58b1b1cc43268d0928f62cec31bb"),
+    ],
+  });
+
+  await run("verify", {
+    address: escrow.address,
+    constructorArguments: [
+      comptroller.address
+    ],
+  });
+
+  await run("verify", {
+    address: proxy.address,
+    constructorArguments: [
+      escrow.address,
+      data
+    ],
+  });
 }
 
 function getInitializerData(
