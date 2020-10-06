@@ -33,11 +33,12 @@ contract Comptroller is ChainlinkClient {
   function requestFiatPayment(
     address _seller,
     address _buyer,
-    PaymentDetails calldata payment
+    uint256 amount,
+    string calldata senderpaymentid
   ) public {
     Escrow escrow = Escrow(payable(_seller));
     require(
-      escrow.getUnlockedBalance() > payment.amount,
+      escrow.getUnlockedBalance() >= amount,
       "Comptroller: not enough funds in escrow"
     );
 
@@ -48,15 +49,15 @@ contract Comptroller is ChainlinkClient {
     );
     req.add("method", "collectrequest");
     req.add("receiver", escrow.paymentid());
-    req.add("sender", payment.sender);
-    req.addUint("amount", payment.amount);
+    req.add("sender", senderpaymentid);
+    req.addUint("amount", amount);
 
     bytes32 reqId = sendChainlinkRequest(req, fee);
     escrow.expectResponseFor(
       chainlinkOracleAddress(),
       reqId,
       _buyer,
-      payment.amount
+      amount
     );
   }
 }
