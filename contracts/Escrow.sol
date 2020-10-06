@@ -21,7 +21,7 @@ contract Escrow is Initializable, EthAdapter, ChainlinkClient {
   address public owner;
   address public comptroller;
 
-  uint256 private lockedAmount;
+  uint256 private amountLocked;
   mapping(bytes32 => Job) private jobs;
 
   string public paymentid;
@@ -61,17 +61,17 @@ contract Escrow is Initializable, EthAdapter, ChainlinkClient {
       getUnlockedBalance() >= _amount,
       "Escrow: insufficient funds to lock"
     );
-    lockedAmount.add(_amount);
+    amountLocked.add(_amount);
     emit AmountLocked(address(this), _amount);
   }
 
   function _unlockAmount(uint256 _amount) internal {
-    lockedAmount.sub(_amount);
+    amountLocked.sub(_amount);
     emit AmountUnlocked(address(this), _amount);
   }
 
   function getUnlockedBalance() public view returns (uint256) {
-    return getBalance().sub(lockedAmount);
+    return getBalance().sub(amountLocked);
   }
 
   function withdraw(uint256 _amount, address _to) public onlyOwner() {
@@ -88,7 +88,7 @@ contract Escrow is Initializable, EthAdapter, ChainlinkClient {
     address _buyer,
     uint256 _amount
   ) public onlyComptroller {
-    lockAmount(_amount);
+    _lockAmount(_amount);
     jobs[_requestId] = Job({buyer: _buyer, amount: _amount});
     addChainlinkExternalRequest(_oracle, _requestId);
   }
@@ -102,7 +102,7 @@ contract Escrow is Initializable, EthAdapter, ChainlinkClient {
     if (successful) {
       sendValue(payable(job.buyer), job.amount);
     } else {
-      unlockAmount(job.amount);
+      _unlockAmount(job.amount);
     }
   }
 }

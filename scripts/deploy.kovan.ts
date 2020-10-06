@@ -1,11 +1,13 @@
 import {run, ethers, upgrades} from "@nomiclabs/buidler";
 import web3 from "web3";
-import {ContractFactory} from "ethers";
+import {constants} from "ethers";
 
 import {ComptrollerFactory, EscrowFactory, StaticProxyFactory} from "../types";
 import {Comptroller as ComptrollerContract} from "../types/Comptroller";
 import {Escrow as EscrowContract} from "../types/Escrow";
 import {StaticProxy as StaticProxyContract} from "../types/StaticProxy";
+
+import {getInitializerData} from "../utils";
 
 async function main() {
   await run("typechain");
@@ -20,7 +22,8 @@ async function main() {
   console.log("Deploying Comptroller...");
   let comptroller = await Comptroller.deploy(
     "0x98cbfb4f664e6b35a32930c90e43f03b5eab50da",
-    web3.utils.toHex("10cb58b1b1cc43268d0928f62cec31bb")
+    web3.utils.toHex("10cb58b1b1cc43268d0928f62cec31bb"),
+    constants.AddressZero
   );
 
   console.log("Comptroller deployed to:", comptroller.address);
@@ -58,27 +61,6 @@ async function main() {
       data
     ],
   });
-}
-
-function getInitializerData(
-  ImplFactory: ContractFactory,
-  args: unknown[],
-  initializer?: string
-): string {
-  const allowNoInitialization = initializer === undefined && args.length === 0;
-  initializer = initializer ?? "initialize";
-
-  try {
-    const fragment = ImplFactory.interface.getFunction(initializer);
-    return ImplFactory.interface.encodeFunctionData(fragment, args);
-  } catch (e: unknown) {
-    if (e instanceof Error) {
-      if (allowNoInitialization && e.message.includes("no matching function")) {
-        return "0x";
-      }
-    }
-    throw e;
-  }
 }
 
 main()
