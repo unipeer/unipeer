@@ -5,7 +5,7 @@ import {BuidlerConfig} from "@nomiclabs/buidler/config";
 // Used only in development
 require('dotenv').config({silent: true});
 
-usePlugin("@nomiclabs/buidler-ethers");
+usePlugin("@nomiclabs/buidler-waffle");
 usePlugin("@nomiclabs/buidler-solhint");
 usePlugin("@nomiclabs/buidler-etherscan");
 

@@ -71,17 +71,12 @@ describe("Comptroller", function () {
   });
 
   it("should fail when escrow doesn't have enough funds", async function () {
-    // Deposit funds in the escrow
-    await owner.sendTransaction({
-      to: escrow.address,
-      value: ethers.utils.parseEther("10.0"),
-    });
 
-    await comptroller.requestFiatPayment(
+    await expect(comptroller.requestFiatPayment(
       await escrow.address,
       await buyer.getAddress(),
       utils.parseEther("1.0"),
       "test@upi"
-    );
+    )).to.be.revertedWith("Comptroller: not enough funds in escrow");
   });
 });

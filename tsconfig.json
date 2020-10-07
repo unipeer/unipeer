@@ -22,6 +22,7 @@
     "buidler.config.ts",
     "node_modules/@nomiclabs/buidler-web3/src/type-extensions.d.ts",
     "node_modules/@nomiclabs/buidler-ethers/src/type-extensions.d.ts",
+    "node_modules/@nomiclabs/buidler-waffle/src/type-extensions.d.ts",
     "node_modules/@nomiclabs/buidler-etherscan/src/type-extensions.d.ts",
     "node_modules/@openzeppelin/buidler-upgrades/src/type-extensions.d.ts",
     "node_modules/buidler-gas-reporter/src/type-extensions.d.ts",
