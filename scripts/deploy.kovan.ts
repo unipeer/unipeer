@@ -28,9 +28,9 @@ async function main() {
 
   console.log("Comptroller deployed to:", comptroller.address);
 
-  const escrow = await Escrow.deploy(comptroller.address);
+  const escrow = await Escrow.deploy();
 
-  const data = getInitializerData(Escrow, ["test@upi"], "initialize");
+  const data = getInitializerData(Escrow, [comptroller.address, "test@upi"], "initialize");
   const proxy = await Proxy.deploy(escrow.address, data);
 
   console.log("Escrow deployed to:", proxy.address);

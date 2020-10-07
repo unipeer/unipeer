@@ -6,9 +6,11 @@ pragma experimental ABIEncoderV2;
 import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 
+import "@nomiclabs/buidler/console.sol";
+
 import "./adapters/EthAdapter.sol";
 
-contract Escrow is Initializable, EthAdapter, ChainlinkClient {
+contract Escrow is Initializable, EthAdapter, ChainlinkClient() {
 
   event AmountLocked(address indexed seller, uint256 amount);
   event AmountUnlocked(address indexed seller, uint256 amount);
@@ -26,17 +28,9 @@ contract Escrow is Initializable, EthAdapter, ChainlinkClient {
 
   string public paymentid;
 
-  /**
-   *
-   * @dev Its safe to have a constructor with a static proxy
-   * for values that are static i.e same for all proxies/users.
-   */
-  constructor(address _comptroller) public ChainlinkClient() {
-    comptroller = _comptroller;  // TODO: change this to be static with solpp?
-  }
-
-  function initialize(string calldata _paymentid) public initializer {
+  function initialize(address _comptroller, string calldata _paymentid) public initializer {
     owner = msg.sender;
+    comptroller = _comptroller;  // TODO: change this to be static with solpp?
     paymentid = _paymentid;
   }
 

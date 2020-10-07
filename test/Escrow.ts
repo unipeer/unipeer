@@ -19,9 +19,9 @@ describe("Escrow", function () {
     const Escrow = await new EscrowFactory(admin);
     const Proxy = await new StaticProxyFactory(owner);
 
-    const escrowNaked = await Escrow.deploy(ethers.constants.AddressZero);
+    const escrowNaked = await Escrow.deploy();
 
-    const data = getInitializerData(Escrow, ["test@upi"], "initialize");
+    const data = getInitializerData(Escrow, [ethers.constants.AddressZero, "test@upi"], "initialize");
     const proxy = await Proxy.deploy(escrowNaked.address, data);
 
     escrow = Escrow.attach(proxy.address).connect(owner);
