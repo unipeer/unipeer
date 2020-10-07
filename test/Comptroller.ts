@@ -10,14 +10,13 @@ import {
   ComptrollerFactory,
   EscrowFactory,
   StaticProxyFactory,
-  OracleFactory,
 } from "../types";
 import {Comptroller as ComptrollerContract} from "../types/Comptroller";
-import {Oracle as OracleContract} from "../types/Oracle";
 import {Escrow as EscrowContract} from "../types/Escrow";
 import {StaticProxy as StaticProxyContract} from "../types/StaticProxy";
 
 import LinkTokenABI from "./abi/LinkToken.json";
+import OracleABI from "./abi/Oracle.json";
 
 let comptroller: ComptrollerContract;
 let escrow: EscrowContract;
@@ -33,14 +32,13 @@ describe("Comptroller", function () {
     const mockLink = await deployMockContract(admin, LinkTokenABI);
     await mockLink.mock.balanceOf.returns(ethers.utils.parseEther('999999'));
     await mockLink.mock.transferAndCall.returns(true);
+    const mockOracle = await deployMockContract(admin, OracleABI);
 
-    const Oracle = await new OracleFactory(admin);
     const Comptroller = await new ComptrollerFactory(admin);
 
-    const oracle = await Oracle.deploy(mockLink.address);
     const jobId = web3.utils.toHex("10cb58b1b1cc43268d0928f62cec31bb");
     comptroller = await Comptroller.deploy(
-      oracle.address,
+      mockOracle.address,
       jobId,
       mockLink.address
     );
