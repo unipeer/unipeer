@@ -1,6 +1,6 @@
 import {ethers, run} from "@nomiclabs/buidler";
 import web3 from "web3";
-import {Signer, utils} from "ethers";
+import {Signer} from "ethers";
 
 import {expect} from "chai";
 
@@ -46,37 +46,72 @@ describe("Comptroller", function () {
 
     const escrowNaked = await Escrow.deploy();
 
-    const data = getInitializerData(Escrow, [comptroller.address, "seller@upi"], "initialize");
+    const data = getInitializerData(
+      Escrow,
+      [comptroller.address, "seller@upi"],
+      "initialize"
+    );
     const proxy = await Proxy.deploy(escrowNaked.address, data);
 
     escrow = Escrow.attach(proxy.address).connect(owner);
 
     // Transfer LinkToken to Comptroller
-    token.transfer(comptroller.address, ethers.utils.parseEther("100.0"))
+    await token.transfer(comptroller.address, ethers.utils.parseEther("100.0"));
   });
 
   it("should correctly create a fiat payment request", async function () {
     // Deposit funds in the escrow
     await owner.sendTransaction({
       to: escrow.address,
-      value: ethers.utils.parseEther("10.0"),
+      value: ethers.utils.parseEther("10"),
     });
 
-    await comptroller.requestFiatPayment(
-      await escrow.address,
-      await buyer.getAddress(),
-      utils.parseEther("1.0"),
-      "test@upi"
-    );
+    const amount = ethers.utils.parseEther("1");
+    await expect(
+      comptroller.requestFiatPayment(
+        await escrow.address,
+        await buyer.getAddress(),
+        amount,
+        "test@upi"
+      )
+    )
+      .to.emit(escrow, "AmountLocked")
+      .withArgs(escrow.address, amount);
   });
 
-  it("should fail when escrow doesn't have enough funds", async function () {
+  it("should fail requestFiatPayment when escrow doesn't have enough funds", async function () {
+    await expect(
+      comptroller.requestFiatPayment(
+        await escrow.address,
+        await buyer.getAddress(),
+        ethers.utils.parseEther("1"),
+        "test@upi"
+      )
+    ).to.be.revertedWith("Comptroller: not enough funds in escrow");
+  });
 
-    await expect(comptroller.requestFiatPayment(
-      await escrow.address,
-      await buyer.getAddress(),
-      utils.parseEther("1.0"),
-      "test@upi"
-    )).to.be.revertedWith("Comptroller: not enough funds in escrow");
+  describe("Escrow", function () {
+    it("should correctly report unlocked balance", async function () {
+      // Deposit funds in the escrow
+      await owner.sendTransaction({
+        to: escrow.address,
+        value: ethers.utils.parseEther("10"),
+      });
+      expect(await escrow.getUnlockedBalance()).to.equal(ethers.utils.parseEther("10"));
+
+      const amount = ethers.utils.parseEther("1");
+      await expect(
+        comptroller.requestFiatPayment(
+          await escrow.address,
+          await buyer.getAddress(),
+          amount,
+          "test@upi"
+        )
+      )
+        .to.emit(escrow, "AmountLocked")
+        .withArgs(escrow.address, amount);
+
+      expect(await escrow.getUnlockedBalance()).to.equal(ethers.utils.parseEther("9"));
+    });
   });
 });

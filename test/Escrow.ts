@@ -32,7 +32,7 @@ describe("Escrow", function () {
   });
 
   it("can deposit additional funds to the contract", async function () {
-    expect((await escrow.getUnlockedBalance()).toString()).to.equal("0");
+    expect(await escrow.getUnlockedBalance()).to.equal(0);
 
     const amount = ethers.utils.parseEther("1.0");
     await owner.sendTransaction({
@@ -40,7 +40,7 @@ describe("Escrow", function () {
       value: amount,
     });
 
-    expect((await escrow.getUnlockedBalance()).toString()).to.equal(amount.toString());
+    expect(await escrow.getUnlockedBalance()).to.equal(amount);
   });
 
   it("can withdraw funds from the contract", async function () {
@@ -50,9 +50,23 @@ describe("Escrow", function () {
       value: amount,
     });
 
-    expect((await escrow.getUnlockedBalance()).toString()).to.equal(amount.toString());
+    expect(await escrow.getUnlockedBalance()).to.equal(amount);
 
     await escrow.withdraw(amount, await owner.getAddress());
-    expect((await escrow.getUnlockedBalance()).toString()).to.equal("0");
+    expect(await escrow.getUnlockedBalance()).to.equal(0);
+  });
+
+  it("should not withdraw more than available funds", async function () {
+    const amount = ethers.utils.parseEther("1.0");
+    await owner.sendTransaction({
+      to: escrow.address,
+      value: amount,
+    });
+
+    expect(await escrow.getUnlockedBalance()).to.equal(amount);
+
+    await expect(
+      escrow.withdraw(ethers.utils.parseEther("2.0"), await owner.getAddress())
+    ).to.be.reverted;
   });
 });

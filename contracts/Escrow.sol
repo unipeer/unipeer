@@ -11,7 +11,6 @@ import "@nomiclabs/buidler/console.sol";
 import "./adapters/EthAdapter.sol";
 
 contract Escrow is Initializable, EthAdapter, ChainlinkClient() {
-
   event AmountLocked(address indexed seller, uint256 amount);
   event AmountUnlocked(address indexed seller, uint256 amount);
 
@@ -55,12 +54,12 @@ contract Escrow is Initializable, EthAdapter, ChainlinkClient() {
       getUnlockedBalance() >= _amount,
       "Escrow: insufficient funds to lock"
     );
-    amountLocked.add(_amount);
+    amountLocked = amountLocked.add(_amount);
     emit AmountLocked(address(this), _amount);
   }
 
   function _unlockAmount(uint256 _amount) internal {
-    amountLocked.sub(_amount);
+    amountLocked = amountLocked.sub(_amount);
     emit AmountUnlocked(address(this), _amount);
   }
 
@@ -69,10 +68,6 @@ contract Escrow is Initializable, EthAdapter, ChainlinkClient() {
   }
 
   function withdraw(uint256 _amount, address _to) public onlyOwner() {
-    require(
-      getUnlockedBalance() >= _amount,
-      "Escrow: cannot withdraw more than unlocked balance"
-    );
     sendValue(payable(_to), _amount);
   }
 
