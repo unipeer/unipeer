@@ -18,7 +18,7 @@ contract Comptroller is ChainlinkClient {
    * @param _oracle The chainlink node oracle address to send requests
    * @param _jobId The JobId for the Request
    */
-  constructor(address _oracle, bytes32 _jobId, address _link) public {
+  constructor(address _link, address _oracle, bytes32 _jobId) public {
     if(_link == address(0)) {
       setPublicChainlinkToken();
     } else {

@@ -21,9 +21,9 @@ async function main() {
 
   console.log("Deploying Comptroller...");
   let comptroller = await Comptroller.deploy(
+    constants.AddressZero,
     "0x98cbfb4f664e6b35a32930c90e43f03b5eab50da",
     web3.utils.toHex("10cb58b1b1cc43268d0928f62cec31bb"),
-    constants.AddressZero
   );
 
   console.log("Comptroller deployed to:", comptroller.address);

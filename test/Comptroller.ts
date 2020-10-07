@@ -38,9 +38,9 @@ describe("Comptroller", function () {
 
     const jobId = web3.utils.toHex("10cb58b1b1cc43268d0928f62cec31bb");
     comptroller = await Comptroller.deploy(
+      mockLink.address,
       mockOracle.address,
       jobId,
-      mockLink.address
     );
 
     const Escrow = await new EscrowFactory(admin);
