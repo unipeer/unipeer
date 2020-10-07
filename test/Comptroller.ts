@@ -26,7 +26,7 @@ let owner: Signer;
 let buyer: Signer;
 
 describe("Comptroller", function () {
-  before(async function () {
+  beforeEach(async function () {
     [admin, owner, buyer] = await ethers.getSigners();
     const LinkToken = await new LinkTokenFactory(admin);
     const Oracle = await new OracleFactory(admin);
@@ -56,6 +56,21 @@ describe("Comptroller", function () {
   });
 
   it("should correctly create a fiat payment request", async function () {
+    // Deposit funds in the escrow
+    await owner.sendTransaction({
+      to: escrow.address,
+      value: ethers.utils.parseEther("10.0"),
+    });
+
+    await comptroller.requestFiatPayment(
+      await escrow.address,
+      await buyer.getAddress(),
+      utils.parseEther("1.0"),
+      "test@upi"
+    );
+  });
+
+  it("should fail when escrow doesn't have enough funds", async function () {
     // Deposit funds in the escrow
     await owner.sendTransaction({
       to: escrow.address,

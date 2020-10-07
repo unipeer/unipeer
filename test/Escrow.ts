@@ -14,14 +14,18 @@ let admin: Signer;
 let owner: Signer;
 
 describe("Escrow", function () {
-  before(async function () {
+  beforeEach(async function () {
     [admin, owner] = await ethers.getSigners();
     const Escrow = await new EscrowFactory(admin);
     const Proxy = await new StaticProxyFactory(owner);
 
     const escrowNaked = await Escrow.deploy();
 
-    const data = getInitializerData(Escrow, [ethers.constants.AddressZero, "test@upi"], "initialize");
+    const data = getInitializerData(
+      Escrow,
+      [ethers.constants.AddressZero, "test@upi"],
+      "initialize"
+    );
     const proxy = await Proxy.deploy(escrowNaked.address, data);
 
     escrow = Escrow.attach(proxy.address).connect(owner);
@@ -30,26 +34,25 @@ describe("Escrow", function () {
   it("can deposit additional funds to the contract", async function () {
     expect((await escrow.getUnlockedBalance()).toString()).to.equal("0");
 
+    const amount = ethers.utils.parseEther("1.0");
     await owner.sendTransaction({
       to: escrow.address,
-      value: ethers.utils.parseEther("1.0"),
+      value: amount,
     });
 
-    expect((await escrow.getUnlockedBalance()).toString()).to.equal(
-      "1000000000000000000"
-    );
+    expect((await escrow.getUnlockedBalance()).toString()).to.equal(amount.toString());
   });
 
   it("can withdraw funds from the contract", async function () {
-    expect((await escrow.getUnlockedBalance()).toString()).to.equal(
-      "1000000000000000000"
-    );
+    const amount = ethers.utils.parseEther("1.0");
+    await owner.sendTransaction({
+      to: escrow.address,
+      value: amount,
+    });
 
-    await escrow.withdraw(
-      ethers.utils.parseEther("1.0"),
-      await owner.getAddress()
-    );
+    expect((await escrow.getUnlockedBalance()).toString()).to.equal(amount.toString());
 
+    await escrow.withdraw(amount, await owner.getAddress());
     expect((await escrow.getUnlockedBalance()).toString()).to.equal("0");
   });
 });
