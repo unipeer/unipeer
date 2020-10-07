@@ -1,7 +1,7 @@
-import {ethers, run} from "@nomiclabs/buidler";
+import {ethers, run, waffle} from "@nomiclabs/buidler";
+const { deployMockContract } = waffle;
 import web3 from "web3";
 import {Signer} from "ethers";
-
 import {expect} from "chai";
 
 import {getInitializerData} from "../utils";
@@ -10,14 +10,14 @@ import {
   ComptrollerFactory,
   EscrowFactory,
   StaticProxyFactory,
-  LinkTokenFactory,
   OracleFactory,
 } from "../types";
 import {Comptroller as ComptrollerContract} from "../types/Comptroller";
-import {LinkToken as LinkTokenContract} from "../types/LinkToken";
 import {Oracle as OracleContract} from "../types/Oracle";
 import {Escrow as EscrowContract} from "../types/Escrow";
 import {StaticProxy as StaticProxyContract} from "../types/StaticProxy";
+
+import LinkTokenABI from "./abi/LinkToken.json";
 
 let comptroller: ComptrollerContract;
 let escrow: EscrowContract;
@@ -25,20 +25,24 @@ let admin: Signer;
 let owner: Signer;
 let buyer: Signer;
 
+
 describe("Comptroller", function () {
   beforeEach(async function () {
     [admin, owner, buyer] = await ethers.getSigners();
-    const LinkToken = await new LinkTokenFactory(admin);
+
+    const mockLink = await deployMockContract(admin, LinkTokenABI);
+    await mockLink.mock.balanceOf.returns(ethers.utils.parseEther('999999'));
+    await mockLink.mock.transferAndCall.returns(true);
+
     const Oracle = await new OracleFactory(admin);
     const Comptroller = await new ComptrollerFactory(admin);
 
-    const token = await LinkToken.deploy();
-    const oracle = await Oracle.deploy(token.address);
+    const oracle = await Oracle.deploy(mockLink.address);
     const jobId = web3.utils.toHex("10cb58b1b1cc43268d0928f62cec31bb");
     comptroller = await Comptroller.deploy(
       oracle.address,
       jobId,
-      token.address
+      mockLink.address
     );
 
     const Escrow = await new EscrowFactory(admin);
@@ -54,9 +58,6 @@ describe("Comptroller", function () {
     const proxy = await Proxy.deploy(escrowNaked.address, data);
 
     escrow = Escrow.attach(proxy.address).connect(owner);
-
-    // Transfer LinkToken to Comptroller
-    await token.transfer(comptroller.address, ethers.utils.parseEther("100.0"));
   });
 
   it("should correctly create a fiat payment request", async function () {
