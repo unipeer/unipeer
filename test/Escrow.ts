@@ -24,7 +24,7 @@ describe("Escrow", function () {
     const data = getInitializerData(
       Escrow,
       [ethers.constants.AddressZero, "test@upi"],
-      "initialize"
+      "initialize(address,string)"
     );
     const proxy = await Proxy.deploy(escrowNaked.address, data);
 
@@ -68,5 +68,8 @@ describe("Escrow", function () {
     await expect(
       escrow.withdraw(ethers.utils.parseEther("2.0"), await owner.getAddress())
     ).to.be.reverted;
+  });
+
+  it("should reset internal state after succcessful payment", async function () {
   });
 });

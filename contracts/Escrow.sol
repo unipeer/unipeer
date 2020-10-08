@@ -4,13 +4,12 @@ pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
-import "@openzeppelin/contracts/proxy/Initializable.sol";
 
 import "@nomiclabs/buidler/console.sol";
 
 import "./adapters/EthAdapter.sol";
 
-contract Escrow is Initializable, EthAdapter(1, 1), ChainlinkClient {
+contract Escrow is EthAdapter, ChainlinkClient {
   struct Job {
     address payable buyer;
     uint256 amount;
@@ -25,6 +24,7 @@ contract Escrow is Initializable, EthAdapter(1, 1), ChainlinkClient {
     public
     initializer
   {
+    EthAdapter.initialize();
     owner = msg.sender;
     comptroller = _comptroller; // TODO: change this to be static with solpp?
     paymentid = _paymentid;
@@ -51,7 +51,10 @@ contract Escrow is Initializable, EthAdapter(1, 1), ChainlinkClient {
   }
 
   function withdraw(uint256 _amount, address payable _to) public onlyOwner() {
-    // check unlock balance
+    require(
+      getUnlockedBalance() >= _amount,
+      "Escrow: insufficient unlocked funds to withdraw"
+    );
     rawSendAsset(_amount, _to);
   }
 
@@ -64,7 +67,7 @@ contract Escrow is Initializable, EthAdapter(1, 1), ChainlinkClient {
     lockAssetWithFee(_amount);                        // check
     jobs[_requestId] = Job({                          // effects
       buyer: _buyer,
-      amount: getAmountWithFee(_amount)
+      amount: _amount
     });
     addChainlinkExternalRequest(_oracle, _requestId); // interaction
   }
@@ -76,9 +79,9 @@ contract Escrow is Initializable, EthAdapter(1, 1), ChainlinkClient {
     delete jobs[_requestId]; // cleanup storage
 
     if (successful) {
-      rawSendAsset(job.amount, job.buyer);
+      sendAssetKeepingFee(job.amount, job.buyer);
     } else {
-      rawUnlockAsset(job.amount);
+      unlockAssetWithFee(job.amount);
     }
   }
 }

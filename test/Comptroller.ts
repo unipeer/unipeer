@@ -51,7 +51,7 @@ describe("Comptroller", function () {
     const data = getInitializerData(
       Escrow,
       [comptroller.address, "seller@upi"],
-      "initialize"
+      "initialize(address,string)"
     );
     const proxy = await Proxy.deploy(escrowNaked.address, data);
 
