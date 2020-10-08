@@ -4,34 +4,32 @@ pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 
-import "./AssetAdapter.sol";
+import "./AssetAdapterWithFees.sol";
 
-contract EthAdapter is AssetAdapter {
-  event Deposit(address, uint);
+abstract contract EthAdapter is AssetAdapterWithFees {
+  event Deposit(address, uint256);
 
   uint16 internal constant ETH_TYPE_ID = 1;
+
+  constructor(uint16 _feeThousandthsPercent, uint256 _minFeeAmount)
+    public
+    AssetAdapterWithFees(_feeThousandthsPercent, _minFeeAmount)
+  {}
 
   function getBalance() internal override view returns (uint256 amount) {
     return address(this).balance;
   }
 
   /**
-   * Use openzeppelins Address#sendValue to circumvent gas price increase after
-   * the istanbul fork.
-   *
-   * See Address#sendValue for more details or
+   * @dev Use openzeppelins Address#sendValue to circumvent gas price increase after
+   * the istanbul fork. See Address#sendValue for more details or
    * https://diligence.consensys.net/blog/2019/09/stop-using-soliditys-transfer-now/.
    */
-  function sendValue(address payable _recipient, uint256 _amount) internal override {
-    Address.sendValue(_recipient, _amount);
-  }
-
-  function rawSendAsset(address payable _to, uint256 _amount)
+  function rawSendAsset(uint256 _amount, address payable _to)
     internal
     override
-    returns (bool success)
   {
-    return _to.send(_amount);
+    Address.sendValue(_to, _amount);
   }
 
   /**
@@ -41,6 +39,6 @@ contract EthAdapter is AssetAdapter {
    * TODO: Switch to using a specific deposit function?
    */
   receive() external payable {
-      emit Deposit(msg.sender, msg.value);
+    emit Deposit(msg.sender, msg.value);
   }
 }

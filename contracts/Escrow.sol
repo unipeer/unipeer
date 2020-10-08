@@ -10,76 +10,63 @@ import "@nomiclabs/buidler/console.sol";
 
 import "./adapters/EthAdapter.sol";
 
-contract Escrow is Initializable, EthAdapter, ChainlinkClient() {
-  event AmountLocked(address indexed seller, uint256 amount);
-  event AmountUnlocked(address indexed seller, uint256 amount);
-
+contract Escrow is Initializable, EthAdapter(1, 1), ChainlinkClient {
   struct Job {
-    address buyer;
+    address payable buyer;
     uint256 amount;
   }
+  mapping(bytes32 => Job) private jobs;
 
   address public owner;
   address public comptroller;
-
-  uint256 private amountLocked;
-  mapping(bytes32 => Job) private jobs;
-
   string public paymentid;
 
-  function initialize(address _comptroller, string calldata _paymentid) public initializer {
+  function initialize(address _comptroller, string calldata _paymentid)
+    public
+    initializer
+  {
     owner = msg.sender;
-    comptroller = _comptroller;  // TODO: change this to be static with solpp?
+    comptroller = _comptroller; // TODO: change this to be static with solpp?
     paymentid = _paymentid;
   }
 
-  /**
-   * @dev Throws if called by any account other than the owner.
-   */
   modifier onlyOwner() {
     require(owner == msg.sender, "Ownable: caller is not the owner");
     _;
   }
 
-  /**
-   * @dev Throws if called by any account other than the owner.
-   */
   modifier onlyComptroller() {
     require(comptroller == msg.sender, "Escrow: caller is not the comptroller");
     _;
   }
 
-  function _lockAmount(uint256 _amount) internal {
-    require(
-      getUnlockedBalance() >= _amount,
-      "Escrow: insufficient funds to lock"
-    );
-    amountLocked = amountLocked.add(_amount);
-    emit AmountLocked(address(this), _amount);
+  function withdrawFees(uint256 _amount, address payable _to)
+    public
+    override
+    onlyComptroller
+  {
+    // check fees amount require
+    // reset fees
+    rawSendAsset(_amount, _to);
   }
 
-  function _unlockAmount(uint256 _amount) internal {
-    amountLocked = amountLocked.sub(_amount);
-    emit AmountUnlocked(address(this), _amount);
-  }
-
-  function getUnlockedBalance() public view returns (uint256) {
-    return getBalance().sub(amountLocked);
-  }
-
-  function withdraw(uint256 _amount, address _to) public onlyOwner() {
-    sendValue(payable(_to), _amount);
+  function withdraw(uint256 _amount, address payable _to) public onlyOwner() {
+    // check unlock balance
+    rawSendAsset(_amount, _to);
   }
 
   function expectResponseFor(
     address _oracle,
     bytes32 _requestId,
-    address _buyer,
+    address payable _buyer,
     uint256 _amount
   ) public onlyComptroller {
-    _lockAmount(_amount);
-    jobs[_requestId] = Job({buyer: _buyer, amount: _amount});
-    addChainlinkExternalRequest(_oracle, _requestId);
+    lockAssetWithFee(_amount);                        // check
+    jobs[_requestId] = Job({                          // effects
+      buyer: _buyer,
+      amount: getAmountWithFee(_amount)
+    });
+    addChainlinkExternalRequest(_oracle, _requestId); // interaction
   }
 
   function fulfillFiatPayment(bytes32 _requestId, bool successful) public {
@@ -89,9 +76,9 @@ contract Escrow is Initializable, EthAdapter, ChainlinkClient() {
     delete jobs[_requestId]; // cleanup storage
 
     if (successful) {
-      sendValue(payable(job.buyer), job.amount);
+      rawSendAsset(job.amount, job.buyer);
     } else {
-      _unlockAmount(job.amount);
+      rawUnlockAsset(job.amount);
     }
   }
 }

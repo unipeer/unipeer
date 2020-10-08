@@ -18,8 +18,12 @@ contract Comptroller is ChainlinkClient {
    * @param _oracle The chainlink node oracle address to send requests
    * @param _jobId The JobId for the Request
    */
-  constructor(address _link, address _oracle, bytes32 _jobId) public {
-    if(_link == address(0)) {
+  constructor(
+    address _link,
+    address _oracle,
+    bytes32 _jobId
+  ) public {
+    if (_link == address(0)) {
       setPublicChainlinkToken();
     } else {
       setChainlinkToken(_link);
@@ -31,7 +35,7 @@ contract Comptroller is ChainlinkClient {
 
   function requestFiatPayment(
     address _seller,
-    address _buyer,
+    address payable _buyer,
     uint256 amount,
     string calldata senderpaymentid
   ) public {
@@ -56,11 +60,6 @@ contract Comptroller is ChainlinkClient {
     req.addUint("amount", amount);
 
     bytes32 reqId = sendChainlinkRequest(req, fee);
-    escrow.expectResponseFor(
-      chainlinkOracleAddress(),
-      reqId,
-      _buyer,
-      amount
-    );
+    escrow.expectResponseFor(chainlinkOracleAddress(), reqId, _buyer, amount);
   }
 }

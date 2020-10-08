@@ -112,5 +112,32 @@ describe("Comptroller", function () {
 
       expect(await escrow.getUnlockedBalance()).to.equal(ethers.utils.parseEther("9"));
     });
+
+    it("should not withdraw more that unlocked balance", async function () {
+      // Deposit funds in the escrow
+      await owner.sendTransaction({
+        to: escrow.address,
+        value: ethers.utils.parseEther("10"),
+      });
+      expect(await escrow.getUnlockedBalance()).to.equal(ethers.utils.parseEther("10"));
+
+      const amount = ethers.utils.parseEther("1");
+      await expect(
+        comptroller.requestFiatPayment(
+          await escrow.address,
+          await buyer.getAddress(),
+          amount,
+          "test@upi"
+        )
+      )
+        .to.emit(escrow, "AmountLocked")
+        .withArgs(escrow.address, amount);
+
+      expect(await escrow.getUnlockedBalance()).to.equal(ethers.utils.parseEther("9"));
+
+      await expect(
+        escrow.withdraw(ethers.utils.parseEther("10"), await owner.getAddress())
+      ).to.be.reverted;
+    });
   });
 });
