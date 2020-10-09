@@ -45,7 +45,10 @@ contract Escrow is EthAdapter, ChainlinkClient {
     override
     onlyComptroller
   {
-    // check fees amount require
+    require(
+      getAccumulatedFees() >= _amount,
+      "Escrow: not enough fees accrued to withdraw"
+    );
     // reset fees
     rawSendAsset(_amount, _to);
   }

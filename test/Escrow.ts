@@ -12,10 +12,12 @@ import {getInitializerData} from "../utils";
 let escrow: EscrowContract;
 let admin: Signer;
 let owner: Signer;
+let comptroller: Signer;
+let buyer: Signer;
 
 describe("Escrow", function () {
   beforeEach(async function () {
-    [admin, owner] = await ethers.getSigners();
+    [admin, owner, comptroller, buyer] = await ethers.getSigners();
     const Escrow = await new EscrowFactory(admin);
     const Proxy = await new StaticProxyFactory(owner);
 
@@ -23,7 +25,7 @@ describe("Escrow", function () {
 
     const data = getInitializerData(
       Escrow,
-      [ethers.constants.AddressZero, "test@upi"],
+      [await comptroller.getAddress(), "test@upi"],
       "initialize(address,string)"
     );
     const proxy = await Proxy.deploy(escrowNaked.address, data);
@@ -44,7 +46,7 @@ describe("Escrow", function () {
   });
 
   it("can withdraw funds from the contract", async function () {
-    const amount = ethers.utils.parseEther("1.0");
+    const amount = ethers.utils.parseEther("1");
     await owner.sendTransaction({
       to: escrow.address,
       value: amount,
@@ -56,20 +58,65 @@ describe("Escrow", function () {
     expect(await escrow.getUnlockedBalance()).to.equal(0);
   });
 
-  it("should not withdraw more than available funds", async function () {
-    const amount = ethers.utils.parseEther("1.0");
+  it("should correctly report unlocked balance", async function () {
+    const amount = ethers.utils.parseEther("10");
     await owner.sendTransaction({
       to: escrow.address,
       value: amount,
     });
+    expect(await escrow.getUnlockedBalance(), "balance [initial]").to.equal(
+      amount
+    );
 
+    await expect(
+      escrow
+        .connect(comptroller)
+        .expectResponseFor(
+          ethers.constants.AddressZero,
+          ethers.utils.formatBytes32String("1"),
+          await buyer.getAddress(),
+          ethers.utils.parseEther("1")
+        ),
+      "expectResponseFor"
+    )
+      .to.emit(escrow, "AmountLocked")
+      .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
+
+    expect(await escrow.getUnlockedBalance(), "Balance after locked").to.equal(
+      ethers.utils.parseEther("8.9951")
+    );
+  });
+
+  it("should not withdraw more that unlocked balance", async function () {
+    const amount = ethers.utils.parseEther("10");
+    await owner.sendTransaction({
+      to: escrow.address,
+      value: amount,
+    });
     expect(await escrow.getUnlockedBalance()).to.equal(amount);
 
     await expect(
-      escrow.withdraw(ethers.utils.parseEther("2.0"), await owner.getAddress())
+      escrow
+        .connect(comptroller)
+        .expectResponseFor(
+          ethers.constants.AddressZero,
+          ethers.utils.formatBytes32String("1"),
+          await buyer.getAddress(),
+          ethers.utils.parseEther("1")
+        ),
+      "expectResponseFor"
+    )
+      .to.emit(escrow, "AmountLocked")
+      .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
+
+    expect(await escrow.getUnlockedBalance(), "Balance after locked").to.equal(
+      ethers.utils.parseEther("8.9951")
+    );
+
+    await expect(
+      escrow.withdraw(ethers.utils.parseEther("10"), await owner.getAddress())
     ).to.be.reverted;
   });
 
-  it("should reset internal state after succcessful payment", async function () {
-  });
+  it("should reset internal state after succcessful payment", async function () {});
 });

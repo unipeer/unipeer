@@ -65,17 +65,16 @@ describe("Comptroller", function () {
       value: ethers.utils.parseEther("10"),
     });
 
-    const amount = ethers.utils.parseEther("1");
     await expect(
       comptroller.requestFiatPayment(
         await escrow.address,
         await buyer.getAddress(),
-        amount,
+        ethers.utils.parseEther("1"),
         "test@upi"
       )
     )
       .to.emit(escrow, "AmountLocked")
-      .withArgs(escrow.address, amount);
+      .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
   });
 
   it("should fail requestFiatPayment when escrow doesn't have enough funds", async function () {
@@ -90,54 +89,5 @@ describe("Comptroller", function () {
   });
 
   describe("Escrow", function () {
-    it("should correctly report unlocked balance", async function () {
-      // Deposit funds in the escrow
-      await owner.sendTransaction({
-        to: escrow.address,
-        value: ethers.utils.parseEther("10"),
-      });
-      expect(await escrow.getUnlockedBalance()).to.equal(ethers.utils.parseEther("10"));
-
-      const amount = ethers.utils.parseEther("1");
-      await expect(
-        comptroller.requestFiatPayment(
-          await escrow.address,
-          await buyer.getAddress(),
-          amount,
-          "test@upi"
-        )
-      )
-        .to.emit(escrow, "AmountLocked")
-        .withArgs(escrow.address, amount);
-
-      expect(await escrow.getUnlockedBalance()).to.equal(ethers.utils.parseEther("9"));
-    });
-
-    it("should not withdraw more that unlocked balance", async function () {
-      // Deposit funds in the escrow
-      await owner.sendTransaction({
-        to: escrow.address,
-        value: ethers.utils.parseEther("10"),
-      });
-      expect(await escrow.getUnlockedBalance()).to.equal(ethers.utils.parseEther("10"));
-
-      const amount = ethers.utils.parseEther("1");
-      await expect(
-        comptroller.requestFiatPayment(
-          await escrow.address,
-          await buyer.getAddress(),
-          amount,
-          "test@upi"
-        )
-      )
-        .to.emit(escrow, "AmountLocked")
-        .withArgs(escrow.address, amount);
-
-      expect(await escrow.getUnlockedBalance()).to.equal(ethers.utils.parseEther("9"));
-
-      await expect(
-        escrow.withdraw(ethers.utils.parseEther("10"), await owner.getAddress())
-      ).to.be.reverted;
-    });
   });
 });
