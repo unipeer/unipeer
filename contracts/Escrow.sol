@@ -49,7 +49,8 @@ contract Escrow is EthAdapter, ChainlinkClient {
       getAccumulatedFees() >= _amount,
       "Escrow: not enough fees accrued to withdraw"
     );
-    // reset fees
+    _collectedFees = _collectedFees.sub(_amount);
+    unlockAsset(_amount);
     rawSendAsset(_amount, _to);
   }
 
@@ -83,6 +84,7 @@ contract Escrow is EthAdapter, ChainlinkClient {
 
     if (successful) {
       sendAssetKeepingFee(job.amount, job.buyer);
+      unlockAsset(job.amount);
     } else {
       unlockAssetWithFee(job.amount);
     }

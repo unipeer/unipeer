@@ -47,6 +47,10 @@ abstract contract AssetAdapterWithFees is AssetAdapter, Initializable {
     rawLockAsset(totalAmount);
   }
 
+  function unlockAsset(uint256 _amount) internal {
+    rawUnlockAsset(_amount);
+  }
+
   function unlockAssetWithFee(uint256 _amount) internal {
     uint256 totalAmount = getAmountWithFee(_amount);
     rawUnlockAsset(totalAmount);

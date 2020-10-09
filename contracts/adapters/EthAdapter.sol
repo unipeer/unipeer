@@ -13,7 +13,7 @@ abstract contract EthAdapter is AssetAdapterWithFees {
 
   uint16 internal constant ETH_TYPE_ID = 1;
   uint256 private _amountLocked;
-  uint256 private collectedFees;
+  uint256 internal _collectedFees;
 
   function initialize() public initializer {
     AssetAdapterWithFees.initialize(490, 100 * 10**9); /* 0.49% or 100 gwei */
@@ -54,11 +54,11 @@ abstract contract EthAdapter is AssetAdapterWithFees {
   }
 
   function rawAccumulateFee(uint256 _amount) internal override {
-    collectedFees = SafeMath.add(collectedFees, _amount);
+    _collectedFees = SafeMath.add(_collectedFees, _amount);
   }
 
   function getAccumulatedFees() public override view returns (uint256 amount) {
-    return collectedFees;
+    return _collectedFees;
   }
 
   /**

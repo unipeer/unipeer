@@ -195,8 +195,11 @@ describe("Escrow", function () {
         "fulfillFiatPayment"
       ).to.not.be.reverted;
 
+      expect(await escrow.getUnlockedBalance(), "balance [locked]").to.equal(
+        ethers.utils.parseEther("8.9951")
+      );
       expect(await escrow.getAccumulatedFees(), "fees [locked]").to.equal(
-        4900 * 10 ** 12
+          ethers.utils.parseEther("0.0049")
       );
 
       await escrow
@@ -206,7 +209,9 @@ describe("Escrow", function () {
           await admin.getAddress()
         );
       expect(await escrow.getAccumulatedFees(), "fees [withdrawn]").to.equal(0);
-      expect(await escrow.getUnlockedBalance()).to.equal(8.9951);
+      expect(await escrow.getUnlockedBalance(), "balance [withdrawn]").to.equal(
+        ethers.utils.parseEther("8.9951")
+      );
     });
 
     it("should not allow anyone besides comptroller to withdraw fees", async function () {
