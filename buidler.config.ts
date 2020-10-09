@@ -58,7 +58,7 @@ const config: BuidlerConfig = {
     onCompile: false
   },
   abiExporter: {
-    path: './src/abi',
+    path: './abi',
     only: ['Comptroller', "Escrow", "StaticProxy"],
     clear: true,
   },
