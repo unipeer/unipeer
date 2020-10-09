@@ -88,6 +88,7 @@ describe("Comptroller", function () {
     ).to.be.revertedWith("Comptroller: not enough funds in escrow");
   });
 
-  describe("Escrow", function () {
+  // TOOD: add tests for withdrawFees function
+  describe("withdrawFees", function () {
   });
 });

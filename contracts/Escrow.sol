@@ -17,10 +17,10 @@ contract Escrow is EthAdapter, ChainlinkClient {
   mapping(bytes32 => Job) private jobs;
 
   address public owner;
-  address public comptroller;
+  address payable public comptroller;
   string public paymentid;
 
-  function initialize(address _comptroller, string calldata _paymentid)
+  function initialize(address payable _comptroller, string calldata _paymentid)
     public
     initializer
   {
@@ -38,20 +38,6 @@ contract Escrow is EthAdapter, ChainlinkClient {
   modifier onlyComptroller() {
     require(comptroller == msg.sender, "Escrow: caller is not the comptroller");
     _;
-  }
-
-  function withdrawFees(uint256 _amount, address payable _to)
-    public
-    override
-    onlyComptroller
-  {
-    require(
-      getAccumulatedFees() >= _amount,
-      "Escrow: not enough fees accrued to withdraw"
-    );
-    _collectedFees = _collectedFees.sub(_amount);
-    unlockAsset(_amount);
-    rawSendAsset(_amount, _to);
   }
 
   function withdraw(uint256 _amount, address payable _to) public onlyOwner() {
@@ -83,8 +69,7 @@ contract Escrow is EthAdapter, ChainlinkClient {
     delete jobs[_requestId]; // cleanup storage
 
     if (successful) {
-      sendAssetKeepingFee(job.amount, job.buyer);
-      unlockAsset(job.amount);
+      sendAssetWithFee(job.amount, job.buyer, comptroller);
     } else {
       unlockAssetWithFee(job.amount);
     }

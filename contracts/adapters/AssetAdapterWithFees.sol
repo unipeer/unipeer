@@ -22,16 +22,6 @@ abstract contract AssetAdapterWithFees is AssetAdapter, Initializable {
     minFeeAmount = _minFeeAmount;
   }
 
-  function rawAccumulateFee(uint256 _amount) internal virtual;
-
-  function accumulateFee(uint256 _amount) internal {
-    rawAccumulateFee(getFee(_amount));
-  }
-
-  function getAccumulatedFees() public virtual view returns (uint256 amount);
-
-  function withdrawFees(uint256 _amount, address payable _to) external virtual;
-
   function getFee(uint256 _amount) internal view returns (uint256) {
     uint256 fee = (_amount * feeThousandthsPercent) / 100000;
     return fee < minFeeAmount ? minFeeAmount : fee;
@@ -47,21 +37,14 @@ abstract contract AssetAdapterWithFees is AssetAdapter, Initializable {
     rawLockAsset(totalAmount);
   }
 
-  function unlockAsset(uint256 _amount) internal {
-    rawUnlockAsset(_amount);
-  }
-
   function unlockAssetWithFee(uint256 _amount) internal {
     uint256 totalAmount = getAmountWithFee(_amount);
     rawUnlockAsset(totalAmount);
   }
 
-  function sendAssetWithFee(address payable _to, uint256 _amount) internal {
-    rawSendAsset(getAmountWithFee(_amount), _to);
-  }
-
-  function sendAssetKeepingFee(uint256 _amount, address payable _to) internal {
+  function sendAssetWithFee(uint256 _amount, address payable _to, address payable _feeCollector) internal {
+    unlockAssetWithFee(_amount);
     rawSendAsset(_amount, _to);
-    accumulateFee(_amount);
+    rawSendAsset(getFee(_amount), _feeCollector);
   }
 }
