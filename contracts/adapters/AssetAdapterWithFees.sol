@@ -28,7 +28,7 @@ abstract contract AssetAdapterWithFees is AssetAdapter, Initializable {
     rawAccumulateFee(getFee(_amount));
   }
 
-  function getAccumulatedFees() internal virtual view returns (uint256 amount);
+  function getAccumulatedFees() public virtual view returns (uint256 amount);
 
   function withdrawFees(uint256 _amount, address payable _to) external virtual;
 

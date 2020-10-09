@@ -57,7 +57,7 @@ abstract contract EthAdapter is AssetAdapterWithFees {
     collectedFees = SafeMath.add(collectedFees, _amount);
   }
 
-  function getAccumulatedFees() internal override view returns (uint256 amount) {
+  function getAccumulatedFees() public override view returns (uint256 amount) {
     return collectedFees;
   }
 

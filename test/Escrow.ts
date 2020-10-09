@@ -13,11 +13,12 @@ let escrow: EscrowContract;
 let admin: Signer;
 let owner: Signer;
 let comptroller: Signer;
+let oracle: Signer;
 let buyer: Signer;
 
 describe("Escrow", function () {
   beforeEach(async function () {
-    [admin, owner, comptroller, buyer] = await ethers.getSigners();
+    [admin, owner, comptroller, oracle, buyer] = await ethers.getSigners();
     const Escrow = await new EscrowFactory(admin);
     const Proxy = await new StaticProxyFactory(owner);
 
@@ -118,5 +119,221 @@ describe("Escrow", function () {
     ).to.be.reverted;
   });
 
-  it("should reset internal state after succcessful payment", async function () {});
+  describe("Fees", function () {
+    it("should correctly report accumulated fees", async function () {
+      const amount = ethers.utils.parseEther("10");
+      await owner.sendTransaction({
+        to: escrow.address,
+        value: amount,
+      });
+      expect(await escrow.getUnlockedBalance(), "balance [initial]").to.equal(
+        amount
+      );
+
+      // create a payment request
+      await expect(
+        escrow
+          .connect(comptroller)
+          .expectResponseFor(
+            await oracle.getAddress(),
+            ethers.utils.formatBytes32String("1"),
+            await buyer.getAddress(),
+            ethers.utils.parseEther("1")
+          ),
+        "expectResponseFor"
+      )
+        .to.emit(escrow, "AmountLocked")
+        .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
+
+      // complete a successful payment
+      await expect(
+        escrow
+          .connect(oracle)
+          .fulfillFiatPayment(ethers.utils.formatBytes32String("1"), true),
+        "fulfillFiatPayment"
+      ).to.not.be.reverted;
+      /**
+        .to.emit(escrow, "AmountUnlocked")
+        .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
+        */
+
+      expect(await escrow.getAccumulatedFees(), "fees").to.equal(
+        ethers.utils.parseEther("0.0049")
+      );
+    });
+
+    it("should allow comptroller to withdraw fees", async function () {
+      const amount = ethers.utils.parseEther("10");
+      await owner.sendTransaction({
+        to: escrow.address,
+        value: amount,
+      });
+      expect(await escrow.getUnlockedBalance(), "balance [initial]").to.equal(
+        amount
+      );
+
+      // create a payment request
+      await expect(
+        escrow
+          .connect(comptroller)
+          .expectResponseFor(
+            await oracle.getAddress(),
+            ethers.utils.formatBytes32String("1"),
+            await buyer.getAddress(),
+            ethers.utils.parseEther("1")
+          ),
+        "expectResponseFor"
+      )
+        .to.emit(escrow, "AmountLocked")
+        .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
+
+      // complete a successful payment
+      await expect(
+        escrow
+          .connect(oracle)
+          .fulfillFiatPayment(ethers.utils.formatBytes32String("1"), true),
+        "fulfillFiatPayment"
+      ).to.not.be.reverted;
+
+      expect(await escrow.getAccumulatedFees(), "fees [locked]").to.equal(
+        4900 * 10 ** 12
+      );
+
+      await escrow
+        .connect(comptroller)
+        .withdrawFees(
+          ethers.utils.parseEther("0.0049"),
+          await admin.getAddress()
+        );
+      expect(await escrow.getAccumulatedFees(), "fees [withdrawn]").to.equal(0);
+      expect(await escrow.getUnlockedBalance()).to.equal(8.9951);
+    });
+
+    it("should not allow anyone besides comptroller to withdraw fees", async function () {
+      const amount = ethers.utils.parseEther("10");
+      await owner.sendTransaction({
+        to: escrow.address,
+        value: amount,
+      });
+      expect(await escrow.getUnlockedBalance(), "balance [initial]").to.equal(
+        amount
+      );
+
+      // create a payment request
+      await expect(
+        escrow
+          .connect(comptroller)
+          .expectResponseFor(
+            await oracle.getAddress(),
+            ethers.utils.formatBytes32String("1"),
+            await buyer.getAddress(),
+            ethers.utils.parseEther("1")
+          ),
+        "expectResponseFor"
+      )
+        .to.emit(escrow, "AmountLocked")
+        .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
+
+      // complete a successful payment
+      await expect(
+        escrow
+          .connect(oracle)
+          .fulfillFiatPayment(ethers.utils.formatBytes32String("1"), true),
+        "fulfillFiatPayment"
+      ).to.not.be.reverted;
+
+      expect(await escrow.getAccumulatedFees(), "fees [locked]").to.equal(
+        4900 * 10 ** 12
+      );
+
+      await expect(
+        escrow
+          .connect(owner)
+          .withdrawFees(
+            ethers.utils.parseEther("0.0049"),
+            await admin.getAddress()
+          )
+      ).to.be.revertedWith("Escrow: caller is not the comptroller");
+    });
+  });
+
+  describe("fulfillFiatPayment", function () {
+    it("should correctly unlock funds after a failed fiat payment", async function () {
+      const amount = ethers.utils.parseEther("10");
+      await owner.sendTransaction({
+        to: escrow.address,
+        value: amount,
+      });
+      expect(await escrow.getUnlockedBalance(), "balance [initial]").to.equal(
+        amount
+      );
+
+      // create a payment request
+      await expect(
+        escrow
+          .connect(comptroller)
+          .expectResponseFor(
+            await oracle.getAddress(),
+            ethers.utils.formatBytes32String("1"),
+            await buyer.getAddress(),
+            ethers.utils.parseEther("1")
+          ),
+        "expectResponseFor"
+      )
+        .to.emit(escrow, "AmountLocked")
+        .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
+
+      // complete a failed payment
+      await expect(
+        escrow
+          .connect(oracle)
+          .fulfillFiatPayment(ethers.utils.formatBytes32String("1"), false),
+        "fulfillFiatPayment"
+      )
+        .to.emit(escrow, "AmountUnlocked")
+        .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
+
+      expect(await escrow.getUnlockedBalance(), "balance [unlocked]").to.equal(
+        amount
+      );
+    });
+
+    it("should reset internal state after succcessful payment", async function () {
+      const amount = ethers.utils.parseEther("10");
+      await owner.sendTransaction({
+        to: escrow.address,
+        value: amount,
+      });
+      expect(await escrow.getUnlockedBalance(), "balance [initial]").to.equal(
+        amount
+      );
+
+      // create a payment request
+      await expect(
+        escrow
+          .connect(comptroller)
+          .expectResponseFor(
+            await oracle.getAddress(),
+            ethers.utils.formatBytes32String("1"),
+            await buyer.getAddress(),
+            ethers.utils.parseEther("1")
+          ),
+        "expectResponseFor"
+      )
+        .to.emit(escrow, "AmountLocked")
+        .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
+
+      // complete a successful payment
+      await expect(
+        escrow
+          .connect(oracle)
+          .fulfillFiatPayment(ethers.utils.formatBytes32String("1"), true),
+        "fulfillFiatPayment"
+      ).to.not.be.reverted;
+
+      expect(await escrow.getUnlockedBalance(), "balance [final]").to.equal(
+        ethers.utils.parseEther("8.9951")
+      );
+    });
+  });
 });
