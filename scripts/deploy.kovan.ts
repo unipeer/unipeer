@@ -23,7 +23,7 @@ async function main() {
   let comptroller = await Comptroller.deploy(
     constants.AddressZero,
     "0x98cbfb4f664e6b35a32930c90e43f03b5eab50da",
-    web3.utils.toHex("10cb58b1b1cc43268d0928f62cec31bb")
+    web3.utils.toHex("0d69f6d174a4446c9a7ffa21cd0f687c")
   );
 
   console.log("Comptroller deployed to:", comptroller.address);
@@ -48,7 +48,7 @@ async function main() {
     constructorArguments: [
       constants.AddressZero,
       "0x98cbfb4f664e6b35a32930c90e43f03b5eab50da",
-      web3.utils.toHex("10cb58b1b1cc43268d0928f62cec31bb")
+      web3.utils.toHex("0d69f6d174a4446c9a7ffa21cd0f687c")
     ],
   });
 

@@ -36,7 +36,7 @@ describe("Comptroller", function () {
 
     const Comptroller = await new ComptrollerFactory(admin);
 
-    const jobId = web3.utils.toHex("10cb58b1b1cc43268d0928f62cec31bb");
+    const jobId = web3.utils.toHex("0d69f6d174a4446c9a7ffa21cd0f687c");
     comptroller = await Comptroller.deploy(
       mockLink.address,
       mockOracle.address,
