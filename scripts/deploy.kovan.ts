@@ -23,14 +23,18 @@ async function main() {
   let comptroller = await Comptroller.deploy(
     constants.AddressZero,
     "0x98cbfb4f664e6b35a32930c90e43f03b5eab50da",
-    web3.utils.toHex("10cb58b1b1cc43268d0928f62cec31bb"),
+    web3.utils.toHex("10cb58b1b1cc43268d0928f62cec31bb")
   );
 
   console.log("Comptroller deployed to:", comptroller.address);
 
   const escrow = await Escrow.deploy();
 
-  const data = getInitializerData(Escrow, [comptroller.address, "test@upi"], "initialize");
+  const data = getInitializerData(
+    Escrow,
+    [comptroller.address, "test@upi"],
+    "initialize(address,string)"
+  );
   const proxy = await Proxy.deploy(escrow.address, data);
 
   console.log("Escrow deployed to:", proxy.address);
@@ -42,24 +46,14 @@ async function main() {
   await run("verify", {
     address: comptroller.address,
     constructorArguments: [
+      constants.AddressZero,
       "0x98cbfb4f664e6b35a32930c90e43f03b5eab50da",
-      web3.utils.toHex("10cb58b1b1cc43268d0928f62cec31bb"),
+      web3.utils.toHex("10cb58b1b1cc43268d0928f62cec31bb")
     ],
   });
 
   await run("verify", {
     address: escrow.address,
-    constructorArguments: [
-      comptroller.address
-    ],
-  });
-
-  await run("verify", {
-    address: proxy.address,
-    constructorArguments: [
-      escrow.address,
-      data
-    ],
   });
 }
 
