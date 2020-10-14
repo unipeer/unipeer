@@ -8,8 +8,9 @@ import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 import "@nomiclabs/buidler/console.sol";
 
 import "./adapters/EthAdapter.sol";
+import "./adapters/AssetAdapterWithFees.sol";
 
-contract Escrow is EthAdapter, ChainlinkClient {
+contract Escrow is EthAdapter, AssetAdapterWithFees, ChainlinkClient {
   struct Job {
     address payable buyer;
     uint256 amount;
@@ -24,7 +25,7 @@ contract Escrow is EthAdapter, ChainlinkClient {
     public
     initializer
   {
-    EthAdapter.initialize();
+    AssetAdapterWithFees.initialize(490, 100 * 10**9); /* 0.49% or 100 gwei */
     owner = msg.sender;
     comptroller = _comptroller; // TODO: change this to be static with solpp?
     paymentid = _paymentid;

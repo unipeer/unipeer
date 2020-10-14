@@ -5,9 +5,9 @@ pragma solidity ^0.6.0;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 
-import "./AssetAdapter.sol";
+import "./AssetAdapterWithLocking.sol";
 
-abstract contract AssetAdapterWithFees is AssetAdapter, Initializable {
+abstract contract AssetAdapterWithFees is AssetAdapterWithLocking, Initializable {
   uint16 public feeThousandthsPercent;
   uint256 public minFeeAmount;
 

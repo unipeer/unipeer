@@ -10,8 +10,6 @@ abstract contract AssetAdapter {
    */
   function getBalance() internal virtual view returns (uint256 amount);
 
-  function getUnlockedBalance() public virtual view returns (uint256);
-
   /**
    * @dev Ensure the described asset is sent to the given address.
    * Reverts on failure.
