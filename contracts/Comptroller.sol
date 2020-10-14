@@ -9,8 +9,9 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@nomiclabs/buidler/console.sol";
 
 import "./Escrow.sol";
+import "./adapters/EthAdapter.sol";
 
-contract Comptroller is ChainlinkClient, Ownable {
+contract Comptroller is ChainlinkClient, Ownable, EthAdapter {
   bytes32 private jobId;
   uint256 private fee;
 
@@ -35,7 +36,7 @@ contract Comptroller is ChainlinkClient, Ownable {
   }
 
   function withdrawFees(address payable _to, uint256 _amount) public onlyOwner() {
-    Address.sendValue(_to, _amount);
+    rawSendAsset(_amount, _to);
   }
 
   function requestFiatPayment(

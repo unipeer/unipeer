@@ -14,7 +14,7 @@ abstract contract AssetAdapterWithLocking is AssetAdapter {
     return SafeMath.sub(getBalance(), _amountLocked);
   }
 
-  function rawLockAsset(uint256 _amount) internal override {
+  function rawLockAsset(uint256 _amount) internal {
     require(
       getUnlockedBalance() >= _amount,
       "EthAdapter: insufficient funds to lock"
@@ -23,7 +23,7 @@ abstract contract AssetAdapterWithLocking is AssetAdapter {
     emit AmountLocked(address(this), _amount);
   }
 
-  function rawUnlockAsset(uint256 _amount) internal override {
+  function rawUnlockAsset(uint256 _amount) internal {
     _amountLocked = SafeMath.sub(_amountLocked, _amount);
     emit AmountUnlocked(address(this), _amount);
   }

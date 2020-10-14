@@ -20,12 +20,4 @@ abstract contract AssetAdapter {
   function rawSendAsset(uint256 _amount, address payable _recipient)
     internal
     virtual;
-
-  /**
-   * @dev Ensure the described asset is locked and not available for spend.
-   * Reverts on failure.
-   */
-  function rawLockAsset(uint256 _amount) internal virtual;
-
-  function rawUnlockAsset(uint256 _amount) internal virtual;
 }
