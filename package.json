@@ -10,7 +10,7 @@
     "test": "npx buidler test"
   },
   "author": "Shaleen Jain <shaleen@jain.sh>",
-  "license": "GPL-3.0-only",
+  "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "@chainlink/contracts": "0.0.9",
     "@codechecks/client": "^0.1.10",
