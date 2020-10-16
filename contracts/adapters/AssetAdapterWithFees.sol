@@ -7,7 +7,10 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 
 import "./AssetAdapterWithLocking.sol";
 
-abstract contract AssetAdapterWithFees is AssetAdapterWithLocking, Initializable {
+abstract contract AssetAdapterWithFees is
+  AssetAdapterWithLocking,
+  Initializable
+{
   uint16 public feeThousandthsPercent;
   uint256 public minFeeAmount;
 
@@ -15,7 +18,10 @@ abstract contract AssetAdapterWithFees is AssetAdapterWithLocking, Initializable
    * @param _feeThousandthsPercent The fee percentage with three decimal places.
    * @param _minFeeAmount The minimuim fee to charge.
    */
-  function initialize(uint16 _feeThousandthsPercent, uint256 _minFeeAmount) public initializer {
+  function initialize(uint16 _feeThousandthsPercent, uint256 _minFeeAmount)
+    public
+    initializer
+  {
     require(_feeThousandthsPercent < (1 << 16), "fee % too high");
     require(_minFeeAmount <= (1 << 255), "minFeeAmount too high");
     feeThousandthsPercent = _feeThousandthsPercent;
@@ -42,7 +48,11 @@ abstract contract AssetAdapterWithFees is AssetAdapterWithLocking, Initializable
     rawUnlockAsset(totalAmount);
   }
 
-  function sendAssetWithFee(uint256 _amount, address payable _to, address payable _feeCollector) internal {
+  function sendAssetWithFee(
+    uint256 _amount,
+    address payable _to,
+    address payable _feeCollector
+  ) internal {
     unlockAssetWithFee(_amount);
     rawSendAsset(_amount, _to);
     rawSendAsset(getFee(_amount), _feeCollector);

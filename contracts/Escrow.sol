@@ -55,11 +55,8 @@ contract Escrow is EthAdapter, AssetAdapterWithFees, ChainlinkClient {
     address payable _buyer,
     uint256 _amount
   ) public onlyComptroller {
-    lockAssetWithFee(_amount);                        // check
-    jobs[_requestId] = Job({                          // effects
-      buyer: _buyer,
-      amount: _amount
-    });
+    lockAssetWithFee(_amount); // check
+    jobs[_requestId] = Job({buyer: _buyer, amount: _amount}); // effects
     addChainlinkExternalRequest(_oracle, _requestId); // interaction
   }
 

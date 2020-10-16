@@ -34,7 +34,10 @@ contract Comptroller is ChainlinkClient, Ownable, EthAdapter {
     fee = 0.01 * 10**18; // 0.01 LINK
   }
 
-  function withdrawFees(address payable _to, uint256 _amount) public onlyOwner() {
+  function withdrawFees(address payable _to, uint256 _amount)
+    public
+    onlyOwner()
+  {
     rawSendAsset(_amount, _to);
   }
 
