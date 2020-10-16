@@ -8,7 +8,7 @@ abstract contract AssetAdapter {
   /**
    * @dev Get the current balance of the Asset held by the implementing contract.
    */
-  function getBalance() public virtual view returns (uint256 amount);
+  function getBalance() public view virtual returns (uint256 amount);
 
   /**
    * @dev Ensure the described asset is sent to the given address.

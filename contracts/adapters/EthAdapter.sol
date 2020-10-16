@@ -9,7 +9,7 @@ import "./AssetAdapter.sol";
 abstract contract EthAdapter is AssetAdapter {
   uint16 internal constant ETH_TYPE_ID = 1;
 
-  function getBalance() public override view returns (uint256 amount) {
+  function getBalance() public view override returns (uint256 amount) {
     return address(this).balance;
   }
 
