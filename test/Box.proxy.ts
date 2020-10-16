@@ -1,8 +1,7 @@
 import { ethers, upgrades } from "@nomiclabs/buidler";
 import { expect } from 'chai';
 
-import { BoxFactory } from "../types"
-import { Box as BoxContract } from "../types/Box"
+import { BoxFactory, Box as BoxContract } from "../types"
 
 let box: BoxContract;
 

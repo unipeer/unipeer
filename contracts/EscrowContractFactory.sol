@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 
 import "./StaticProxy.sol";
 
-contract EscrowFactory {
+contract EscrowContractFactory {
   event Created(address escrow, address owner, uint256 createdAt, string paymentid, uint256 amount);
 
   address escrowImpl;

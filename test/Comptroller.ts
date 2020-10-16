@@ -6,10 +6,14 @@ import {expect} from "chai";
 
 import {getInitializerData} from "../utils";
 
-import {ComptrollerFactory, EscrowFactory, StaticProxyFactory} from "../types";
-import {Comptroller as ComptrollerContract} from "../types/Comptroller";
-import {Escrow as EscrowContract} from "../types/Escrow";
-import {StaticProxy as StaticProxyContract} from "../types/StaticProxy";
+import {
+  ComptrollerFactory,
+  EscrowFactory,
+  StaticProxyFactory,
+  Comptroller as ComptrollerContract,
+  Escrow as EscrowContract,
+  StaticProxy as StaticProxyContract,
+} from "../types";
 
 import LinkTokenABI from "./abi/LinkToken.json";
 import OracleABI from "./abi/Oracle.json";

@@ -3,9 +3,12 @@ import {Signer} from "ethers";
 
 import {expect} from "chai";
 
-import {EscrowFactory, StaticProxyFactory} from "../types";
-import {Escrow as EscrowContract} from "../types/Escrow";
-import {StaticProxy as StaticProxyContract} from "../types/StaticProxy";
+import {
+  EscrowFactory,
+  StaticProxyFactory,
+  Escrow as EscrowContract,
+  StaticProxy as StaticProxyContract,
+} from "../types";
 
 import {getInitializerData} from "../utils";
 

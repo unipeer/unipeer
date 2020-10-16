@@ -1,8 +1,7 @@
 import { ethers } from "@nomiclabs/buidler";
 import { expect } from 'chai';
 
-import { BoxFactory } from "../types"
-import { Box as BoxContract } from "../types/Box"
+import { BoxFactory, Box as BoxContract } from "../types"
 
 let box: BoxContract;
 
@@ -13,6 +12,7 @@ describe('Box', function () {
     const Box= await new BoxFactory(signer[0]);
 
     box = await Box.deploy();
+    await box.deployed();
   });
 
   // Test case
