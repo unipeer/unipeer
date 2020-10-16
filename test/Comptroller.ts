@@ -40,7 +40,7 @@ describe("Comptroller", function () {
     comptroller = await Comptroller.deploy(
       mockLink.address,
       await oracle.getAddress(),
-      jobId
+      jobId,
     );
 
     const Escrow = await new EscrowFactory(admin);
@@ -51,7 +51,7 @@ describe("Comptroller", function () {
     const data = getInitializerData(
       Escrow,
       [comptroller.address, "seller@upi"],
-      "initialize(address,string)"
+      "initialize(address,string)",
     );
     const proxy = await Proxy.deploy(escrowNaked.address, data);
 
@@ -70,8 +70,8 @@ describe("Comptroller", function () {
         await escrow.address,
         await buyer.getAddress(),
         ethers.utils.parseEther("1"),
-        "test@upi"
-      )
+        "test@upi",
+      ),
     )
       .to.emit(escrow, "AmountLocked")
       .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
@@ -83,8 +83,8 @@ describe("Comptroller", function () {
         await escrow.address,
         await buyer.getAddress(),
         ethers.utils.parseEther("1"),
-        "test@upi"
-      )
+        "test@upi",
+      ),
     ).to.be.revertedWith("Comptroller: not enough funds in escrow");
   });
 
@@ -97,7 +97,7 @@ describe("Comptroller", function () {
         value: amount,
       });
       expect(await escrow.getUnlockedBalance(), "balance [initial]").to.equal(
-        amount
+        amount,
       );
 
       // create a payment request
@@ -106,8 +106,8 @@ describe("Comptroller", function () {
           await escrow.address,
           await buyer.getAddress(),
           ethers.utils.parseEther("1"),
-          "test@upi"
-        )
+          "test@upi",
+        ),
       )
         .to.emit(escrow, "AmountLocked")
         .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
@@ -120,13 +120,13 @@ describe("Comptroller", function () {
           .connect(oracle)
           .fulfillFiatPayment(
             "0xeb0819d67ab7563d1675793257c263891bfa38bde10be55e6f7452b0c48d537d",
-            true
+            true,
           ),
-        "fulfillFiatPayment"
+        "fulfillFiatPayment",
       ).to.be.not.reverted;
 
       expect(await comptroller.getBalance(), "fees [final]").to.equal(
-        ethers.utils.parseEther("0.0049")
+        ethers.utils.parseEther("0.0049"),
       );
     });
   });

@@ -6,7 +6,7 @@
   "scripts": {
     "generate-types": "npx buidler typechain",
     "typecheck": "tsc --noEmit",
-    "prettier": "prettier --write contracts/*",
+    "prettier": "prettier --write '**/*.{sol,ts}'",
     "test": "npx buidler test"
   },
   "author": "Shaleen Jain <shaleen@jain.sh>",

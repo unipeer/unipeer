@@ -3,7 +3,7 @@ import {ContractFactory} from "ethers";
 export const getInitializerData = (
   ImplFactory: ContractFactory,
   args: unknown[],
-  initializer?: string
+  initializer?: string,
 ): string => {
   const allowNoInitialization = initializer === undefined && args.length === 0;
   initializer = initializer ?? "initialize";
@@ -19,4 +19,4 @@ export const getInitializerData = (
     }
     throw e;
   }
-}
+};

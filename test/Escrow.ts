@@ -30,7 +30,7 @@ describe("Escrow", function () {
     const data = getInitializerData(
       Escrow,
       [await comptroller.getAddress(), "test@upi"],
-      "initialize(address,string)"
+      "initialize(address,string)",
     );
     const proxy = await Proxy.deploy(escrowNaked.address, data);
 
@@ -69,7 +69,7 @@ describe("Escrow", function () {
       value: amount,
     });
     expect(await escrow.getUnlockedBalance(), "balance [initial]").to.equal(
-      amount
+      amount,
     );
 
     await expect(
@@ -79,15 +79,15 @@ describe("Escrow", function () {
           ethers.constants.AddressZero,
           ethers.utils.formatBytes32String("1"),
           await buyer.getAddress(),
-          ethers.utils.parseEther("1")
+          ethers.utils.parseEther("1"),
         ),
-      "expectResponseFor"
+      "expectResponseFor",
     )
       .to.emit(escrow, "AmountLocked")
       .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
 
     expect(await escrow.getUnlockedBalance(), "Balance after locked").to.equal(
-      ethers.utils.parseEther("8.9951")
+      ethers.utils.parseEther("8.9951"),
     );
   });
 
@@ -106,19 +106,19 @@ describe("Escrow", function () {
           ethers.constants.AddressZero,
           ethers.utils.formatBytes32String("1"),
           await buyer.getAddress(),
-          ethers.utils.parseEther("1")
+          ethers.utils.parseEther("1"),
         ),
-      "expectResponseFor"
+      "expectResponseFor",
     )
       .to.emit(escrow, "AmountLocked")
       .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
 
     expect(await escrow.getUnlockedBalance(), "Balance after locked").to.equal(
-      ethers.utils.parseEther("8.9951")
+      ethers.utils.parseEther("8.9951"),
     );
 
     await expect(
-      escrow.withdraw(ethers.utils.parseEther("10"), await owner.getAddress())
+      escrow.withdraw(ethers.utils.parseEther("10"), await owner.getAddress()),
     ).to.be.reverted;
   });
 
@@ -130,7 +130,7 @@ describe("Escrow", function () {
         value: amount,
       });
       expect(await escrow.getUnlockedBalance(), "balance [initial]").to.equal(
-        amount
+        amount,
       );
 
       // create a payment request
@@ -141,9 +141,9 @@ describe("Escrow", function () {
             await oracle.getAddress(),
             ethers.utils.formatBytes32String("1"),
             await buyer.getAddress(),
-            ethers.utils.parseEther("1")
+            ethers.utils.parseEther("1"),
           ),
-        "expectResponseFor"
+        "expectResponseFor",
       )
         .to.emit(escrow, "AmountLocked")
         .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
@@ -153,13 +153,13 @@ describe("Escrow", function () {
         escrow
           .connect(oracle)
           .fulfillFiatPayment(ethers.utils.formatBytes32String("1"), false),
-        "fulfillFiatPayment"
+        "fulfillFiatPayment",
       )
         .to.emit(escrow, "AmountUnlocked")
         .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
 
       expect(await escrow.getUnlockedBalance(), "balance [unlocked]").to.equal(
-        amount
+        amount,
       );
     });
 
@@ -170,7 +170,7 @@ describe("Escrow", function () {
         value: amount,
       });
       expect(await escrow.getUnlockedBalance(), "balance [initial]").to.equal(
-        amount
+        amount,
       );
 
       // create a payment request
@@ -181,9 +181,9 @@ describe("Escrow", function () {
             await oracle.getAddress(),
             ethers.utils.formatBytes32String("1"),
             await buyer.getAddress(),
-            ethers.utils.parseEther("1")
+            ethers.utils.parseEther("1"),
           ),
-        "expectResponseFor"
+        "expectResponseFor",
       )
         .to.emit(escrow, "AmountLocked")
         .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
@@ -193,11 +193,11 @@ describe("Escrow", function () {
         escrow
           .connect(oracle)
           .fulfillFiatPayment(ethers.utils.formatBytes32String("1"), true),
-        "fulfillFiatPayment"
+        "fulfillFiatPayment",
       ).to.not.be.reverted;
 
       expect(await escrow.getUnlockedBalance(), "balance [final]").to.equal(
-        ethers.utils.parseEther("8.9951")
+        ethers.utils.parseEther("8.9951"),
       );
     });
   });

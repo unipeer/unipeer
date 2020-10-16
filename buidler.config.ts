@@ -3,7 +3,7 @@ import {BuidlerConfig} from "@nomiclabs/buidler/config";
 
 // Loads environment variables
 // Used only in development
-require('dotenv').config({silent: true});
+require("dotenv").config({silent: true});
 
 usePlugin("@nomiclabs/buidler-waffle");
 usePlugin("@nomiclabs/buidler-solhint");
@@ -14,8 +14,8 @@ usePlugin("@openzeppelin/buidler-upgrades");
 usePlugin("@unipeer/buidler-typechain");
 usePlugin("buidler-gas-reporter");
 usePlugin("buidler-spdx-license-identifier");
-usePlugin('buidler-local-networks-config-plugin');
-usePlugin('buidler-abi-exporter');
+usePlugin("buidler-local-networks-config-plugin");
+usePlugin("buidler-abi-exporter");
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
@@ -29,7 +29,7 @@ task("accounts", "Prints the list of accounts", async (taskArgs, bre) => {
 
 const config: BuidlerConfig = {
   defaultNetwork: "buidlerevm",
-  localNetworksConfig: '~/.buidler/networks.json',
+  localNetworksConfig: "~/.buidler/networks.json",
   networks: {
     localhost: {
       url: "http://127.0.0.1:8545",
@@ -55,22 +55,22 @@ const config: BuidlerConfig = {
     outDir: "types",
     target: "ethers-v5",
     onTest: true,
-    onCompile: false
+    onCompile: false,
   },
   abiExporter: {
-    path: './abi',
-    only: ['Comptroller', "Escrow", "StaticProxy"],
+    path: "./abi",
+    only: ["Comptroller", "Escrow", "StaticProxy"],
     clear: true,
   },
   etherscan: {
     // Your API key for Etherscan
     // Obtain one at https://etherscan.io/
-    apiKey: process.env.ETHERSCAN_API
+    apiKey: process.env.ETHERSCAN_API,
   },
   paths: {
     cache: "./build/cache",
-    artifacts: "./build/artifacts"
-  }
+    artifacts: "./build/artifacts",
+  },
 };
 
 export default config;
