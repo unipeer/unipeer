@@ -1,15 +1,9 @@
-name: Contracts
+name: Lints
 
-on:
-  pull_request:
-  push:
-    branches:
-      - master
-    tags:
-      - v*
+on: [push, pull_request]
 
 jobs:
-  test:
+  format:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -30,17 +24,5 @@ jobs:
       run: |
         npm install
 
-    - name: Start buidlerevm node
-      run: |
-        npx buidler node &
-
-    - name: Compile
-      run: |
-        npx buidler typechain
-
-    - name: Test
-      run: |
-        npx buidler test --network localhost
-      env:
-        PRODUCTION: true
-        REPORT_GAS: true
+    - name: Run prettier
+      run: npx prettier -c **/*.{sol,ts}
