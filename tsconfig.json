@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "lib": ["es6"],
+    "target": "es2020",
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true,
@@ -10,13 +9,7 @@
     "typeRoots": ["./node_modules/@types", "./types"],
     "types": ["node"]
   },
-  "include": [
-    "./scripts/*.ts",
-    "./src/*.ts",
-    "./test/*.ts",
-    "./src/**/*.ts",
-    "./test/**/*.ts"
-  ],
+  "include": ["./scripts", "./test"],
   "exclude": ["node_modules", "example", "build"],
   "files": [
     "buidler.config.ts",
