@@ -17,12 +17,12 @@ jobs:
       uses: actions/cache@v1
       with:
         path: node_modules
-        key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+        key: ${{ runner.os }}-${{ hashFiles('yarn.lock') }}
 
     - name: Install
       if: steps.cache-npm-modules.outputs.cache-hit != 'true'
       run: |
-        npm install
+        yarn install
 
     - name: Run prettier
       run: npx prettier -c **/*.{sol,ts}

@@ -6,7 +6,7 @@ export const getInitializerData = (
   initializer?: string,
 ): string => {
   const allowNoInitialization = initializer === undefined && args.length === 0;
-  initializer = initializer ?? "initialize";
+  initializer = initializer != undefined ? initializer : "initialize";
 
   try {
     const fragment = ImplFactory.interface.getFunction(initializer);
