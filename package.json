@@ -12,7 +12,7 @@
   "author": "Shaleen Jain <shaleen@jain.sh>",
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
-    "@chainlink/contracts": "0.0.9",
+    "@chainlink/contracts": "^0.0.10",
     "@codechecks/client": "^0.1.10",
     "@nomiclabs/buidler": "^1.4.8",
     "@nomiclabs/buidler-ethers": "^2.0.2",
@@ -30,7 +30,7 @@
     "@unipeer/buidler-typechain": "^0.1.9",
     "buidler-abi-exporter": "^1.0.1",
     "buidler-gas-reporter": "^0.1.4",
-    "buidler-local-networks-config-plugin": "0.0.1",
+    "buidler-local-networks-config-plugin": "^0.0.1",
     "buidler-spdx-license-identifier": "^1.0.5",
     "chai": "^4.2.0",
     "dotenv": "^8.2.0",
