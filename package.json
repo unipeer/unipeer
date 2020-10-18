@@ -9,6 +9,16 @@
     "prettier": "prettier --write '**/*.{sol,ts}'",
     "test": "npx buidler test"
   },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{sol,ts}": [
+      "npm run prettier"
+    ]
+  },
   "author": "Shaleen Jain <shaleen@jain.sh>",
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
@@ -37,6 +47,7 @@
     "ethereum-waffle": "^3.1.1",
     "ethers": "^5.0.17",
     "husky": "^4.3.0",
+    "lint-staged": "^10.4.2",
     "prettier": "^2.1.2",
     "prettier-plugin-solidity": "^1.0.0-alpha.59",
     "ts-node": "^8.10.2",
