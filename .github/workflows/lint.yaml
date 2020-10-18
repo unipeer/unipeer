@@ -25,4 +25,4 @@ jobs:
         yarn install
 
     - name: Run prettier
-      run: npx prettier -c **/*.{sol,ts}
+      run: yarn exec prettier -c **/*.{sol,ts}

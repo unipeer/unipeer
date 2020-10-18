@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "generate-types": "npx buidler typechain",
+    "generate-types": "yarn exec buidler typechain",
     "typecheck": "tsc --noEmit",
     "prettier": "prettier --write '**/*.{sol,ts}'",
-    "test": "npx buidler test"
+    "test": "yarn exec buidler test"
   },
   "husky": {
     "hooks": {
@@ -16,7 +16,7 @@
   },
   "lint-staged": {
     "*.{sol,ts}": [
-      "npm run prettier"
+      "yarn prettier"
     ]
   },
   "author": "Shaleen Jain <shaleen@jain.sh>",
