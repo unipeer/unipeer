@@ -32,17 +32,17 @@ jobs:
 
     - name: Start buidlerevm node
       run: |
-        yarn exec buidler node &
+        yarn buidler node &
 
     - name: Compile
       run: |
-        yarn exec buidler typechain
+        yarn typechain
       env:
         PRODUCTION: true
 
     - name: Test
       run: |
-        yarn exec buidler test --network localhost
+        yarn buidler test --network localhost
       env:
         PRODUCTION: true
         REPORT_GAS: true
