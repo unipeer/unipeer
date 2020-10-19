@@ -21,12 +21,13 @@ contract Escrow is EthAdapter, AssetAdapterWithFees, ChainlinkClient {
   address payable public comptroller;
   string public paymentid;
 
-  function initialize(address payable _comptroller, string calldata _paymentid)
-    public
-    initializer
-  {
+  function initialize(
+    address _owner,
+    address payable _comptroller,
+    string calldata _paymentid
+  ) public initializer {
     AssetAdapterWithFees.initialize(490, 100 * 10**9); /* 0.49% or 100 gwei */
-    owner = msg.sender;
+    owner = _owner;
     comptroller = _comptroller; // TODO: change this to be static with solpp?
     paymentid = _paymentid;
   }

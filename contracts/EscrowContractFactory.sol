@@ -34,10 +34,12 @@ contract EscrowContractFactory {
     returns (address payable escrow)
   {
     bytes memory payload = abi.encodeWithSignature(
-      "initialize(address,string)",
+      "initialize(address,address,string)",
+      msg.sender,
       comptroller,
       paymentid
     );
+
     StaticProxy proxy = new StaticProxy(escrowImpl, payload);
     escrow = address(proxy);
     escrows[msg.sender].push(escrow);
