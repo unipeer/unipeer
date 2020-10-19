@@ -114,13 +114,14 @@ describe("Comptroller", function () {
 
       expect(await comptroller.getBalance(), "fees [initial]").to.equal(0);
 
+      let hash = web3.utils.soliditySha3(
+        {t: "address", v: comptroller.address},
+        {t: "uint256", v: 1},
+      ) as string;
+
       // complete a successful payment
       await expect(
-        escrow.connect(oracle).fulfillFiatPayment(
-          // "0x92bcc72ece062d7bff243e5339f04c7be30d8c558d62d02370ba07cf59134be9"
-          "0xeb0819d67ab7563d1675793257c263891bfa38bde10be55e6f7452b0c48d537d",
-          true,
-        ),
+        escrow.connect(oracle).fulfillFiatPayment(hash, true),
         "fulfillFiatPayment",
       ).to.be.not.reverted;
 
