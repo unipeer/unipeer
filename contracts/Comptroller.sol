@@ -3,6 +3,8 @@
 pragma solidity ^0.6.0;
 
 import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
+import "@chainlink/contracts/src/v0.6/LinkTokenReceiver.sol";
+import "@chainlink/contracts/src/v0.6/interfaces/LinkTokenInterface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "@nomiclabs/buidler/console.sol";
@@ -10,7 +12,12 @@ import "@nomiclabs/buidler/console.sol";
 import "./Escrow.sol";
 import "./adapters/EthAdapter.sol";
 
-contract Comptroller is ChainlinkClient, Ownable, EthAdapter {
+contract Comptroller is
+  ChainlinkClient,
+  Ownable,
+  EthAdapter,
+  LinkTokenReceiver
+{
   bytes32 private jobId;
   uint256 private fee;
 
@@ -41,19 +48,70 @@ contract Comptroller is ChainlinkClient, Ownable, EthAdapter {
     rawSendAsset(_amount, _to);
   }
 
+  /**
+   * @notice Returns the address of the LINK token
+   * @dev This is the public implementation for chainlinkTokenAddress, which is
+   * an internal method of the ChainlinkClient contract
+   */
+  function getChainlinkToken() public view override returns (address) {
+    return chainlinkTokenAddress();
+  }
+
+  function createFiatPaymentWithLinkRequest(
+    address _seller,
+    address payable _buyer,
+    uint256 _amount,
+    string calldata _senderpaymentid
+  ) public {
+    bytes memory payload = abi.encodeWithSignature(
+      "requestFiatPaymentWithLink(address,address,uint256,string)",
+      _seller,
+      _buyer,
+      _amount,
+      _senderpaymentid
+    );
+
+    require(
+      LinkTokenInterface(chainlinkTokenAddress()).transferAndCall(
+        address(this),
+        fee,
+        payload
+      ),
+      "comptroller: unable to transferAndCall"
+    );
+  }
+
+  function requestFiatPaymentWithLink(
+    address _seller,
+    address payable _buyer,
+    uint256 _amount,
+    string calldata _senderpaymentid
+  ) public onlyLINK() {
+    _requestFiatPayment(_seller, _buyer, _amount, _senderpaymentid);
+  }
+
   function requestFiatPayment(
     address _seller,
     address payable _buyer,
-    uint256 amount,
-    string calldata senderpaymentid
+    uint256 _amount,
+    string calldata _senderpaymentid // onlyOwner()
   ) public {
+    _requestFiatPayment(_seller, _buyer, _amount, _senderpaymentid);
+  }
+
+  function _requestFiatPayment(
+    address _seller,
+    address payable _buyer,
+    uint256 _amount,
+    string calldata _senderpaymentid
+  ) internal {
     require(
       Address.isContract(_seller),
       "Comptroller: seller should an escrow contract"
     );
     Escrow escrow = Escrow(payable(_seller));
     require(
-      escrow.getUnlockedBalance() >= amount,
+      escrow.getUnlockedBalance() >= _amount,
       "Comptroller: not enough funds in escrow"
     );
 
@@ -64,10 +122,10 @@ contract Comptroller is ChainlinkClient, Ownable, EthAdapter {
     );
     req.add("method", "collectrequest");
     req.add("receiver", escrow.paymentid());
-    req.add("sender", senderpaymentid);
-    req.addUint("amount", amount);
+    req.add("sender", _senderpaymentid);
+    req.addUint("amount", _amount);
 
     bytes32 reqId = sendChainlinkRequest(req, fee);
-    escrow.expectResponseFor(chainlinkOracleAddress(), reqId, _buyer, amount);
+    escrow.expectResponseFor(chainlinkOracleAddress(), reqId, _buyer, _amount);
   }
 }

@@ -77,6 +77,28 @@ describe("Comptroller", function () {
       .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
   });
 
+  it("should not revert when calling createFiatPaymentWithLinkRequest", async function () {
+    await expect(
+      comptroller.createFiatPaymentWithLinkRequest(
+        await escrow.address,
+        await buyer.getAddress(),
+        ethers.utils.parseEther("1"),
+        "test@upi",
+      ),
+    ).to.be.not.reverted;
+  });
+
+  it("should not allow just anyone to call requestFiatPaymentWithLink", async function () {
+    await expect(
+      comptroller.requestFiatPaymentWithLink(
+        await escrow.address,
+        await buyer.getAddress(),
+        ethers.utils.parseEther("1"),
+        "test@upi",
+      ),
+    ).to.be.reverted;
+  });
+
   it("should fail requestFiatPayment when escrow doesn't have enough funds", async function () {
     await expect(
       comptroller.requestFiatPayment(
