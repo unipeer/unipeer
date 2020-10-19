@@ -15,9 +15,9 @@ payments to the Ethereum blockchain via Chainlink oracles.
 
 ## Constants
 
-| Network | Oracle | Job Id |
-|---------|--------|--------|
-| Kovan | `0x98cbfb4f664e6b35a32930c90e43f03b5eab50da` | `0d69f6d174a4446c9a7ffa21cd0f687c` |
+| Network | Oracle                                       | Job Id                             |
+| ------- | -------------------------------------------- | ---------------------------------- |
+| Kovan   | `0x98cbfb4f664e6b35a32930c90e43f03b5eab50da` | `0d69f6d174a4446c9a7ffa21cd0f687c` |
 
 ## Install
 
