@@ -59,7 +59,7 @@ const config: BuidlerConfig = {
   },
   abiExporter: {
     path: "./abi",
-    only: ["Comptroller", "Escrow", "StaticProxy"],
+    only: ["Comptroller", "Escrow", "EscrowContractFactory"],
     clear: true,
   },
   etherscan: {
