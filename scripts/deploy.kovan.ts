@@ -2,10 +2,14 @@ import {run, ethers, upgrades} from "@nomiclabs/buidler";
 import web3 from "web3";
 import {constants} from "ethers";
 
-import {ComptrollerFactory, EscrowFactory, StaticProxyFactory} from "../types";
-import {Comptroller as ComptrollerContract} from "../types/Comptroller";
-import {Escrow as EscrowContract} from "../types/Escrow";
-import {StaticProxy as StaticProxyContract} from "../types/StaticProxy";
+import {
+  ComptrollerFactory,
+  EscrowFactory,
+  EscrowContractFactoryFactory,
+  Comptroller as ComptrollerContract,
+  Escrow as EscrowContract,
+  EscrowContractFactory as EscrowContractFactoryContract,
+} from "../types";
 
 import {getInitializerData} from "../utils";
 
@@ -17,7 +21,7 @@ async function main() {
 
   const Comptroller = await new ComptrollerFactory(account);
   const Escrow = await new EscrowFactory(account);
-  const Proxy = await new StaticProxyFactory(account);
+  const EscrowContractFactory = await new EscrowContractFactoryFactory(account);
 
   console.log("Deploying Comptroller...");
   let comptroller = await Comptroller.deploy(
@@ -25,19 +29,23 @@ async function main() {
     "0x98cbfb4f664e6b35a32930c90e43f03b5eab50da",
     web3.utils.toHex("0d69f6d174a4446c9a7ffa21cd0f687c"),
   );
-
   console.log("Comptroller deployed to:", comptroller.address);
 
+  console.log("Deploying Escrow...");
   const escrow = await Escrow.deploy();
+  console.log("Escrow deployed to:", escrow.address);
 
-  const data = getInitializerData(
-    Escrow,
-    [comptroller.address, "test@upi"],
-    "initialize(address,string)",
+  console.log("Deploying EscrowFactory...");
+  const escrowFactory = await EscrowContractFactory.deploy(
+    escrow.address,
+    comptroller.address,
   );
-  const proxy = await Proxy.deploy(escrow.address, data);
+  console.log("EscrowFactory deployed to:", escrow.address);
 
-  console.log("Escrow deployed to:", proxy.address);
+  console.log("Creating a new escrow...");
+  await escrowFactory.newEscrow("seller@upi", {
+    value: ethers.utils.parseEther("0.1"),
+  });
 
   // Verify the contracts on etherscan
   // The network will be the same as the one specified
@@ -54,6 +62,11 @@ async function main() {
 
   await run("verify", {
     address: escrow.address,
+  });
+
+  await run("verify", {
+    address: escrowFactory.address,
+    constructorArguments: [escrow.address, comptroller.address],
   });
 }
 
