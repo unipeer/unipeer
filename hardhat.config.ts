@@ -10,7 +10,7 @@ import "@nomiclabs/hardhat-etherscan";
 require("dotenv").config({silent: true});
 
 //usePlugin("@openzeppelin/buidler-upgrades");
-//usePlugin("@unipeer/buidler-typechain");
+import "@unipeer/hardhat-typechain";
 
 // usePlugin("buidler-gas-reporter");
 // usePlugin("buidler-spdx-license-identifier");
@@ -52,13 +52,13 @@ const config: HardhatUserConfig = {
     overwrite: true,
     runOnCompile: true,
   },
+  */
   typechain: {
     outDir: "types",
     target: "ethers-v5",
     onTest: true,
     onCompile: false,
   },
-  */
   etherscan: {
     // Your API key for Etherscan
     // Obtain one at https://etherscan.io/

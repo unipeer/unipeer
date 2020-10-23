@@ -614,40 +614,6 @@
     "@ethersproject/properties" "^5.0.3"
     "@ethersproject/strings" "^5.0.4"
 
-"@nomiclabs/buidler-etherscan@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@nomiclabs/buidler-etherscan/-/buidler-etherscan-2.1.0.tgz#cdebc96f7683de9586935fb446efce78e98cf973"
-  integrity sha512-Rh1PGCtIVNU9zDSnLn6WlJDMBM9LXzkwNnzRFnTrMdA+Aa9nMVX7qwbAXG9pyIIsuqNH6MRfk7CDvi8aMoojng==
-  dependencies:
-    "@ethersproject/abi" "^5.0.2"
-    "@ethersproject/address" "^5.0.2"
-    cbor "^5.0.2"
-    ethereumjs-abi "^0.6.8"
-    node-fetch "^2.6.0"
-    semver "^6.3.0"
-
-"@nomiclabs/buidler-solhint@^1.3.3":
-  version "1.3.3"
-  resolved "https://registry.yarnpkg.com/@nomiclabs/buidler-solhint/-/buidler-solhint-1.3.3.tgz#cbe92b176e0e14054b7f60f609f412deacd1e3cb"
-  integrity sha512-bh7bGw4w8wDCdM1R3EoUnGww5GwxYzO7Q6O40B6kICb/eUU09hqRykSPoMdv/M30MduPS+UUduaJlwND+0L7IA==
-  dependencies:
-    solhint "^2.0.0"
-
-"@nomiclabs/buidler-waffle@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@nomiclabs/buidler-waffle/-/buidler-waffle-2.1.0.tgz#9869ac829162eb57ac4e4096f0a02bd7ef54a71a"
-  integrity sha512-Z1SJOGrRCcSu9E87mFaBHi4QimNxP9ZTYtJwLZCcyszS1fi0XLgp4syzTH3QXrQUBOP2P5oQMD6uCp0gNNS3hw==
-  dependencies:
-    "@types/sinon-chai" "^3.2.3"
-    "@types/web3" "1.0.19"
-
-"@nomiclabs/buidler-web3@^1.3.4":
-  version "1.3.4"
-  resolved "https://registry.yarnpkg.com/@nomiclabs/buidler-web3/-/buidler-web3-1.3.4.tgz#46bef1aa5b11aecb43e08065863d8b35226c1b29"
-  integrity sha512-fVJczSfZBp1xDJA2Bdh49P6mhaAO8vGY7kbi6uoMLO8J288O6s/Ldw36kb7iRebifNbKP69MJsUu2nXLaklqdg==
-  dependencies:
-    "@types/bignumber.js" "^5.0.0"
-
 "@nomiclabs/ethereumjs-vm@^4.1.1":
   version "4.2.0"
   resolved "https://registry.yarnpkg.com/@nomiclabs/ethereumjs-vm/-/ethereumjs-vm-4.2.0.tgz#a853bdb4fb032529f810f32bb767551d19d7ce57"
@@ -972,11 +938,6 @@
   dependencies:
     ethers "^5.0.2"
 
-"@typechain/web3-v1@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@typechain/web3-v1/-/web3-v1-1.0.0.tgz#842f925e45bdfb0d28e08c0e355f1c8efed7ea91"
-  integrity sha512-MM8PmsblePaxy5BCYEuPtR4ajigPf504VRQzZgFYqs6KuFnJxbOjF8jNYT12P6UvUX7us75Wc78QdbvOHbb4hA==
-
 "@types/bignumber.js@^5.0.0":
   version "5.0.0"
   resolved "https://registry.yarnpkg.com/@types/bignumber.js/-/bignumber.js-5.0.0.tgz#d9f1a378509f3010a3255e9cc822ad0eeb4ab969"
@@ -1144,10 +1105,10 @@
     "@types/bn.js" "*"
     "@types/underscore" "*"
 
-"@unipeer/buidler-typechain@^0.1.9":
-  version "0.1.9"
-  resolved "https://registry.yarnpkg.com/@unipeer/buidler-typechain/-/buidler-typechain-0.1.9.tgz#502aeea76f902a3649700cc38f2ba6ed708e673f"
-  integrity sha512-GuQ2B8zDXrJ0y0Zb5knMTanyPGxSrlJrUx+AnUGfmUG8sEZlOKX8i2t2ykqVpyNEROskSgwuhVyw+LLXpqDb6g==
+"@unipeer/hardhat-typechain@^0.2.1":
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/@unipeer/hardhat-typechain/-/hardhat-typechain-0.2.1.tgz#b84725db15f38899617a9e1ce63c533fe0d84f52"
+  integrity sha512-7AF32sYbw83Uy3NNm08niUzmAHw31L4Ih252U+IHNfnAgbtXUL6DWG7D+hJxHPfep0TCfdj2Oijh7ELtKtQrHw==
 
 "@yarnpkg/lockfile@^1.1.0":
   version "1.1.0"
@@ -2384,11 +2345,6 @@ bufferutil@^4.0.1:
   integrity sha512-xowrxvpxojqkagPcWRQVXZl0YXhRhAtBEIq3VoER1NH5Mw1n1o0ojdspp+GS2J//2gCVyrzQDApQ4unGF+QOoA==
   dependencies:
     node-gyp-build "~3.7.0"
-
-buidler-abi-exporter@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/buidler-abi-exporter/-/buidler-abi-exporter-1.0.1.tgz#45ed6863318d31c8795cb681ec84b8bdf99b6cd0"
-  integrity sha512-LeIX79h2rx6DEbLjHFjB7JYMdRaUTZvH3KyWKEeFmVAdqStA1J4NWcEjlF78lBPB6U5pWFKEQR0a4g67lTmDeQ==
 
 buidler-gas-reporter@^0.1.4:
   version "0.1.4"
@@ -4038,15 +3994,7 @@ ethereumjs-abi@0.6.7:
     bn.js "^4.11.8"
     ethereumjs-util "^6.0.0"
 
-ethereumjs-abi@^0.6.8:
-  version "0.6.8"
-  resolved "https://registry.yarnpkg.com/ethereumjs-abi/-/ethereumjs-abi-0.6.8.tgz#71bc152db099f70e62f108b7cdfca1b362c6fcae"
-  integrity sha512-Tx0r/iXI6r+lRsdvkFDlut0N08jWMnKRZ6Gkq+Nmw75lZe4e6o3EkSnkaBP5NF6+m5PTGAr9JP43N3LyeoglsA==
-  dependencies:
-    bn.js "^4.11.8"
-    ethereumjs-util "^6.0.0"
-
-"ethereumjs-abi@git+https://github.com/ethereumjs/ethereumjs-abi.git":
+ethereumjs-abi@^0.6.8, "ethereumjs-abi@git+https://github.com/ethereumjs/ethereumjs-abi.git":
   version "0.6.8"
   resolved "git+https://github.com/ethereumjs/ethereumjs-abi.git#1ce6a1d64235fabe2aaf827fd606def55693508f"
   dependencies:
