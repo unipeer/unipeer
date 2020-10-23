@@ -30,9 +30,9 @@ jobs:
       run: |
         yarn install
 
-    - name: Start buidlerevm node
+    - name: Start hardhat network node
       run: |
-        yarn buidler node &
+        yarn hardhat node &
 
     - name: Compile
       run: |
@@ -42,7 +42,7 @@ jobs:
 
     - name: Test
       run: |
-        yarn buidler test --network localhost
+        yarn hardhat test --network localhost
       env:
         PRODUCTION: true
         REPORT_GAS: true
