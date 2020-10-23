@@ -1,4 +1,4 @@
-import {ethers, run, waffle} from "@nomiclabs/buidler";
+import {ethers, run, waffle} from "hardhat";
 const {deployMockContract} = waffle;
 import web3 from "web3";
 import {Signer} from "ethers";

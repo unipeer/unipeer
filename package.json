@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "typechain": "buidler typechain",
-    "test": "buidler test",
+    "typechain": "hardhat typechain",
+    "test": "hardhat test",
     "typecheck": "tsc --noEmit",
     "lint": "pretty-quick --pattern '**/*.*(sol|ts|json|md)' --verbose",
     "lint:check": "prettier --check '**/*.*(sol|ts|json|md)'",

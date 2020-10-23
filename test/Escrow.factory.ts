@@ -1,4 +1,4 @@
-import {ethers, run} from "@nomiclabs/buidler";
+import {ethers, run} from "hardhat";
 import {Signer} from "ethers";
 
 import {expect} from "chai";

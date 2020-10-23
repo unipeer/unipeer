@@ -1,4 +1,4 @@
-import {ethers, upgrades} from "@nomiclabs/buidler";
+import {ethers, upgrades} from "hardhat";
 import {expect} from "chai";
 
 import {BoxFactory, Box as BoxContract} from "../types";
