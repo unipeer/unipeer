@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 
 import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 
-import "@nomiclabs/buidler/console.sol";
+import "hardhat/console.sol";
 
 import "./adapters/EthAdapter.sol";
 import "./adapters/AssetAdapterWithFees.sol";

@@ -7,7 +7,7 @@ import "@chainlink/contracts/src/v0.6/LinkTokenReceiver.sol";
 import "@chainlink/contracts/src/v0.6/interfaces/LinkTokenInterface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "@nomiclabs/buidler/console.sol";
+import "hardhat/console.sol";
 
 import "./Escrow.sol";
 import "./adapters/EthAdapter.sol";
