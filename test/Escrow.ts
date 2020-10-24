@@ -1,5 +1,5 @@
 import {ethers, run} from "hardhat";
-import {Signer} from "ethers";
+import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
 import {expect} from "chai";
 
@@ -13,11 +13,11 @@ import {
 import {getInitializerData} from "../utils";
 
 let escrow: EscrowContract;
-let admin: Signer;
-let owner: Signer;
-let comptroller: Signer;
-let oracle: Signer;
-let buyer: Signer;
+let admin: SignerWithAddress;
+let owner: SignerWithAddress;
+let comptroller: SignerWithAddress;
+let oracle: SignerWithAddress;
+let buyer: SignerWithAddress;
 
 describe("Escrow", function () {
   beforeEach(async function () {
@@ -29,7 +29,7 @@ describe("Escrow", function () {
 
     const data = getInitializerData(
       Escrow,
-      [await owner.getAddress(), await comptroller.getAddress(), "test@upi"],
+      [owner.address, comptroller.address, "test@upi"],
       "initialize(address,address,string)",
     );
     const proxy = await Proxy.deploy(escrowNaked.address, data);
@@ -58,7 +58,7 @@ describe("Escrow", function () {
 
     expect(await escrow.getUnlockedBalance()).to.equal(amount);
 
-    await escrow.withdraw(amount, await owner.getAddress());
+    await escrow.withdraw(amount, owner.address);
     expect(await escrow.getUnlockedBalance()).to.equal(0);
   });
 
@@ -78,7 +78,7 @@ describe("Escrow", function () {
         .expectResponseFor(
           ethers.constants.AddressZero,
           ethers.utils.formatBytes32String("1"),
-          await buyer.getAddress(),
+          buyer.address,
           ethers.utils.parseEther("1"),
         ),
       "expectResponseFor",
@@ -105,7 +105,7 @@ describe("Escrow", function () {
         .expectResponseFor(
           ethers.constants.AddressZero,
           ethers.utils.formatBytes32String("1"),
-          await buyer.getAddress(),
+          buyer.address,
           ethers.utils.parseEther("1"),
         ),
       "expectResponseFor",
@@ -117,9 +117,8 @@ describe("Escrow", function () {
       ethers.utils.parseEther("8.9951"),
     );
 
-    await expect(
-      escrow.withdraw(ethers.utils.parseEther("10"), await owner.getAddress()),
-    ).to.be.reverted;
+    await expect(escrow.withdraw(ethers.utils.parseEther("10"), owner.address))
+      .to.be.reverted;
   });
 
   describe("fulfillFiatPayment", function () {
@@ -138,9 +137,9 @@ describe("Escrow", function () {
         escrow
           .connect(comptroller)
           .expectResponseFor(
-            await oracle.getAddress(),
+            oracle.address,
             ethers.utils.formatBytes32String("1"),
-            await buyer.getAddress(),
+            buyer.address,
             ethers.utils.parseEther("1"),
           ),
         "expectResponseFor",
@@ -178,9 +177,9 @@ describe("Escrow", function () {
         escrow
           .connect(comptroller)
           .expectResponseFor(
-            await oracle.getAddress(),
+            oracle.address,
             ethers.utils.formatBytes32String("1"),
-            await buyer.getAddress(),
+            buyer.address,
             ethers.utils.parseEther("1"),
           ),
         "expectResponseFor",

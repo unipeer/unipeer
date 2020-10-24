@@ -1,5 +1,5 @@
 import {ethers, run} from "hardhat";
-import {Signer} from "ethers";
+import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
 import {expect} from "chai";
 
@@ -12,8 +12,8 @@ import {
 
 let Escrow: EscrowFactory;
 let escrowFactory: EscrowContractFactoryContract;
-let admin: Signer;
-let owner: Signer;
+let admin: SignerWithAddress;
+let owner: SignerWithAddress;
 
 describe("Escrow (Factory)", function () {
   beforeEach(async function () {
@@ -44,7 +44,7 @@ describe("Escrow (Factory)", function () {
       }),
     ).to.not.be.reverted;
 
-    const escrows = await escrowFactory.getEscrows(await owner.getAddress());
+    const escrows = await escrowFactory.getEscrows(owner.address);
     const escrow = await Escrow.attach(escrows[0]);
 
     expect(await escrow.getUnlockedBalance(), "balance").to.equal(amount);

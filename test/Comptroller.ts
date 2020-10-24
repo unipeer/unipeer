@@ -1,7 +1,8 @@
 import {ethers, run, waffle} from "hardhat";
+import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+
 const {deployMockContract} = waffle;
 import web3 from "web3";
-import {Signer} from "ethers";
 import {expect} from "chai";
 
 import {getInitializerData} from "../utils";
@@ -20,10 +21,10 @@ import OracleABI from "./abi/Oracle.json";
 
 let comptroller: ComptrollerContract;
 let escrow: EscrowContract;
-let admin: Signer;
-let owner: Signer;
-let buyer: Signer;
-let oracle: Signer;
+let admin: SignerWithAddress;
+let owner: SignerWithAddress;
+let buyer: SignerWithAddress;
+let oracle: SignerWithAddress;
 
 describe("Comptroller", function () {
   beforeEach(async function () {
@@ -39,7 +40,7 @@ describe("Comptroller", function () {
     const jobId = web3.utils.toHex("0d69f6d174a4446c9a7ffa21cd0f687c");
     comptroller = await Comptroller.deploy(
       mockLink.address,
-      await oracle.getAddress(),
+      oracle.address,
       jobId,
     );
 
@@ -50,7 +51,7 @@ describe("Comptroller", function () {
 
     const data = getInitializerData(
       Escrow,
-      [await owner.getAddress(), comptroller.address, "seller@upi"],
+      [owner.address, comptroller.address, "seller@upi"],
       "initialize(address,address,string)",
     );
     const proxy = await Proxy.deploy(escrowNaked.address, data);
@@ -67,8 +68,8 @@ describe("Comptroller", function () {
 
     await expect(
       comptroller.requestFiatPayment(
-        await escrow.address,
-        await buyer.getAddress(),
+        escrow.address,
+        buyer.address,
         ethers.utils.parseEther("1"),
         "test@upi",
       ),
@@ -80,8 +81,8 @@ describe("Comptroller", function () {
   it("should not revert when calling createFiatPaymentWithLinkRequest", async function () {
     await expect(
       comptroller.createFiatPaymentWithLinkRequest(
-        await escrow.address,
-        await buyer.getAddress(),
+        escrow.address,
+        buyer.address,
         ethers.utils.parseEther("1"),
         "test@upi",
       ),
@@ -91,8 +92,8 @@ describe("Comptroller", function () {
   it("should not allow just anyone to call requestFiatPaymentWithLink", async function () {
     await expect(
       comptroller.requestFiatPaymentWithLink(
-        await escrow.address,
-        await buyer.getAddress(),
+        escrow.address,
+        buyer.address,
         ethers.utils.parseEther("1"),
         "test@upi",
       ),
@@ -102,8 +103,8 @@ describe("Comptroller", function () {
   it("should fail requestFiatPayment when escrow doesn't have enough funds", async function () {
     await expect(
       comptroller.requestFiatPayment(
-        await escrow.address,
-        await buyer.getAddress(),
+        escrow.address,
+        buyer.address,
         ethers.utils.parseEther("1"),
         "test@upi",
       ),
@@ -125,8 +126,8 @@ describe("Comptroller", function () {
       // create a payment request
       await expect(
         comptroller.requestFiatPayment(
-          await escrow.address,
-          await buyer.getAddress(),
+          escrow.address,
+          buyer.address,
           ethers.utils.parseEther("1"),
           "test@upi",
         ),

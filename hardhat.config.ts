@@ -16,8 +16,8 @@ import "@unipeer/hardhat-typechain";
 // usePlugin("buidler-spdx-license-identifier");
 // usePlugin("buidler-local-networks-config-plugin");
 
-// This is a sample Buidler task. To learn how to create your own go to
-// https://buidler.dev/guides/create-task.html
+// This is a sample hardhat task. To learn how to create your own go to
+// https://hardhat.org/guides/create-task.html
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   const accounts = await hre.ethers.getSigners();
 
