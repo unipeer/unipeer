@@ -1,4 +1,4 @@
-import {run, ethers, upgrades} from "@nomiclabs/buidler";
+import {run, ethers, upgrades} from "hardhat";
 import web3 from "web3";
 import {constants} from "ethers";
 

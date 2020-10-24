@@ -1,4 +1,4 @@
-import {run, ethers, upgrades} from "@nomiclabs/buidler";
+import {run, ethers, upgrades} from "hardhat";
 
 async function main() {
   // You can run Buidler tasks from a script.
