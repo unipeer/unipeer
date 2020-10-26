@@ -13,7 +13,7 @@ require("dotenv").config({silent: true});
 import "@unipeer/hardhat-typechain";
 
 // usePlugin("buidler-gas-reporter");
-// usePlugin("buidler-spdx-license-identifier");
+import "hardhat-spdx-license-identifier";
 // usePlugin("buidler-local-networks-config-plugin");
 
 // This is a sample hardhat task. To learn how to create your own go to
@@ -60,16 +60,15 @@ const config: HardhatUserConfig = {
     gasPrice: 21,
     enabled: process.env.REPORT_GAS ? true : false,
   },
+  */
   spdxLicenseIdentifier: {
     overwrite: true,
     runOnCompile: true,
   },
-  */
   typechain: {
     outDir: "types",
     target: "ethers-v5",
-    onTest: true,
-    onCompile: false,
+    runOnCompile: true,
   },
   etherscan: {
     // Your API key for Etherscan

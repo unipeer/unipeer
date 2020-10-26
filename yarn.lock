@@ -1109,10 +1109,10 @@
     "@types/bn.js" "*"
     "@types/underscore" "*"
 
-"@unipeer/hardhat-typechain@^0.2.1":
-  version "0.2.1"
-  resolved "https://registry.yarnpkg.com/@unipeer/hardhat-typechain/-/hardhat-typechain-0.2.1.tgz#b84725db15f38899617a9e1ce63c533fe0d84f52"
-  integrity sha512-7AF32sYbw83Uy3NNm08niUzmAHw31L4Ih252U+IHNfnAgbtXUL6DWG7D+hJxHPfep0TCfdj2Oijh7ELtKtQrHw==
+"@unipeer/hardhat-typechain@^0.3.2":
+  version "0.3.2"
+  resolved "https://registry.yarnpkg.com/@unipeer/hardhat-typechain/-/hardhat-typechain-0.3.2.tgz#16e1672b5f1150fa3beee312a6e17f248753a61b"
+  integrity sha512-YYaIRXaGiN2OL40i+iOVjB/TFTMtGXNiRsff/sl/Rx8x4JlYHJMsimo8S4T+KmQnN5cWhtnTyUDrOwNG/fcoGg==
 
 "@yarnpkg/lockfile@^1.1.0":
   version "1.1.0"
@@ -2330,11 +2330,6 @@ buidler-local-networks-config-plugin@^0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/buidler-local-networks-config-plugin/-/buidler-local-networks-config-plugin-0.0.1.tgz#e6d4581eeaddc3142b69f934226592f6287d7dcf"
   integrity sha512-/ke6bkbVARrWsj1rJXp0AYk702Fy1Bp6cvPffICufUp/0qCGKezcMlRMsc5VIjD3a4jotSEtGzIlIJ5uRLB4lQ==
-
-buidler-spdx-license-identifier@^1.0.5:
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/buidler-spdx-license-identifier/-/buidler-spdx-license-identifier-1.0.5.tgz#e6f718a44c0b8bf5a2041d3d8813aac92369ae90"
-  integrity sha512-yHj6JsQAVFg7sKbFGfXR89oMmPNHnpA9W7u2JoUD/A7hUFX4W8UaEv8MWdsNwT5tPY3+drTlHWY1NdZZYdqUfw==
 
 bytes@3.1.0:
   version "3.1.0"
@@ -4899,6 +4894,11 @@ hard-rejection@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/hard-rejection/-/hard-rejection-2.1.0.tgz#1c6eda5c1685c63942766d79bb40ae773cecd883"
   integrity sha512-VIZB+ibDhx7ObhAe7OVtoEbuP4h/MuOTHJ+J8h/eBXotJYl0fBgR72xDFCKgIh22OJZIOVNxBMWuhAr10r8HdA==
+
+hardhat-spdx-license-identifier@^2.0.0:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/hardhat-spdx-license-identifier/-/hardhat-spdx-license-identifier-2.0.1.tgz#62298acefa6ef1c69d6559cb245941bb270c0317"
+  integrity sha512-Dn+VGlQVp7dt1+eP8ROoWsbf/2XBIo6Z9uiF9jxj6WNbXdeqBYHlABagJZWjIA5x/lX8UGNtUZHa7XBHH/Qw+g==
 
 hardhat@^2.0.0:
   version "2.0.1"
