@@ -37,12 +37,10 @@ jobs:
     - name: Compile
       run: |
         yarn hardhat compile
-      env:
-        PRODUCTION: true
 
     - name: Test
       run: |
         yarn hardhat test --network localhost
       env:
-        PRODUCTION: true
         REPORT_GAS: true
+        COINMARKET_API: ${{ secrets.COINMARKET_API }}
