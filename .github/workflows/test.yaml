@@ -3,10 +3,6 @@ name: Contracts
 on:
   pull_request:
   push:
-    branches:
-      - master
-    tags:
-      - v*
 
 jobs:
   test:
