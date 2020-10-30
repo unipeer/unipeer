@@ -12,7 +12,7 @@ require("dotenv").config({silent: true});
 //usePlugin("@openzeppelin/buidler-upgrades");
 import "@unipeer/hardhat-typechain";
 
-// usePlugin("buidler-gas-reporter");
+import "hardhat-gas-reporter";
 import "hardhat-spdx-license-identifier";
 // usePlugin("buidler-local-networks-config-plugin");
 
@@ -54,13 +54,12 @@ const config: HardhatUserConfig = {
       },
     ],
   },
-  /*
   gasReporter: {
-    currency: "USD",
+    currency: "INR",
     gasPrice: 21,
+    coinmarketcap: process.env.COINMARKET_API,
     enabled: process.env.REPORT_GAS ? true : false,
   },
-  */
   spdxLicenseIdentifier: {
     overwrite: true,
     runOnCompile: true,

@@ -2319,13 +2319,6 @@ bufferutil@^4.0.1:
   dependencies:
     node-gyp-build "~3.7.0"
 
-buidler-gas-reporter@^0.1.4:
-  version "0.1.4"
-  resolved "https://registry.yarnpkg.com/buidler-gas-reporter/-/buidler-gas-reporter-0.1.4.tgz#912108192e91360deb3f79b3840d0f50c35b4f08"
-  integrity sha512-objSu/tGggxKDmlpZViM9uEKRSo7vXxBsPv+vXegre1AWapJXQNfJPtBmrNvnT5Ixl8pecWSRXsfO95nJAn4yw==
-  dependencies:
-    eth-gas-reporter "^0.2.18"
-
 buidler-local-networks-config-plugin@^0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/buidler-local-networks-config-plugin/-/buidler-local-networks-config-plugin-0.0.1.tgz#e6d4581eeaddc3142b69f934226592f6287d7dcf"
@@ -3676,10 +3669,10 @@ eth-ens-namehash@2.0.8, eth-ens-namehash@^2.0.0, eth-ens-namehash@^2.0.8:
     idna-uts46-hx "^2.3.1"
     js-sha3 "^0.5.7"
 
-eth-gas-reporter@^0.2.18:
-  version "0.2.18"
-  resolved "https://registry.yarnpkg.com/eth-gas-reporter/-/eth-gas-reporter-0.2.18.tgz#6b7dd40628d073109ea6439f652a8d41b259ce7d"
-  integrity sha512-P6LQ1QmU9bqU4zmd01Ws/b2EWAD5rT771U0wyJ/c+fKE6RdE9ks8KzjdR1zjosV2uilMfqVTtrBrXveCOnaTyQ==
+eth-gas-reporter@^0.2.19:
+  version "0.2.19"
+  resolved "https://registry.yarnpkg.com/eth-gas-reporter/-/eth-gas-reporter-0.2.19.tgz#57ce74e0617d021d04fd1789a4232837d0f41918"
+  integrity sha512-yQmbAa6O9/Yl/syNml2A0R+ZLQnJ9m9jogFXHzjMWVBMUVnAcEskOVyxaMYddkclZdYIMxE99tQy830C2jLsAQ==
   dependencies:
     "@ethersproject/abi" "^5.0.0-beta.146"
     "@solidity-parser/parser" "^0.8.0"
@@ -4895,15 +4888,22 @@ hard-rejection@^2.1.0:
   resolved "https://registry.yarnpkg.com/hard-rejection/-/hard-rejection-2.1.0.tgz#1c6eda5c1685c63942766d79bb40ae773cecd883"
   integrity sha512-VIZB+ibDhx7ObhAe7OVtoEbuP4h/MuOTHJ+J8h/eBXotJYl0fBgR72xDFCKgIh22OJZIOVNxBMWuhAr10r8HdA==
 
+hardhat-gas-reporter@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/hardhat-gas-reporter/-/hardhat-gas-reporter-1.0.0.tgz#e5e1b2a9f5da6b32f2c7b65a6828c5b69bf3957c"
+  integrity sha512-ckGLu62GSZDqTemO5EgSUdjn+Dyk4X20nryZ0gutgVnjfrTwpV7/AXoDIj93cxIGMLmui09EQR0QB0D0OIssdA==
+  dependencies:
+    eth-gas-reporter "^0.2.19"
+
 hardhat-spdx-license-identifier@^2.0.0:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/hardhat-spdx-license-identifier/-/hardhat-spdx-license-identifier-2.0.1.tgz#62298acefa6ef1c69d6559cb245941bb270c0317"
   integrity sha512-Dn+VGlQVp7dt1+eP8ROoWsbf/2XBIo6Z9uiF9jxj6WNbXdeqBYHlABagJZWjIA5x/lX8UGNtUZHa7XBHH/Qw+g==
 
-hardhat@^2.0.0:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/hardhat/-/hardhat-2.0.1.tgz#2e7d1815654406199b88b31da9c2d2763e8f5577"
-  integrity sha512-9g67OkehLgHLgfqqbdR+FANshTUvFM3yuJr06ZScNErsvrdiLHpQ/Jbkd6rRiXjYovN/SMu4YZrhNEm62b7boA==
+hardhat@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/hardhat/-/hardhat-2.0.2.tgz#30c3c5a49f950aad2e39c479208b4132052dc735"
+  integrity sha512-P8SMYsWeC0OakmHUAgL9STalidQ1bAHFHFroPyvnfljei7EPHaIQpS6QursoZ+KVNkPTnKC+9m1Lky8nnKIjuw==
   dependencies:
     "@nomiclabs/ethereumjs-vm" "^4.1.1"
     "@sentry/node" "^5.18.1"
