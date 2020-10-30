@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "./AssetAdapter.sol";
 
 abstract contract EthAdapter is AssetAdapter {
+  event Deposit(address indexed from, uint256 amount);
+
   uint16 internal constant ETH_TYPE_ID = 1;
 
   function getBalance() public view override returns (uint256 amount) {
@@ -31,5 +33,7 @@ abstract contract EthAdapter is AssetAdapter {
    *
    * TODO: Switch to using a specific deposit function?
    */
-  receive() external payable {}
+  receive() external payable {
+    emit Deposit(msg.sender, msg.value);
+  }
 }
