@@ -1,8 +1,7 @@
-import {ethers, run, waffle} from "hardhat";
+import {ethers, run, waffle, web3} from "hardhat";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
 const {deployMockContract} = waffle;
-import web3 from "web3";
 import {expect} from "chai";
 
 import {getInitializerData} from "../utils";
@@ -135,7 +134,10 @@ describe("Comptroller", function () {
         .to.emit(escrow, "AmountLocked")
         .withArgs(escrow.address, ethers.utils.parseEther("1.0049"));
 
-      expect(await comptroller.getBalance(), "fees [initial]").to.equal(0);
+      expect(
+        await web3.eth.getBalance(comptroller.address),
+        "fees [initial]",
+      ).to.equal("0");
 
       let hash = web3.utils.soliditySha3(
         {t: "address", v: comptroller.address},
@@ -148,9 +150,10 @@ describe("Comptroller", function () {
         "fulfillFiatPayment",
       ).to.be.not.reverted;
 
-      expect(await comptroller.getBalance(), "fees [final]").to.equal(
-        ethers.utils.parseEther("0.0049"),
-      );
+      expect(
+        await web3.eth.getBalance(comptroller.address),
+        "fees [final]",
+      ).to.equal(ethers.utils.parseEther("0.0049"));
     });
   });
 });

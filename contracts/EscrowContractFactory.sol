@@ -3,6 +3,8 @@
 pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/utils/Address.sol";
+
 import "./StaticProxy.sol";
 
 contract EscrowContractFactory {
@@ -43,7 +45,7 @@ contract EscrowContractFactory {
     StaticProxy proxy = new StaticProxy(escrowImpl, payload);
     escrow = address(proxy);
     escrows[msg.sender].push(escrow);
-    escrow.transfer(msg.value);
+    Address.sendValue(escrow, msg.value);
     emit Created(escrow, msg.sender, block.timestamp, paymentid, msg.value);
   }
 }
