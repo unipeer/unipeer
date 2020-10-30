@@ -6,18 +6,14 @@ import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 import "@chainlink/contracts/src/v0.6/LinkTokenReceiver.sol";
 import "@chainlink/contracts/src/v0.6/interfaces/LinkTokenInterface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 import "hardhat/console.sol";
 
 import "./Escrow.sol";
 import "./adapters/EthAdapter.sol";
 
-contract Comptroller is
-  ChainlinkClient,
-  Ownable,
-  EthAdapter,
-  LinkTokenReceiver
-{
+contract Comptroller is ChainlinkClient, Ownable, LinkTokenReceiver {
   bytes32 private jobId;
   uint256 private fee;
 
@@ -45,7 +41,7 @@ contract Comptroller is
     public
     onlyOwner()
   {
-    rawSendAsset(_amount, _to);
+    Address.sendValue(_to, _amount);
   }
 
   /**
@@ -128,4 +124,10 @@ contract Comptroller is
     bytes32 reqId = sendChainlinkRequest(req, fee);
     escrow.expectResponseFor(chainlinkOracleAddress(), reqId, _buyer, _amount);
   }
+
+  /**
+   * @dev We have the payable receive function to accept ether payment only
+   * and not the fallback function to avoid delegating calls further.
+   */
+  receive() external payable {}
 }
