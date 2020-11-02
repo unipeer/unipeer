@@ -43,7 +43,7 @@ async function main() {
     escrow.address,
     comptroller.address,
   );
-  console.log("EscrowFactory deployed to:", escrow.address);
+  console.log("EscrowFactory deployed to:", escrowFactory.address);
 
   console.log("Creating a new escrow...");
   await escrowFactory.newEscrow("seller@upi", {
