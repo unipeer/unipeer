@@ -10,6 +10,8 @@ import "hardhat/console.sol";
 import "./adapters/EthAdapter.sol";
 import "./adapters/AssetAdapterWithFees.sol";
 
+import "./WithStatus.sol";
+
 contract Escrow is EthAdapter, AssetAdapterWithFees, ChainlinkClient {
   struct Job {
     address payable buyer;
@@ -42,7 +44,19 @@ contract Escrow is EthAdapter, AssetAdapterWithFees, ChainlinkClient {
     _;
   }
 
-  function withdraw(uint256 _amount, address payable _to) public onlyOwner() {
+  modifier statusAtLeast(Status _status) {
+    require(
+      WithStatus(comptroller).status() >= _status,
+      "invalid contract status"
+    );
+    _;
+  }
+
+  function withdraw(uint256 _amount, address payable _to)
+    public
+    onlyOwner()
+    statusAtLeast(Status.RETURN_ONLY)
+  {
     require(
       getUnlockedBalance() >= _amount,
       "Escrow: insufficient unlocked funds to withdraw"
@@ -55,13 +69,16 @@ contract Escrow is EthAdapter, AssetAdapterWithFees, ChainlinkClient {
     bytes32 _requestId,
     address payable _buyer,
     uint256 _amount
-  ) public onlyComptroller {
+  ) public onlyComptroller statusAtLeast(Status.FINALIZE_ONLY) {
     lockAssetWithFee(_amount); // check
     jobs[_requestId] = Job({buyer: _buyer, amount: _amount}); // effects
     addChainlinkExternalRequest(_oracle, _requestId); // interaction
   }
 
-  function fulfillFiatPayment(bytes32 _requestId, bool successful) public {
+  function fulfillFiatPayment(bytes32 _requestId, bool successful)
+    public
+    statusAtLeast(Status.FINALIZE_ONLY)
+  {
     validateChainlinkCallback(_requestId);
 
     Job memory job = jobs[_requestId];

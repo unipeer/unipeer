@@ -11,8 +11,9 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "hardhat/console.sol";
 
 import "./Escrow.sol";
+import "./WithStatus.sol";
 
-contract Comptroller is ChainlinkClient, Ownable, LinkTokenReceiver {
+contract Comptroller is ChainlinkClient, WithStatus, LinkTokenReceiver {
   bytes32 private jobId;
   uint256 private fee;
 
@@ -39,6 +40,7 @@ contract Comptroller is ChainlinkClient, Ownable, LinkTokenReceiver {
   function withdrawFees(address payable _to, uint256 _amount)
     public
     onlyOwner()
+    statusAtLeast(Status.RETURN_ONLY)
   {
     Address.sendValue(_to, _amount);
   }
@@ -57,7 +59,7 @@ contract Comptroller is ChainlinkClient, Ownable, LinkTokenReceiver {
     address payable _buyer,
     uint256 _amount,
     string calldata _senderpaymentid
-  ) public {
+  ) public statusAtLeast(Status.ACTIVE) {
     bytes memory payload = abi.encodeWithSignature(
       "requestFiatPaymentWithLink(address,address,uint256,string)",
       _seller,
@@ -89,7 +91,7 @@ contract Comptroller is ChainlinkClient, Ownable, LinkTokenReceiver {
     address _seller,
     address payable _buyer,
     uint256 _amount,
-    string calldata _senderpaymentid // onlyOwner()
+    string calldata _senderpaymentid /* onlyOwner() */
   ) public {
     _requestFiatPayment(_seller, _buyer, _amount, _senderpaymentid);
   }
@@ -99,7 +101,7 @@ contract Comptroller is ChainlinkClient, Ownable, LinkTokenReceiver {
     address payable _buyer,
     uint256 _amount,
     string calldata _senderpaymentid
-  ) internal {
+  ) internal statusAtLeast(Status.ACTIVE) {
     require(
       Address.isContract(_seller),
       "Comptroller: seller should an escrow contract"
