@@ -8,11 +8,11 @@ import {getInitializerData} from "../utils";
 
 import {
   ComptrollerFactory,
-  EscrowFactory,
-  StaticProxyFactory,
   Comptroller as ComptrollerContract,
+  EscrowFactory,
   Escrow as EscrowContract,
-  StaticProxy as StaticProxyContract,
+  EscrowContractFactoryFactory,
+  EscrowContractFactory as EscrowContractFactoryContract,
 } from "../types";
 
 import LinkTokenABI from "./abi/LinkToken.json";
@@ -20,6 +20,8 @@ import OracleABI from "./abi/Oracle.json";
 
 let comptroller: ComptrollerContract;
 let escrow: EscrowContract;
+let escrowFactory: EscrowContractFactoryContract;
+
 let admin: SignerWithAddress;
 let owner: SignerWithAddress;
 let buyer: SignerWithAddress;
@@ -36,26 +38,24 @@ describe("Comptroller", function () {
 
     const Comptroller = await new ComptrollerFactory(admin);
 
-    const jobId = web3.utils.toHex("0d69f6d174a4446c9a7ffa21cd0f687c");
     comptroller = await Comptroller.deploy(
       mockLink.address,
       oracle.address,
-      jobId,
+      web3.utils.toHex("0d69f6d174a4446c9a7ffa21cd0f687c"),
     );
 
     const Escrow = await new EscrowFactory(admin);
-    const Proxy = await new StaticProxyFactory(owner);
+    const EscrowContractFactory = await new EscrowContractFactoryFactory(admin);
 
     const escrowNaked = await Escrow.deploy();
-
-    const data = getInitializerData(
-      Escrow,
-      [owner.address, comptroller.address, "seller@upi"],
-      "initialize(address,address,string)",
+    escrowFactory = await EscrowContractFactory.deploy(
+      escrowNaked.address,
+      comptroller.address,
     );
-    const proxy = await Proxy.deploy(escrowNaked.address, data);
 
-    escrow = Escrow.attach(proxy.address).connect(owner);
+    await escrowFactory.connect(owner).newEscrow("seller@upi");
+    const escrows = await escrowFactory.getEscrows(owner.address);
+    escrow = await Escrow.attach(escrows[0]).connect(owner);
   });
 
   it("should correctly create a fiat payment request", async function () {
