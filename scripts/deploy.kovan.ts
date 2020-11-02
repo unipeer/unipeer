@@ -1,4 +1,4 @@
-import {run, ethers, upgrades} from "hardhat";
+import {run, ethers} from "hardhat";
 import web3 from "web3";
 import {constants} from "ethers";
 
@@ -13,6 +13,9 @@ import {
 
 import {getInitializerData} from "../utils";
 
+const ORACLE_ADDRESS = "0x98cbfb4f664e6b35a32930c90e43f03b5eab50da";
+const JOBID = "3dd25a102fe74157b1eae12b430336f4";
+
 async function main() {
   await run("typechain");
 
@@ -26,8 +29,8 @@ async function main() {
   console.log("Deploying Comptroller...");
   let comptroller = await Comptroller.deploy(
     constants.AddressZero,
-    "0x98cbfb4f664e6b35a32930c90e43f03b5eab50da",
-    web3.utils.toHex("0d69f6d174a4446c9a7ffa21cd0f687c"),
+    ORACLE_ADDRESS,
+    web3.utils.toHex(JOBID),
   );
   console.log("Comptroller deployed to:", comptroller.address);
 
@@ -55,8 +58,8 @@ async function main() {
     address: comptroller.address,
     constructorArguments: [
       constants.AddressZero,
-      "0x98cbfb4f664e6b35a32930c90e43f03b5eab50da",
-      web3.utils.toHex("0d69f6d174a4446c9a7ffa21cd0f687c"),
+      ORACLE_ADDRESS,
+      web3.utils.toHex(JOBID),
     ],
   });
 
