@@ -2319,11 +2319,6 @@ bufferutil@^4.0.1:
   dependencies:
     node-gyp-build "~3.7.0"
 
-buidler-local-networks-config-plugin@^0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/buidler-local-networks-config-plugin/-/buidler-local-networks-config-plugin-0.0.1.tgz#e6d4581eeaddc3142b69f934226592f6287d7dcf"
-  integrity sha512-/ke6bkbVARrWsj1rJXp0AYk702Fy1Bp6cvPffICufUp/0qCGKezcMlRMsc5VIjD3a4jotSEtGzIlIJ5uRLB4lQ==
-
 bytes@3.1.0:
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/bytes/-/bytes-3.1.0.tgz#f6cf7933a360e0588fa9fde85651cdc7f805d1f6"

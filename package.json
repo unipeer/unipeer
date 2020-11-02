@@ -36,7 +36,6 @@
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.13.25",
     "@unipeer/hardhat-typechain": "^0.3.2",
-    "buidler-local-networks-config-plugin": "^0.0.1",
     "chai": "^4.2.0",
     "dotenv": "^8.2.0",
     "ethereum-waffle": "^3.1.1",

@@ -14,7 +14,6 @@ import "@unipeer/hardhat-typechain";
 
 import "hardhat-gas-reporter";
 import "hardhat-spdx-license-identifier";
-// usePlugin("buidler-local-networks-config-plugin");
 
 // This is a sample hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -28,10 +27,17 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
-  // localNetworksConfig: "~/.buidler/networks.json",
   networks: {
     localhost: {
       url: "http://127.0.0.1:8545",
+    },
+    rinkeby: {
+      url: `https://rinkeby.infura.io/v3/${process.env.PROJECT_ID}`,
+      gasMultiplier: 2,
+    },
+    kovan: {
+      url: `https://kovan.infura.io/v3/${process.env.PROJECT_ID}`,
+      accounts: {mnemonic: process.env.KOVAN_MNEMONIC},
     },
   },
   solidity: {
