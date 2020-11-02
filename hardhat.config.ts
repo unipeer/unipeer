@@ -37,7 +37,7 @@ const config: HardhatUserConfig = {
     },
     kovan: {
       url: `https://kovan.infura.io/v3/${process.env.PROJECT_ID}`,
-      accounts: {mnemonic: process.env.KOVAN_MNEMONIC},
+      accounts: {mnemonic: process.env.KOVAN_MNEMONIC || ""},
     },
   },
   solidity: {
@@ -76,8 +76,6 @@ const config: HardhatUserConfig = {
     runOnCompile: true,
   },
   etherscan: {
-    // Your API key for Etherscan
-    // Obtain one at https://etherscan.io/
     apiKey: process.env.ETHERSCAN_API,
   },
   paths: {
