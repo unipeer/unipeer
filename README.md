@@ -9,6 +9,7 @@ payments to the Ethereum blockchain via Chainlink oracles.
 ## Roadmap
 
 - [x] Integrate a UPI API to a chainlink node as an External Adapter.
+- [ ] Add a mechanism to pay for initial buy tx.
 - [ ] Add pricing information between ETH/INR or USD/INR. (UMA or chainlink)
 - [ ] On/Off chain order matching mechanism that matches buyers to sellers.
 - [ ] Move to a zk or optimistic rollup.
@@ -22,21 +23,15 @@ payments to the Ethereum blockchain via Chainlink oracles.
 ## Install
 
 ```
-npm install
+yarn install
 ```
 
 ## Build
 
-We use buidler.dev
+We use hardhat.org
 
 ```
-npx buidler compile
-```
-
-## Generate Types for contracts
-
-```
-npm run generate-types
+yarn hardhat compile
 ```
 
 ## Debug
@@ -45,17 +40,17 @@ To get details about the transactions being executed, run the buidlerevm
 separately in another terminal.
 
 ```
-npx buidler node
+yarn hardhat node
 ```
 
 Then run your tests with the localhost network
 
 ```
-npx buidler --network localhost test
+yarn hardhat --network localhost test
 ```
 
 ## Test
 
 ```
-npx buidler test
+yarn hardhat test
 ```

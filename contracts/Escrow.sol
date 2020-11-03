@@ -45,10 +45,6 @@ contract Escrow is EthAdapter, AssetAdapterWithFees, ChainlinkClient {
   }
 
   modifier statusAtLeast(Status _status) {
-    uint256 id;
-    assembly {
-      id := chainid()
-    }
     require(
       WithStatus(comptroller).status() >= _status,
       "invalid contract status"
