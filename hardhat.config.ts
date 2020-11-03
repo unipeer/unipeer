@@ -46,7 +46,7 @@ const config: HardhatUserConfig = {
         version: "0.6.12",
         settings: {
           optimizer: {
-            enabled: true,
+            enabled: process.env.PRODUCTION ? true : false,
           },
         },
       },
@@ -54,7 +54,7 @@ const config: HardhatUserConfig = {
         version: "0.7.4",
         settings: {
           optimizer: {
-            enabled: true,
+            enabled: process.env.PRODUCTION ? true : false,
           },
         },
       },

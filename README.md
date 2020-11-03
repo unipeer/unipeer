@@ -54,3 +54,9 @@ yarn hardhat --network localhost test
 ```
 yarn hardhat test
 ```
+
+## Deploy
+
+```
+PRODUCTION=1 yarn hardhat run scripts/deploy.kovan.ts --network kovan
+```
