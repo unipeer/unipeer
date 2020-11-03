@@ -110,9 +110,32 @@ describe("Comptroller", function () {
     ).to.be.revertedWith("Comptroller: not enough funds in escrow");
   });
 
-  // TOOD: add tests for withdrawFees function
+  it("should fail requestFiatPayment with Status.FINALIZE_ONLY", async function () {
+    // Deposit funds in the escrow
+    await owner.sendTransaction({
+      to: escrow.address,
+      value: ethers.utils.parseEther("10"),
+    });
+
+    // Change status
+    await expect(comptroller.setStatus(2), "setStatus")
+      .to.emit(comptroller, "StatusChanged")
+      .withArgs(3, 2);
+
+    await expect(
+      comptroller.requestFiatPayment(
+        escrow.address,
+        buyer.address,
+        ethers.utils.parseEther("1"),
+        "test@upi",
+      ),
+    ).to.be.revertedWith("invalid contract status");
+  });
+
   describe("withdrawFees", function () {
-    it("should be able to accept fees from escrow", async function () {
+    let hash: string;
+
+    beforeEach(async function () {
       const amount = ethers.utils.parseEther("10");
       await owner.sendTransaction({
         to: escrow.address,
@@ -139,11 +162,13 @@ describe("Comptroller", function () {
         "fees [initial]",
       ).to.equal("0");
 
-      let hash = web3.utils.soliditySha3(
+      hash = web3.utils.soliditySha3(
         {t: "address", v: comptroller.address},
         {t: "uint256", v: 1},
       ) as string;
+    });
 
+    it("should be able to accept fees from escrow", async function () {
       // complete a successful payment
       await expect(
         escrow.connect(oracle).fulfillFiatPayment(hash, true),
@@ -154,6 +179,54 @@ describe("Comptroller", function () {
         await web3.eth.getBalance(comptroller.address),
         "fees [final]",
       ).to.equal(ethers.utils.parseEther("0.0049"));
+    });
+
+    it("can withdraw fees successfully", async function () {
+      // complete a successful payment
+      await expect(
+        escrow.connect(oracle).fulfillFiatPayment(hash, true),
+        "fulfillFiatPayment",
+      ).to.be.not.reverted;
+
+      expect(
+        await web3.eth.getBalance(comptroller.address),
+        "fees [final]",
+      ).to.equal(ethers.utils.parseEther("0.0049"));
+
+      // withdraw fees
+      await expect(
+        comptroller.withdrawFees(
+          admin.address,
+          ethers.utils.parseEther("0.0049"),
+        ),
+        "withdrawFees",
+      ).to.be.not.reverted;
+    });
+
+    it("should not allow withdrawing fees with Status.STOPPED", async function () {
+      // complete a successful payment
+      await expect(
+        escrow.connect(oracle).fulfillFiatPayment(hash, true),
+        "fulfillFiatPayment",
+      ).to.be.not.reverted;
+
+      expect(
+        await web3.eth.getBalance(comptroller.address),
+        "fees [final]",
+      ).to.equal(ethers.utils.parseEther("0.0049"));
+
+      await expect(comptroller.setStatus(0), "setStatus")
+        .to.emit(comptroller, "StatusChanged")
+        .withArgs(3, 0);
+
+      // withdraw fees
+      await expect(
+        comptroller.withdrawFees(
+          admin.address,
+          ethers.utils.parseEther("0.0049"),
+        ),
+        "withdrawFees",
+      ).to.be.revertedWith("invalid contract status");
     });
   });
 });
