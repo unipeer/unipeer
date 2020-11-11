@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 
 import "./StaticProxy.sol";
 
-contract EscrowContractFactory {
+contract EscrowFactory {
   event Created(
     address escrow,
     address owner,

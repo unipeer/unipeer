@@ -5,13 +5,13 @@ import {expect} from "chai";
 
 import {
   Escrow__factory,
-  EscrowContractFactory__factory,
+  EscrowFactory__factory,
   Escrow as EscrowContract,
-  EscrowContractFactory as EscrowContractFactoryContract,
+  EscrowFactory as EscrowFactoryContract,
 } from "../types";
 
 let Escrow: Escrow__factory;
-let escrowFactory: EscrowContractFactoryContract;
+let escrowFactory: EscrowFactoryContract;
 let admin: SignerWithAddress;
 let owner: SignerWithAddress;
 
@@ -19,12 +19,10 @@ describe("Escrow (Factory)", function () {
   beforeEach(async function () {
     [admin, owner] = await ethers.getSigners();
     Escrow = await new Escrow__factory(admin);
-    const EscrowContractFactory = await new EscrowContractFactory__factory(
-      admin,
-    );
+    const EscrowFactory = await new EscrowFactory__factory(admin);
 
     const escrow = await Escrow.deploy();
-    escrowFactory = await EscrowContractFactory.deploy(
+    escrowFactory = await EscrowFactory.deploy(
       escrow.address,
       ethers.constants.AddressZero,
     );

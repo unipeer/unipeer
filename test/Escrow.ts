@@ -9,8 +9,8 @@ import {
   Comptroller as ComptrollerContract,
   Escrow__factory,
   Escrow as EscrowContract,
-  EscrowContractFactory__factory,
-  EscrowContractFactory as EscrowContractFactoryContract,
+  EscrowFactory__factory,
+  EscrowFactory as EscrowFactoryContract,
 } from "../types";
 
 import LinkTokenABI from "./abi/LinkToken.json";
@@ -18,7 +18,7 @@ import OracleABI from "./abi/Oracle.json";
 
 let comptroller: ComptrollerContract;
 let escrow: EscrowContract;
-let escrowFactory: EscrowContractFactoryContract;
+let escrowFactory: EscrowFactoryContract;
 
 let admin: SignerWithAddress;
 let owner: SignerWithAddress;
@@ -43,12 +43,10 @@ describe("Escrow", function () {
     );
 
     const Escrow = await new Escrow__factory(admin);
-    const EscrowContractFactory = await new EscrowContractFactory__factory(
-      admin,
-    );
+    const EscrowFactory = await new EscrowFactory__factory(admin);
 
     const escrowNaked = await Escrow.deploy();
-    escrowFactory = await EscrowContractFactory.deploy(
+    escrowFactory = await EscrowFactory.deploy(
       escrowNaked.address,
       comptroller.address,
     );
