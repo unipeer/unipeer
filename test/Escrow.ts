@@ -5,11 +5,11 @@ const {deployMockContract} = waffle;
 import {expect} from "chai";
 
 import {
-  ComptrollerFactory,
+  Comptroller__factory,
   Comptroller as ComptrollerContract,
-  EscrowFactory,
+  Escrow__factory,
   Escrow as EscrowContract,
-  EscrowContractFactoryFactory,
+  EscrowContractFactory__factory,
   EscrowContractFactory as EscrowContractFactoryContract,
 } from "../types";
 
@@ -34,7 +34,7 @@ describe("Escrow", function () {
     await mockLink.mock.transferAndCall.returns(true);
     //const mockOracle = await deployMockContract(admin, OracleABI);
 
-    const Comptroller = await new ComptrollerFactory(admin);
+    const Comptroller = await new Comptroller__factory(admin);
 
     comptroller = await Comptroller.deploy(
       mockLink.address,
@@ -42,8 +42,10 @@ describe("Escrow", function () {
       web3.utils.toHex("0d69f6d174a4446c9a7ffa21cd0f687c"),
     );
 
-    const Escrow = await new EscrowFactory(admin);
-    const EscrowContractFactory = await new EscrowContractFactoryFactory(admin);
+    const Escrow = await new Escrow__factory(admin);
+    const EscrowContractFactory = await new EscrowContractFactory__factory(
+      admin,
+    );
 
     const escrowNaked = await Escrow.deploy();
     escrowFactory = await EscrowContractFactory.deploy(

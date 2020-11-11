@@ -935,12 +935,10 @@
     strip-indent "^2.0.0"
     super-split "^1.1.0"
 
-"@typechain/ethers-v5@^2.0.0":
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/@typechain/ethers-v5/-/ethers-v5-2.0.0.tgz#cd3ca1590240d587ca301f4c029b67bfccd08810"
-  integrity sha512-0xdCkyGOzdqh4h5JSf+zoWx85IusEjDcPIwNEHP8mrWSnCae4rvrqB+/gtpdNfX7zjlFlZiMeePn2r63EI3Lrw==
-  dependencies:
-    ethers "^5.0.2"
+"@typechain/ethers-v5@^4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@typechain/ethers-v5/-/ethers-v5-4.0.0.tgz#2a8be5e108d23f3b8e6354d1618fdc2abcb00b07"
+  integrity sha512-Rw4WHPIuwTXWcHfmn9ICQISQhmJa6Ug5IjqPYLpsKqlED2L4W2JgQ6S9hYt4IKVmT//1yxIxD+iaa5tSQEEx1A==
 
 "@types/bignumber.js@^5.0.0":
   version "5.0.0"
@@ -4106,7 +4104,7 @@ ethers@^4.0.0-beta.1, ethers@^4.0.32, ethers@^4.0.40, ethers@^4.0.45:
     uuid "2.0.1"
     xmlhttprequest "1.8.0"
 
-ethers@^5.0.0, ethers@^5.0.1, ethers@^5.0.17, ethers@^5.0.2:
+ethers@^5.0.0, ethers@^5.0.1, ethers@^5.0.17:
   version "5.0.19"
   resolved "https://registry.yarnpkg.com/ethers/-/ethers-5.0.19.tgz#a4636f62a180135b13fd1f0a393477beafd535b7"
   integrity sha512-0AZnUgZh98q888WAd1oI3aLeI+iyDtrupjANVtPPS7O63lVopkR/No8A1NqSkgl/rU+b2iuu2mUZor6GD4RG2w==
@@ -9028,10 +9026,10 @@ type@^2.0.0:
   resolved "https://registry.yarnpkg.com/type/-/type-2.1.0.tgz#9bdc22c648cf8cf86dd23d32336a41cfb6475e3f"
   integrity sha512-G9absDWvhAWCV2gmF1zKud3OyC61nZDwWvBL2DApaVFogI07CprggiQAOOjvp2NRjYWFzPyu7vwtDrQFq8jeSA==
 
-typechain@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/typechain/-/typechain-3.0.0.tgz#d5a47700831f238e43f7429b987b4bb54849b92e"
-  integrity sha512-ft4KVmiN3zH4JUFu2WJBrwfHeDf772Tt2d8bssDTo/YcckKW2D+OwFrHXRC6hJvO3mHjFQTihoMV6fJOi0Hngg==
+typechain@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/typechain/-/typechain-4.0.0.tgz#8a81fe40c4020b370f0c4671b7f966134d20c58c"
+  integrity sha512-XQUojf02bXyxXNGI0WeCphnh++5eWr9wYH8jm0XqHNv8yENpFrRyX8ffVlkhCnDOOB/jEJJVQytLAOU+Qn0N9Q==
   dependencies:
     command-line-args "^4.0.7"
     debug "^4.1.1"

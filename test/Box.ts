@@ -1,7 +1,7 @@
 import {ethers} from "hardhat";
 import {expect} from "chai";
 
-import {BoxFactory, Box as BoxContract} from "../types";
+import {Box__factory, Box as BoxContract} from "../types";
 
 let box: BoxContract;
 
@@ -9,7 +9,7 @@ let box: BoxContract;
 describe("Box", function () {
   beforeEach(async function () {
     const signer = await ethers.getSigners();
-    const Box = await new BoxFactory(signer[0]);
+    const Box = await new Box__factory(signer[0]);
 
     box = await Box.deploy();
     await box.deployed();
