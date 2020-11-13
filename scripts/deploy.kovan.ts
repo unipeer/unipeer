@@ -3,12 +3,12 @@ import web3 from "web3";
 import {constants} from "ethers";
 
 import {
-  ComptrollerFactory,
-  EscrowFactory,
-  EscrowContractFactoryFactory,
+  Comptroller__factory,
   Comptroller as ComptrollerContract,
+  Escrow__factory,
   Escrow as EscrowContract,
-  EscrowContractFactory as EscrowContractFactoryContract,
+  EscrowFactory__factory,
+  EscrowFactory as EscrowFactoryContract,
 } from "../types";
 
 import {getInitializerData} from "../utils";
@@ -22,9 +22,9 @@ async function main() {
   const accounts = await ethers.getSigners();
   const account = accounts[0];
 
-  const Comptroller = await new ComptrollerFactory(account);
-  const Escrow = await new EscrowFactory(account);
-  const EscrowContractFactory = await new EscrowContractFactoryFactory(account);
+  const Comptroller = await new Comptroller__factory(account);
+  const Escrow = await new Escrow__factory(account);
+  const EscrowFactory = await new EscrowFactory__factory(account);
 
   console.log("Deploying Comptroller...");
   let comptroller = await Comptroller.deploy(
@@ -39,7 +39,7 @@ async function main() {
   console.log("Escrow deployed to:", escrow.address);
 
   console.log("Deploying EscrowFactory...");
-  const escrowFactory = await EscrowContractFactory.deploy(
+  const escrowFactory = await EscrowFactory.deploy(
     escrow.address,
     comptroller.address,
   );
