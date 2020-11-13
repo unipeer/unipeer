@@ -9,7 +9,7 @@ import "@nomiclabs/hardhat-etherscan";
 // Used only in development
 require("dotenv").config({silent: true});
 
-//usePlugin("@openzeppelin/buidler-upgrades");
+import "@openzeppelin/hardhat-upgrades";
 import "@unipeer/hardhat-typechain";
 
 import "hardhat-gas-reporter";
