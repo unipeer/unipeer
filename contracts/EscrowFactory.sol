@@ -16,8 +16,9 @@ contract EscrowFactory {
     uint256 amount
   );
 
-  address escrowImpl;
   address comptroller;
+  address escrowImpl;
+  mapping(address => address) tokenEscrowImpls;
 
   mapping(address => address[]) escrows;
 
@@ -47,5 +48,27 @@ contract EscrowFactory {
     escrows[msg.sender].push(escrow);
     Address.sendValue(escrow, msg.value);
     emit Created(escrow, msg.sender, block.timestamp, paymentid, msg.value);
+  }
+
+  function newTokenEscrow(address token, string calldata paymentid)
+    public
+    payable
+    returns (address payable escrow)
+  {
+    bytes memory payload = abi.encodeWithSignature(
+      "initialize(address,address,string,address)",
+      msg.sender,
+      comptroller,
+      paymentid,
+      token
+    );
+
+    address tokenEscrowImpl = tokenEscrowImpls[token];
+    StaticProxy proxy = new StaticProxy(tokenEscrowImpl, payload);
+    escrow = address(proxy);
+    escrows[msg.sender].push(escrow);
+    emit Created(escrow, msg.sender, block.timestamp, paymentid, msg.value);
+
+    Address.sendValue(escrow, msg.value);
   }
 }

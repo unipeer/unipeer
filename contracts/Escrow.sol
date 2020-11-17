@@ -7,12 +7,10 @@ import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 
 import "hardhat/console.sol";
 
-import "./adapters/EthAdapter.sol";
 import "./adapters/AssetAdapterWithFees.sol";
-
 import "./WithStatus.sol";
 
-contract Escrow is EthAdapter, AssetAdapterWithFees, ChainlinkClient {
+abstract contract Escrow is AssetAdapterWithFees, ChainlinkClient {
   struct Job {
     address payable buyer;
     uint256 amount;
@@ -23,7 +21,7 @@ contract Escrow is EthAdapter, AssetAdapterWithFees, ChainlinkClient {
   address payable public comptroller;
   string public paymentid;
 
-  function initialize(
+  function initializeEscrow(
     address _owner,
     address payable _comptroller,
     string calldata _paymentid

@@ -7,8 +7,8 @@ import {expect} from "chai";
 import {
   Comptroller__factory,
   Comptroller as ComptrollerContract,
-  Escrow__factory,
-  Escrow as EscrowContract,
+  EthEscrow__factory,
+  EthEscrow as EthEscrowContract,
   EscrowFactory__factory,
   EscrowFactory as EscrowFactoryContract,
 } from "../types";
@@ -17,7 +17,7 @@ import LinkTokenABI from "./abi/LinkToken.json";
 import OracleABI from "./abi/Oracle.json";
 
 let comptroller: ComptrollerContract;
-let escrow: EscrowContract;
+let escrow: EthEscrowContract;
 let escrowFactory: EscrowFactoryContract;
 
 let admin: SignerWithAddress;
@@ -42,10 +42,10 @@ describe("Escrow", function () {
       web3.utils.toHex("0d69f6d174a4446c9a7ffa21cd0f687c"),
     );
 
-    const Escrow = await new Escrow__factory(admin);
+    const EthEscrow = await new EthEscrow__factory(admin);
     const EscrowFactory = await new EscrowFactory__factory(admin);
 
-    const escrowNaked = await Escrow.deploy();
+    const escrowNaked = await EthEscrow.deploy();
     escrowFactory = await EscrowFactory.deploy(
       escrowNaked.address,
       comptroller.address,
@@ -53,7 +53,7 @@ describe("Escrow", function () {
 
     await escrowFactory.connect(owner).newEscrow("seller@upi");
     const escrows = await escrowFactory.getEscrows(owner.address);
-    escrow = await Escrow.attach(escrows[0]).connect(owner);
+    escrow = await EthEscrow.attach(escrows[0]).connect(owner);
   });
 
   it("can deposit additional funds to the contract", async function () {

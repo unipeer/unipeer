@@ -4,13 +4,13 @@ import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/dist/src/signer-with-
 import {expect} from "chai";
 
 import {
-  Escrow__factory,
+  EthEscrow__factory,
+  EthEscrow as EthEscrowContract,
   EscrowFactory__factory,
-  Escrow as EscrowContract,
   EscrowFactory as EscrowFactoryContract,
 } from "../types";
 
-let Escrow: Escrow__factory;
+let EthEscrow: EthEscrow__factory;
 let escrowFactory: EscrowFactoryContract;
 let admin: SignerWithAddress;
 let owner: SignerWithAddress;
@@ -18,10 +18,10 @@ let owner: SignerWithAddress;
 describe("Escrow (Factory)", function () {
   beforeEach(async function () {
     [admin, owner] = await ethers.getSigners();
-    Escrow = await new Escrow__factory(admin);
+    EthEscrow = await new EthEscrow__factory(admin);
     const EscrowFactory = await new EscrowFactory__factory(admin);
 
-    const escrow = await Escrow.deploy();
+    const escrow = await EthEscrow.deploy();
     escrowFactory = await EscrowFactory.deploy(
       escrow.address,
       ethers.constants.AddressZero,
@@ -45,7 +45,7 @@ describe("Escrow (Factory)", function () {
     ).to.not.be.reverted;
 
     const escrows = await escrowFactory.getEscrows(owner.address);
-    const escrow = await Escrow.attach(escrows[0]);
+    const escrow = await EthEscrow.attach(escrows[0]);
 
     expect(await escrow.getUnlockedBalance(), "balance").to.equal(amount);
   });
