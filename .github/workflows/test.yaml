@@ -43,3 +43,7 @@ jobs:
         PRODUCTION: true
         REPORT_GAS: true
         COINMARKET_API: ${{ secrets.COINMARKET_API }}
+
+    - name: Test Coverage
+      run: |
+        yarn run coverage
