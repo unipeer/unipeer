@@ -14,6 +14,7 @@ import "@unipeer/hardhat-typechain";
 
 import "hardhat-gas-reporter";
 import "hardhat-spdx-license-identifier";
+import "solidity-coverage";
 
 // This is a sample hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -37,7 +38,7 @@ const config: HardhatUserConfig = {
     },
     kovan: {
       url: `https://kovan.infura.io/v3/${process.env.PROJECT_ID}`,
-      accounts: {mnemonic: process.env.KOVAN_MNEMONIC || ""},
+      accounts: {mnemonic: process.env.MNEMONIC || ""},
     },
   },
   solidity: {
