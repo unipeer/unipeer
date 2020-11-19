@@ -19,10 +19,12 @@ import "@openzeppelin/contracts/utils/Address.sol";
  */
 contract StaticProxy is Proxy {
     /**
-     * @dev Initializes the upgradeable proxy with an initial implementation specified by `_logic`.
+     * @dev Initializes the upgradeable proxy with an initial implementation
+     * specified by `_logic`.
      *
-     * If `_data` is nonempty, it's used as data in a delegate call to `_logic`. This will typically be an encoded
-     * function call, and allows initializating the storage of the proxy like a Solidity constructor.
+     * If `_data` is nonempty, it's used as data in a delegate call to `_logic`.
+     * This will typically be an encoded function call, and allows
+     * initializing the storage of the proxy like a Solidity constructor.
      */
     constructor(address _logic, bytes memory _data) public payable {
         assert(
@@ -33,7 +35,10 @@ contract StaticProxy is Proxy {
         if (_data.length > 0) {
             // solhint-disable-next-line avoid-low-level-calls
             (bool success, ) = _logic.delegatecall(_data);
-            require(success);
+            require(
+                success,
+                "StaticProxy: delegatecall with data failed while initializing"
+            );
         }
     }
 
