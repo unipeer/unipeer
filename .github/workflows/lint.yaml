@@ -26,3 +26,6 @@ jobs:
 
     - name: Run prettier
       run: yarn lint:check
+
+    - name: Run solhint
+      run: yarn solhint

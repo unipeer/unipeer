@@ -8,6 +8,7 @@
     "test": "hardhat test",
     "typecheck": "tsc --noEmit",
     "coverage": "hardhat coverage --temp build/artifacts",
+    "solhint": "solhint 'contracts/**/*.sol'",
     "lint": "pretty-quick --pattern '**/*.*(sol|ts|json|md)' --verbose",
     "lint:check": "prettier --check '**/*.*(sol|ts|json|md)'",
     "lint:fix": "pretty-quick --pattern '**/*.*(sol|ts|json|md)' --staged --verbose"
