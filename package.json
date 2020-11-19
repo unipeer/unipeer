@@ -49,6 +49,7 @@
     "prettier-plugin-solidity": "^1.0.0-alpha.59",
     "pretty-quick": "^3.1.0",
     "solhint": "^3.2.2",
+    "solhint-plugin-prettier": "^0.0.5",
     "solidity-coverage": "^0.7.12",
     "ts-node": "^8.10.2",
     "typechain": "^4.0.0",

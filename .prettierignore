@@ -12,3 +12,4 @@ src/assets/*.json
 abi
 build
 types
+coverage.json
