@@ -69,7 +69,7 @@ abstract contract Escrow is AssetAdapterWithFees, ChainlinkClient {
     uint256 _amount
   ) public onlyComptroller statusAtLeast(Status.FINALIZE_ONLY) {
     lockAssetWithFee(_amount); // check
-    jobs[_requestId] = Job({buyer: _buyer, amount: _amount}); // effects
+    jobs[_requestId] = Job({ buyer: _buyer, amount: _amount }); // effects
     addChainlinkExternalRequest(_oracle, _requestId); // interaction
   }
 

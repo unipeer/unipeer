@@ -1,10 +1,10 @@
-import {ethers, run, waffle, web3} from "hardhat";
-import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+import { ethers, run, waffle, web3 } from "hardhat";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
-const {deployMockContract} = waffle;
-import {expect} from "chai";
+const { deployMockContract } = waffle;
+import { expect } from "chai";
 
-import {getInitializerData} from "../utils";
+import { getInitializerData } from "../utils";
 
 import {
   Comptroller__factory,
@@ -163,8 +163,8 @@ describe("Comptroller", function () {
       ).to.equal("0");
 
       hash = web3.utils.soliditySha3(
-        {t: "address", v: comptroller.address},
-        {t: "uint256", v: 1},
+        { t: "address", v: comptroller.address },
+        { t: "uint256", v: 1 },
       ) as string;
     });
 

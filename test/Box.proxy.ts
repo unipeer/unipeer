@@ -1,7 +1,7 @@
-import {ethers, upgrades} from "hardhat";
-import {expect} from "chai";
+import { ethers, upgrades } from "hardhat";
+import { expect } from "chai";
 
-import {Box__factory, Box as BoxContract} from "../types";
+import { Box__factory, Box as BoxContract } from "../types";
 
 let box: BoxContract;
 
@@ -12,7 +12,7 @@ describe("Box (proxy)", function () {
     const Box = await new Box__factory(signer[0]);
 
     box = <BoxContract>(
-      await upgrades.deployProxy(Box, [42], {initializer: "store"})
+      await upgrades.deployProxy(Box, [42], { initializer: "store" })
     );
     await box.deployed();
 

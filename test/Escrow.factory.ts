@@ -1,7 +1,7 @@
-import {ethers, run} from "hardhat";
-import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+import { ethers, run } from "hardhat";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
-import {expect} from "chai";
+import { expect } from "chai";
 
 import {
   EthEscrow__factory,

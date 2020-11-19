@@ -1,7 +1,7 @@
-import {ethers} from "hardhat";
-import {expect} from "chai";
+import { ethers } from "hardhat";
+import { expect } from "chai";
 
-import {Box__factory, Box as BoxContract} from "../types";
+import { Box__factory, Box as BoxContract } from "../types";
 
 let box: BoxContract;
 

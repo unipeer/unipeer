@@ -2,4 +2,4 @@
 
 pragma solidity ^0.6.0;
 
-enum Status {STOPPED, RETURN_ONLY, FINALIZE_ONLY, ACTIVE}
+enum Status { STOPPED, RETURN_ONLY, FINALIZE_ONLY, ACTIVE }

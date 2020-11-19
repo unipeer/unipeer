@@ -1,4 +1,4 @@
-import {HardhatUserConfig, task} from "hardhat/config";
+import { HardhatUserConfig, task } from "hardhat/config";
 
 import "@nomiclabs/hardhat-web3";
 import "@nomiclabs/hardhat-waffle";
@@ -7,7 +7,7 @@ import "@nomiclabs/hardhat-etherscan";
 
 // Loads environment variables
 // Used only in development
-require("dotenv").config({silent: true});
+require("dotenv").config({ silent: true });
 
 import "@openzeppelin/hardhat-upgrades";
 import "@unipeer/hardhat-typechain";
@@ -38,7 +38,7 @@ const config: HardhatUserConfig = {
     },
     kovan: {
       url: `https://kovan.infura.io/v3/${process.env.PROJECT_ID}`,
-      accounts: {mnemonic: process.env.MNEMONIC || ""},
+      accounts: { mnemonic: process.env.MNEMONIC || "" },
     },
   },
   solidity: {

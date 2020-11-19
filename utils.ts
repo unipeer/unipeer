@@ -1,4 +1,4 @@
-import {ContractFactory} from "ethers";
+import { ContractFactory } from "ethers";
 
 export const getInitializerData = (
   ImplFactory: ContractFactory,

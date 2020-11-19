@@ -1,4 +1,4 @@
-import {run, ethers, upgrades} from "hardhat";
+import { run, ethers, upgrades } from "hardhat";
 
 async function main() {
   // You can run Buidler tasks from a script.
@@ -8,7 +8,7 @@ async function main() {
   const Box = await ethers.getContractFactory("Box");
   console.log("Deploying Box...");
 
-  const box = await upgrades.deployProxy(Box, [42], {initializer: "store"});
+  const box = await upgrades.deployProxy(Box, [42], { initializer: "store" });
   console.log("Box deployed to:", box.address);
 }
 
@@ -16,7 +16,7 @@ async function main() {
 // and properly handle errors.
 main()
   .then(() => process.exit(0))
-  .catch((error) => {
+  .catch(error => {
     console.error(error);
     process.exit(1);
   });

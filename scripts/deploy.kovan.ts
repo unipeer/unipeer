@@ -1,6 +1,6 @@
-import {run, ethers} from "hardhat";
+import { run, ethers } from "hardhat";
 import web3 from "web3";
-import {constants} from "ethers";
+import { constants } from "ethers";
 
 import {
   Comptroller__factory,
@@ -11,7 +11,7 @@ import {
   EscrowFactory as EscrowFactoryContract,
 } from "../types";
 
-import {getInitializerData} from "../utils";
+import { getInitializerData } from "../utils";
 
 const ORACLE_ADDRESS = "0x98cbfb4f664e6b35a32930c90e43f03b5eab50da";
 const JOBID = "3dd25a102fe74157b1eae12b430336f4";
@@ -75,7 +75,7 @@ async function main() {
 
 main()
   .then(() => process.exit(0))
-  .catch((error) => {
+  .catch(error => {
     console.error(error);
     process.exit(1);
   });
