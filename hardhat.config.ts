@@ -2,7 +2,6 @@ import { HardhatUserConfig, task } from "hardhat/config";
 
 import "@nomiclabs/hardhat-web3";
 import "@nomiclabs/hardhat-waffle";
-import "@nomiclabs/hardhat-solhint";
 import "@nomiclabs/hardhat-etherscan";
 
 // Loads environment variables
@@ -11,6 +10,7 @@ require("dotenv").config({ silent: true });
 
 import "@openzeppelin/hardhat-upgrades";
 import "@unipeer/hardhat-typechain";
+import "@unipeer/hardhat-solhint";
 
 import "hardhat-gas-reporter";
 import "hardhat-spdx-license-identifier";

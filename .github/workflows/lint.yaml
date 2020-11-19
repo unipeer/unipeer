@@ -28,4 +28,4 @@ jobs:
       run: yarn lint:check
 
     - name: Run solhint
-      run: yarn solhint
+      run: yarn hardhat check
