@@ -6,11 +6,11 @@ import "./Escrow.sol";
 import "./adapters/EthAdapter.sol";
 
 contract EthEscrow is EthAdapter, Escrow {
-  function initialize(
-    address _owner,
-    address payable _comptroller,
-    string calldata _paymentid
-  ) public initializer {
-    Escrow.initializeEscrow(_owner, _comptroller, _paymentid);
-  }
+    function initialize(
+        address _owner,
+        address payable _comptroller,
+        string calldata _paymentid
+    ) public initializer {
+        Escrow.initializeEscrow(_owner, _comptroller, _paymentid);
+    }
 }

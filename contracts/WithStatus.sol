@@ -16,17 +16,17 @@ import "./StatusEnum.sol";
  * @dev the status enum is strictly monotonic, and the default 0 is mapped to STOPPED for safety.
  */
 contract WithStatus is Ownable {
-  event StatusChanged(Status oldStatus, Status newStatus);
+    event StatusChanged(Status oldStatus, Status newStatus);
 
-  Status public status = Status.ACTIVE;
+    Status public status = Status.ACTIVE;
 
-  function setStatus(Status _status) external onlyOwner {
-    emit StatusChanged(status, _status);
-    status = _status;
-  }
+    function setStatus(Status _status) external onlyOwner {
+        emit StatusChanged(status, _status);
+        status = _status;
+    }
 
-  modifier statusAtLeast(Status _status) {
-    require(status >= _status, "invalid contract status");
-    _;
-  }
+    modifier statusAtLeast(Status _status) {
+        require(status >= _status, "invalid contract status");
+        _;
+    }
 }

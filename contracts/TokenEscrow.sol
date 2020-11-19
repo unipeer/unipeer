@@ -6,13 +6,13 @@ import "./Escrow.sol";
 import "./adapters/TokenAdapter.sol";
 
 contract TokenEscrow is TokenAdapter, Escrow {
-  function initialize(
-    address _owner,
-    address payable _comptroller,
-    string calldata _paymentid,
-    address _token
-  ) public initializer {
-    Escrow.initializeEscrow(_owner, _comptroller, _paymentid);
-    tokenAddress = _token;
-  }
+    function initialize(
+        address _owner,
+        address payable _comptroller,
+        string calldata _paymentid,
+        address _token
+    ) public initializer {
+        Escrow.initializeEscrow(_owner, _comptroller, _paymentid);
+        tokenAddress = _token;
+    }
 }
