@@ -6,13 +6,16 @@ import "@openzeppelin/contracts/proxy/Proxy.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 /**
- * @dev This contract implements an non-upgradeable/static proxy. It is non-upgradeable because the implementation address
- * where calls are delegated to cannot be changed after construction. This address is stored in storage in the location specified by
- * https://eips.ethereum.org/EIPS/eip-1967[EIP1967], so that it doesn't conflict with the storage layout of the
- * implementation behind the proxy.
+ * @dev This contract implements an non-upgradeable/static proxy.
+ * It is non-upgradeable because the implementation address where calls are
+ * delegated to cannot be changed after construction.
+ * This address is stored in storage in the location specified by
+ * https://eips.ethereum.org/EIPS/eip-1967[EIP1967], so that it doesn't
+ * conflict with the storage layout of the implementation behind the proxy.
  *
- * A non-upgradeble proxy is still useful as a user deployed contract; it helps minimise gas costs of deploying a new contract,
- * makes it easier to verify the contracts abi when called from an external contract, among others.
+ * A non-upgradeble proxy is still useful as a user deployed contract;
+ * it helps minimise gas costs of deploying a new contract, makes it easier to
+ * verify the contracts abi when called from an external contract, among others.
  */
 contract StaticProxy is Proxy {
   /**
