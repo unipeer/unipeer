@@ -134,5 +134,5 @@ contract Comptroller is ChainlinkClient, WithStatus, LinkTokenReceiver {
      * @dev We have the payable receive function to accept ether payment only
      * and not the fallback function to avoid delegating calls further.
      */
-    receive() external payable {}
+    receive() external payable {} // solhint-disable-line no-empty-blocks
 }

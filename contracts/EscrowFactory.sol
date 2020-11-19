@@ -47,6 +47,7 @@ contract EscrowFactory {
         escrow = address(proxy);
         escrows[msg.sender].push(escrow);
         Address.sendValue(escrow, msg.value);
+        // solhint-disable-next-line not-rely-on-time
         emit Created(escrow, msg.sender, block.timestamp, paymentid, msg.value);
     }
 
@@ -67,6 +68,7 @@ contract EscrowFactory {
         StaticProxy proxy = new StaticProxy(tokenEscrowImpl, payload);
         escrow = address(proxy);
         escrows[msg.sender].push(escrow);
+        // solhint-disable-next-line not-rely-on-time
         emit Created(escrow, msg.sender, block.timestamp, paymentid, msg.value);
 
         Address.sendValue(escrow, msg.value);
