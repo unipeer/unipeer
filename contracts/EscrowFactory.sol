@@ -16,11 +16,11 @@ contract EscrowFactory {
         uint256 amount
     );
 
-    address comptroller;
-    address escrowImpl;
-    mapping(address => address) tokenEscrowImpls;
+    address public comptroller;
+    address public escrowImpl;
+    mapping(address => address) public tokenEscrowImpls;
 
-    mapping(address => address[]) escrows;
+    mapping(address => address[]) private escrows;
 
     constructor(address _escrow, address _comptroller) public {
         escrowImpl = _escrow;
