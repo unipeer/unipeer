@@ -21,6 +21,7 @@
   "author": "Shaleen Jain <shaleen@jain.sh>",
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
+    "@celo-tools/celo-ethers-wrapper": "^0.0.4",
     "@chainlink/contracts": "^0.0.10",
     "@codechecks/client": "^0.1.10",
     "@commitlint/cli": "^11.0.0",

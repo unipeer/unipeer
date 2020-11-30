@@ -20,16 +20,16 @@
         }
       }
     },
-    "acfb7c2226e57825e438e389aceb4c4c87589da90bfb704b934cdb0f36fcf3c6": {
+    "25fc08b9556efd4739c212551761fd3034cd0486aff22a60054a65d532624ed8": {
       "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-      "txHash": "0xaf1baa15ce82fb79d34e8445155db30aa2c525a82b8f167a35e599f977b8e8ef",
+      "txHash": "0x5246991255f8b8fbf240660d00b459ee3e0e9aab3767bc5743922a98390420ec",
       "layout": {
         "storage": [
           {
             "contract": "Box",
             "label": "value",
             "type": "t_uint256",
-            "src": "contracts/Box.sol:10"
+            "src": "contracts/Box.sol:8"
           }
         ],
         "types": {
@@ -42,6 +42,6 @@
   },
   "admin": {
     "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-    "txHash": "0x6fe64a61ba196d631ce202ec6f473f7ba6b15cfa7fdaa9aafaf97b33936deeae"
+    "txHash": "0x41a159cc71ea4396de5034721d73de5a3a9be99c19d19cbc5d84117153c4dd16"
   }
 }
