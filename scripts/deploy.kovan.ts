@@ -5,8 +5,8 @@ import { constants } from "ethers";
 import {
   Comptroller__factory,
   Comptroller as ComptrollerContract,
-  Escrow__factory,
-  Escrow as EscrowContract,
+  EthEscrow__factory,
+  EthEscrow as EthEscrowContract,
   EscrowFactory__factory,
   EscrowFactory as EscrowFactoryContract,
 } from "../types";
@@ -23,7 +23,7 @@ async function main() {
   const account = accounts[0];
 
   const Comptroller = await new Comptroller__factory(account);
-  const Escrow = await new Escrow__factory(account);
+  const EthEscrow = await new EthEscrow__factory(account);
   const EscrowFactory = await new EscrowFactory__factory(account);
 
   console.log("Deploying Comptroller...");
@@ -35,7 +35,7 @@ async function main() {
   console.log("Comptroller deployed to:", comptroller.address);
 
   console.log("Deploying Escrow...");
-  const escrow = await Escrow.deploy();
+  const escrow = await EthEscrow.deploy();
   console.log("Escrow deployed to:", escrow.address);
 
   console.log("Deploying EscrowFactory...");
