@@ -13,10 +13,19 @@ import {
   EscrowFactory as EscrowFactoryContract,
 } from "../types";
 
-import { getInitializerData } from "../utils";
+import {
+  CeloOracle__factory,
+  CeloOracle as CeloOracleContract,
+  CeloLinkToken__factory,
+  CeloLinkToken as CeloLinkTokenContract,
+} from "../types";
 
-const ORACLE_ADDRESS = "0x98cbfb4f664e6b35a32930c90e43f03b5eab50da";
 const JOBID = "3dd25a102fe74157b1eae12b430336f4";
+
+async function resolveAddress(tx: any) {
+  let receipt = await tx.deployTransaction.wait();
+  return receipt.contractAddress;
+}
 
 async function main() {
   await run("typechain");
@@ -29,34 +38,50 @@ async function main() {
     provider,
   );
 
-  const Comptroller = await new Comptroller__factory(account);
-  const EthEscrow = await new EthEscrow__factory(account);
-  const EscrowFactory = await new EscrowFactory__factory(account);
+  const CeloLink = new CeloLinkToken__factory(account);
+  const CeloOracle = new CeloOracle__factory(account);
+  const Comptroller = new Comptroller__factory(account);
+  const EthEscrow = new EthEscrow__factory(account);
+  const EscrowFactory = new EscrowFactory__factory(account);
+
+  let link: CeloLinkTokenContract = await CeloLink.deploy();
+  let linkAddress = await resolveAddress(link);
+  console.log("Link deployed to:", linkAddress);
+
+  let oracle: CeloOracleContract = await CeloOracle.deploy(linkAddress, {
+    gasLimit: 8000000,
+  });
+  let oracleAddress = await resolveAddress(oracle);
+  console.log("Oracle deployed to:", oracleAddress);
 
   console.log("Deploying Comptroller...");
   let comptroller = await Comptroller.deploy(
-    constants.AddressZero,
-    ORACLE_ADDRESS,
+    linkAddress,
+    oracleAddress,
     web3.utils.toHex(JOBID),
-    { gasLimit: 8000000 },
   );
-  console.log("Comptroller deployed to:", comptroller.address);
+  let compAddress = await resolveAddress(comptroller);
+  console.log("Comptroller deployed to:", compAddress);
+
+  let linkDeployed = CeloLink.attach(linkAddress);
+  await linkDeployed.transfer(compAddress, ethers.utils.parseEther("100"));
 
   console.log("Deploying Escrow...");
   const escrow = await EthEscrow.deploy();
-  console.log("Escrow deployed to:", escrow.address);
+  let escrowAddress = await resolveAddress(escrow);
+  console.log("Escrow deployed to:", escrowAddress);
 
   console.log("Deploying EscrowFactory...");
-  const escrowFactory = await EscrowFactory.deploy(
-    escrow.address,
-    comptroller.address,
-  );
-  console.log("EscrowFactory deployed to:", escrowFactory.address);
+  const escrowFactory = await EscrowFactory.deploy(escrowAddress, compAddress);
+  let escrowFactoryAddress = await resolveAddress(escrowFactory);
+  console.log("EscrowFactory deployed to:", escrowFactoryAddress);
 
+  let factoryDeployed = EscrowFactory.attach(escrowFactoryAddress);
   console.log("Creating a new escrow...");
-  await escrowFactory.newEscrow("seller@upi", {
+  let tx = await factoryDeployed.newEscrow("seller@upi", {
     value: ethers.utils.parseEther("0.1"),
   });
+  console.log(tx);
 }
 
 main()
