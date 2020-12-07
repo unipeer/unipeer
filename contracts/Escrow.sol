@@ -8,9 +8,10 @@ import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 import "hardhat/console.sol";
 
 import "./adapters/AssetAdapterWithFees.sol";
+import "./adapters/EthAdapter.sol";
 import "./utils/WithStatus.sol";
 
-abstract contract Escrow is AssetAdapterWithFees, ChainlinkClient {
+contract Escrow is ChainlinkClient, AssetAdapterWithFees, EthAdapter {
     struct Job {
         address payable buyer;
         uint256 amount;
@@ -21,12 +22,14 @@ abstract contract Escrow is AssetAdapterWithFees, ChainlinkClient {
     address payable public comptroller;
     string public paymentid;
 
-    function initializeEscrow(
+    constructor(
         address _owner,
         address payable _comptroller,
-        string calldata _paymentid
-    ) public initializer {
-        AssetAdapterWithFees.initialize(490, 100 * 10**9); /* 0.49% or 100 gwei */
+        string memory _paymentid
+    )
+        public
+        AssetAdapterWithFees(490, 100 * 10**9) /* 0.49% or 100 gwei */
+    {
         owner = _owner;
         comptroller = _comptroller; // TODO: change this to be static with solpp?
         paymentid = _paymentid;

@@ -3,14 +3,10 @@
 pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/proxy/Initializable.sol";
 
 import "./AssetAdapterWithLocking.sol";
 
-abstract contract AssetAdapterWithFees is
-    AssetAdapterWithLocking,
-    Initializable
-{
+abstract contract AssetAdapterWithFees is AssetAdapterWithLocking {
     uint16 public feeThousandthsPercent;
     uint256 public minFeeAmount;
 
@@ -18,10 +14,7 @@ abstract contract AssetAdapterWithFees is
      * @param _feeThousandthsPercent The fee percentage with three decimal places.
      * @param _minFeeAmount The minimuim fee to charge.
      */
-    function initialize(uint16 _feeThousandthsPercent, uint256 _minFeeAmount)
-        public
-        initializer
-    {
+    constructor(uint16 _feeThousandthsPercent, uint256 _minFeeAmount) public {
         require(_feeThousandthsPercent < (1 << 16), "fee % too high");
         require(_minFeeAmount <= (1 << 255), "minFeeAmount too high");
         feeThousandthsPercent = _feeThousandthsPercent;

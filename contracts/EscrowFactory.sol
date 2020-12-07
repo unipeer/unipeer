@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 
-import "./utils/StaticProxy.sol";
+import "./Escrow.sol";
 
 contract EscrowFactory {
     event Created(
@@ -16,14 +16,11 @@ contract EscrowFactory {
         uint256 amount
     );
 
-    address public comptroller;
-    address public escrowImpl;
-    mapping(address => address) public tokenEscrowImpls;
+    address payable comptroller;
 
     mapping(address => address[]) private escrows;
 
-    constructor(address _escrow, address _comptroller) public {
-        escrowImpl = _escrow;
+    constructor(address payable _comptroller) public {
         comptroller = _comptroller;
     }
 
@@ -36,41 +33,13 @@ contract EscrowFactory {
         payable
         returns (address payable escrow)
     {
-        bytes memory payload = abi.encodeWithSignature(
-            "initialize(address,address,string)",
-            msg.sender,
-            comptroller,
-            paymentid
-        );
+        Escrow instance = new Escrow(msg.sender, comptroller, paymentid);
 
-        StaticProxy proxy = new StaticProxy(escrowImpl, payload);
-        escrow = address(proxy);
+        escrow = address(instance);
         escrows[msg.sender].push(escrow);
         Address.sendValue(escrow, msg.value);
+
         // solhint-disable-next-line not-rely-on-time
         emit Created(escrow, msg.sender, block.timestamp, paymentid, msg.value);
-    }
-
-    function newTokenEscrow(address token, string calldata paymentid)
-        public
-        payable
-        returns (address payable escrow)
-    {
-        bytes memory payload = abi.encodeWithSignature(
-            "initialize(address,address,string,address)",
-            msg.sender,
-            comptroller,
-            paymentid,
-            token
-        );
-
-        address tokenEscrowImpl = tokenEscrowImpls[token];
-        StaticProxy proxy = new StaticProxy(tokenEscrowImpl, payload);
-        escrow = address(proxy);
-        escrows[msg.sender].push(escrow);
-        // solhint-disable-next-line not-rely-on-time
-        emit Created(escrow, msg.sender, block.timestamp, paymentid, msg.value);
-
-        Address.sendValue(escrow, msg.value);
     }
 }
