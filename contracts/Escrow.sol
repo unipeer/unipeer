@@ -8,7 +8,7 @@ import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 import "hardhat/console.sol";
 
 import "./adapters/AssetAdapterWithFees.sol";
-import "./WithStatus.sol";
+import "./utils/WithStatus.sol";
 
 abstract contract Escrow is AssetAdapterWithFees, ChainlinkClient {
     struct Job {

@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "hardhat/console.sol";
 
 import "./Escrow.sol";
-import "./WithStatus.sol";
+import "./utils/WithStatus.sol";
 
 contract Comptroller is ChainlinkClient, WithStatus, LinkTokenReceiver {
     bytes32 private jobId;

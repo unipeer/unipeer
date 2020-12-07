@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 
-import "./StaticProxy.sol";
+import "./utils/StaticProxy.sol";
 
 contract EscrowFactory {
     event Created(
