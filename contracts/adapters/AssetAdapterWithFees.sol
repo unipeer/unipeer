@@ -42,8 +42,8 @@ abstract contract AssetAdapterWithFees is AssetAdapterWithLocking {
     }
 
     function sendAssetWithFee(
-        uint256 _amount,
         address payable _to,
+        uint256 _amount,
         address payable _feeCollector
     ) internal {
         unlockAssetWithFee(_amount);

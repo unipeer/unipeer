@@ -79,17 +79,14 @@ contract Escrow is ChainlinkClient, AssetAdapterWithFees, EthAdapter {
         addChainlinkExternalRequest(_oracle, _requestId); // interaction
     }
 
-    function fulfillFiatPayment(bytes32 _requestId, bool successful)
-        public
-        statusAtLeast(Status.FINALIZE_ONLY)
-    {
+    function fulfillFiatPayment(bytes32 _requestId, bool successful) public {
         validateChainlinkCallback(_requestId);
 
         Job memory job = jobs[_requestId];
         delete jobs[_requestId]; // cleanup storage
 
         if (successful) {
-            sendAssetWithFee(job.amount, job.buyer, comptroller);
+            sendAssetWithFee(job.buyer, job.amount, comptroller);
         } else {
             unlockAssetWithFee(job.amount);
         }
