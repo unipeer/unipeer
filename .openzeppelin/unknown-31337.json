@@ -42,6 +42,10 @@
   },
   "admin": {
     "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+<<<<<<< HEAD
     "txHash": "0x6fe64a61ba196d631ce202ec6f473f7ba6b15cfa7fdaa9aafaf97b33936deeae"
+=======
+    "txHash": "0xa75f2c81e45bfb92e0e15049dd38f3881a4316715b41e0451783d58ddef5a83c"
+>>>>>>> 7b4d49e (build: update hardhat plugins)
   }
 }
