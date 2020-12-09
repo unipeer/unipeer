@@ -54,7 +54,7 @@ contract Comptroller is ChainlinkClient, WithStatus, LinkTokenReceiver {
     }
 
     function createFiatPaymentWithLinkRequest(
-        address _seller,
+        Escrow _seller,
         address payable _buyer,
         uint256 _amount,
         string calldata _senderpaymentid
@@ -79,7 +79,7 @@ contract Comptroller is ChainlinkClient, WithStatus, LinkTokenReceiver {
     }
 
     function requestFiatPaymentWithLink(
-        address _seller,
+        Escrow _seller,
         address payable _buyer,
         uint256 _amount,
         string calldata _senderpaymentid
@@ -88,7 +88,7 @@ contract Comptroller is ChainlinkClient, WithStatus, LinkTokenReceiver {
     }
 
     function requestFiatPayment(
-        address _seller,
+        Escrow _seller,
         address payable _buyer,
         uint256 _amount,
         string calldata _senderpaymentid /* onlyOwner() */
@@ -97,34 +97,29 @@ contract Comptroller is ChainlinkClient, WithStatus, LinkTokenReceiver {
     }
 
     function _requestFiatPayment(
-        address _seller,
+        Escrow _seller,
         address payable _buyer,
         uint256 _amount,
         string calldata _senderpaymentid
     ) internal statusAtLeast(Status.ACTIVE) {
         require(
-            Address.isContract(_seller),
-            "Comptroller: seller should an escrow contract"
-        );
-        Escrow escrow = Escrow(payable(_seller));
-        require(
-            escrow.getUnlockedBalance() >= _amount,
+            _seller.getUnlockedBalance() >= _amount,
             "Comptroller: not enough funds in escrow"
         );
 
         Chainlink.Request memory req =
             buildChainlinkRequest(
                 jobId, // Chainlink JobId
-                _seller, // contract address with the callback function
-                escrow.fulfillFiatPayment.selector // callback function selector
+                address(_seller), // contract address with the callback function
+                _seller.fulfillFiatPayment.selector // callback function selector
             );
         req.add("method", "collectrequest");
-        req.add("receiver", escrow.paymentid());
+        req.add("receiver", _seller.paymentid());
         req.add("sender", _senderpaymentid);
         req.addUint("amount", _amount);
 
         bytes32 reqId = sendChainlinkRequest(req, fee);
-        escrow.expectResponseFor(
+        _seller.expectResponseFor(
             chainlinkOracleAddress(),
             reqId,
             _buyer,
