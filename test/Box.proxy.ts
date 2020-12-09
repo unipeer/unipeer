@@ -9,7 +9,7 @@ let box: BoxContract;
 describe("Box (proxy)", function () {
   beforeEach(async function () {
     const signer = await ethers.getSigners();
-    const Box = await new Box__factory(signer[0]);
+    const Box = new Box__factory(signer[0]);
 
     box = <BoxContract>(
       await upgrades.deployProxy(Box, [42], { initializer: "store" })

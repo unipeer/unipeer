@@ -59,13 +59,14 @@ contract Comptroller is ChainlinkClient, WithStatus, LinkTokenReceiver {
         uint256 _amount,
         string calldata _senderpaymentid
     ) public statusAtLeast(Status.ACTIVE) {
-        bytes memory payload = abi.encodeWithSignature(
-            "requestFiatPaymentWithLink(address,address,uint256,string)",
-            _seller,
-            _buyer,
-            _amount,
-            _senderpaymentid
-        );
+        bytes memory payload =
+            abi.encodeWithSignature(
+                "requestFiatPaymentWithLink(address,address,uint256,string)",
+                _seller,
+                _buyer,
+                _amount,
+                _senderpaymentid
+            );
 
         require(
             LinkTokenInterface(chainlinkTokenAddress()).transferAndCall(
@@ -111,11 +112,12 @@ contract Comptroller is ChainlinkClient, WithStatus, LinkTokenReceiver {
             "Comptroller: not enough funds in escrow"
         );
 
-        Chainlink.Request memory req = buildChainlinkRequest(
-            jobId, // Chainlink JobId
-            _seller, // contract address with the callback function
-            escrow.fulfillFiatPayment.selector // callback function selector
-        );
+        Chainlink.Request memory req =
+            buildChainlinkRequest(
+                jobId, // Chainlink JobId
+                _seller, // contract address with the callback function
+                escrow.fulfillFiatPayment.selector // callback function selector
+            );
         req.add("method", "collectrequest");
         req.add("receiver", escrow.paymentid());
         req.add("sender", _senderpaymentid);

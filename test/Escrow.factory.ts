@@ -1,16 +1,15 @@
-import { ethers, run } from "hardhat";
+import { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
 import { expect } from "chai";
 
 import {
-  EthEscrow__factory,
-  EthEscrow as EthEscrowContract,
+  Escrow__factory,
   EscrowFactory__factory,
   EscrowFactory as EscrowFactoryContract,
 } from "../types";
 
-let EthEscrow: EthEscrow__factory;
+let Escrow: Escrow__factory;
 let escrowFactory: EscrowFactoryContract;
 let admin: SignerWithAddress;
 let owner: SignerWithAddress;
@@ -18,14 +17,10 @@ let owner: SignerWithAddress;
 describe("Escrow (Factory)", function () {
   beforeEach(async function () {
     [admin, owner] = await ethers.getSigners();
-    EthEscrow = await new EthEscrow__factory(admin);
-    const EscrowFactory = await new EscrowFactory__factory(admin);
+    Escrow = new Escrow__factory(admin);
+    const EscrowFactory = new EscrowFactory__factory(admin);
 
-    const escrow = await EthEscrow.deploy();
-    escrowFactory = await EscrowFactory.deploy(
-      escrow.address,
-      ethers.constants.AddressZero,
-    );
+    escrowFactory = await EscrowFactory.deploy(ethers.constants.AddressZero);
   });
 
   it("should successfully deploy a new proxied escrow", async function () {
@@ -45,7 +40,7 @@ describe("Escrow (Factory)", function () {
     ).to.not.be.reverted;
 
     const escrows = await escrowFactory.getEscrows(owner.address);
-    const escrow = await EthEscrow.attach(escrows[0]);
+    const escrow = Escrow.attach(escrows[0]);
 
     expect(await escrow.getUnlockedBalance(), "balance").to.equal(amount);
   });
