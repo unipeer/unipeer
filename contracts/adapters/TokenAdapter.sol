@@ -5,12 +5,21 @@ pragma solidity ^0.6.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import "./AssetAdapter.sol";
+import "./AssetAdapterWithFees.sol";
 
-abstract contract TokenAdapter is AssetAdapter {
+contract TokenAdapter is AssetAdapterWithFees {
     using SafeERC20 for IERC20;
 
     address public tokenAddress;
+
+    /* 0.49% or 100 gwei */
+    constructor(
+        address _token,
+        uint16 _feeThousandthsPercent,
+        uint256 _minFeeAmount
+    ) public AssetAdapterWithFees(_feeThousandthsPercent, _minFeeAmount) {
+        tokenAddress = _token;
+    }
 
     function getBalance() public view override returns (uint256 amount) {
         return IERC20(tokenAddress).balanceOf(address(this));

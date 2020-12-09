@@ -4,12 +4,11 @@ pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 
-import "./AssetAdapter.sol";
+import "./AssetAdapterWithFees.sol";
 
-abstract contract EthAdapter is AssetAdapter {
+/* 0.49% or 100 gwei */
+contract EthAdapter is AssetAdapterWithFees(490, 100 * 10**9) {
     event Deposit(address indexed from, uint256 amount);
-
-    uint16 internal constant ETH_TYPE_ID = 1;
 
     function getBalance() public view override returns (uint256 amount) {
         return address(this).balance;
