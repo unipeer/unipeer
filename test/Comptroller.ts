@@ -1,4 +1,4 @@
-import { ethers, run, waffle, web3 } from "hardhat";
+import { ethers, waffle, web3 } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
 const { deployMockContract } = waffle;
@@ -8,16 +8,13 @@ import {
   Comptroller__factory,
   Comptroller as ComptrollerContract,
   Escrow__factory,
-  Escrow as EthEscrowContract,
-  EscrowFactory__factory,
-  EscrowFactory as EscrowFactoryContract,
+  Escrow as EscrowContract,
 } from "../types";
 
-import LinkTokenABI from "./abi/LinkToken.json";
+import LinkTokenABI from "@chainlink/contracts/abi/v0.4/LinkTokenInterface.json";
 
 let comptroller: ComptrollerContract;
-let escrow: EthEscrowContract;
-let escrowFactory: EscrowFactoryContract;
+let escrow: EscrowContract;
 
 let admin: SignerWithAddress;
 let owner: SignerWithAddress;
@@ -28,7 +25,10 @@ describe("Comptroller", function () {
   beforeEach(async function () {
     [admin, owner, buyer, oracle] = await ethers.getSigners();
 
-    const mockLink = await deployMockContract(admin, LinkTokenABI);
+    const mockLink = await deployMockContract(
+      admin,
+      LinkTokenABI.compilerOutput.abi,
+    );
     await mockLink.mock.balanceOf.returns(ethers.utils.parseEther("999999"));
     await mockLink.mock.transferAndCall.returns(true);
     //const mockOracle = await deployMockContract(admin, OracleABI);
