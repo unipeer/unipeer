@@ -116,7 +116,7 @@ contract Comptroller is ChainlinkClient, WithStatus, LinkTokenReceiver {
         req.add("method", "collectrequest");
         req.add("receiver", _seller.paymentid());
         req.add("sender", _senderpaymentid);
-        req.addUint("amount", _amount);
+        req.addUint("amount", _seller.getAmountWithFee(_amount));
 
         bytes32 reqId = sendChainlinkRequest(req, fee);
         _seller.expectResponseFor(

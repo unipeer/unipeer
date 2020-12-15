@@ -26,7 +26,7 @@ abstract contract AssetAdapterWithFees is AssetAdapterWithLocking {
         return fee < minFeeAmount ? minFeeAmount : fee;
     }
 
-    function getAmountWithFee(uint256 _amount) internal view returns (uint256) {
+    function getAmountWithFee(uint256 _amount) public view returns (uint256) {
         uint256 baseAmount = _amount;
         return baseAmount + getFee(baseAmount);
     }
