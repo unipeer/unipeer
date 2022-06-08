@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.10;
 
+import "oz/token/ERC20/utils/SafeERC20.sol";
+
 contract Unipeer {
+    using SafeERC20 for IERC20;
 
     address public admin;
 
@@ -25,9 +28,11 @@ contract Unipeer {
 
     // sellerByTokenPaymentId[token][paymentId] = sellers;
     mapping(address => mapping(uint16 => address[])) sellerByTokenPaymentId;
-    mapping(address => mapping(uint16 => uint256)) indexCounter;
+    mapping(address => mapping(uint16 => uint256)) sellerByTokenPaymentIdCounter;
 
-    event NewPaymentMethod(uint16 methodId, string paymentName);
+    event NewPaymentMethod(uint16 paymentId, string paymentName);
+    event Deposit(address sender, address token, uint256 amount);
+    event Withdraw(address sender, address token, uint256 amount);
 
     modifier onlyAdmin() {
         require(admin == msg.sender, "Access not allowed: Admin only.");
@@ -44,18 +49,38 @@ contract Unipeer {
         pm.metaEvidenceId = _metaEvidenceId;
         pm.paymentName = _paymentName;
         pm.extraData = _extraData;
-        for (uint256 i = 0 ; i < _tokens.length; i++) {
+        for (uint256 i = 0; i < _tokens.length; i++) {
             pm.tokenWhitelist[_tokens[i]] = true;
         }
 
         emit NewPaymentMethod(numOfMethods - 1, _paymentName);
     }
 
-    function addPaymentToken(uint16 paymentId, address token) public {
+    function updatePaymentToken(uint16 _paymentId, address[] calldata _tokens, bool[] memory _enabled) public onlyAdmin {
+        require(_paymentId < numOfMethods);
 
+        PaymentMethod storage pm = paymentMethods[_paymentId];
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            pm.tokenWhitelist[_tokens[i]] = _enabled[i];
+        }
     }
 
-    function updatePaymentAddress(uint16 paymentId, string calldata paymentAddress) public {
-        require(paymentId < numOfMethods);
+    function updatePaymentAddress(uint16 _paymentId, string calldata _paymentAddress) public {
+        require(_paymentId < numOfMethods);
+
+        paymentAddressBySellerPaymentId[msg.sender][_paymentId] = _paymentAddress;
+    }
+
+    function depositTokens(address _token, uint256 _amount, uint16 _paymentId) public {
+        tokenBalanceBySeller[msg.sender][_token] = _amount;
+        tokenPaymentIdsBySeller[msg.sender][_token].push(_paymentId);
+
+        IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
+        emit Deposit(msg.sender, _token, _amount);
+    }
+
+    function withdrawTokens(address _token, uint256 _amount) public {
+        IERC20(_token).safeTransfer(msg.sender, _amount);
+        emit Withdraw(msg.sender, _token, _amount);
     }
 }
