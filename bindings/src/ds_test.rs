@@ -1,6 +1,6 @@
 pub use dstest_mod::*;
-#[allow(clippy::too_many_arguments)]
-mod dstest_mod {
+#[allow(clippy::too_many_arguments, non_camel_case_types)]
+pub mod dstest_mod {
     #![allow(clippy::enum_variant_names)]
     #![allow(dead_code)]
     #![allow(clippy::type_complexity)]
@@ -23,10 +23,14 @@ mod dstest_mod {
     #[doc = r" Bytecode of the #name contract"]
     pub static DSTEST_BYTECODE: ethers::contract::Lazy<ethers::core::types::Bytes> =
         ethers::contract::Lazy::new(|| {
-            "0x60806040526000805460ff19166001179055348015601c57600080fd5b50609e8061002b6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c8063ba414fa6146037578063fa7626d414605c575b600080fd5b600054604890610100900460ff1681565b604051901515815260200160405180910390f35b60005460489060ff168156fea2646970667358221220b13333518c49118535bfec2c803fbb5625805ce4be17b1ef9b53f8410cc89b9064736f6c634300080a0033" . parse () . expect ("invalid bytecode")
+            "0x60806040526000805460ff19166001179055348015601c57600080fd5b50609e8061002b6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c8063ba414fa6146037578063fa7626d414605c575b600080fd5b600054604890610100900460ff1681565b604051901515815260200160405180910390f35b60005460489060ff168156fea26469706673582212204e12176e5ac6320a409add1bdb50e73cd5bac158a55f378876fd1218e8e5824664736f6c634300080a0033" . parse () . expect ("invalid bytecode")
         });
-    #[derive(Clone)]
     pub struct DSTest<M>(ethers::contract::Contract<M>);
+    impl<M> Clone for DSTest<M> {
+        fn clone(&self) -> Self {
+            DSTest(self.0.clone())
+        }
+    }
     impl<M> std::ops::Deref for DSTest<M> {
         type Target = ethers::contract::Contract<M>;
         fn deref(&self) -> &Self::Target {
@@ -40,7 +44,7 @@ mod dstest_mod {
                 .finish()
         }
     }
-    impl<'a, M: ethers::providers::Middleware> DSTest<M> {
+    impl<M: ethers::providers::Middleware> DSTest<M> {
         #[doc = r" Creates a new contract instance with the specified `ethers`"]
         #[doc = r" client at the given `Address`. The contract derefs to a `ethers::Contract`"]
         #[doc = r" object"]

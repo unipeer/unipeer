@@ -1,6 +1,6 @@
-pub use mycontract_mod::*;
+pub use safeerc20_mod::*;
 #[allow(clippy::too_many_arguments, non_camel_case_types)]
-pub mod mycontract_mod {
+pub mod safeerc20_mod {
     #![allow(clippy::enum_variant_names)]
     #![allow(dead_code)]
     #![allow(clippy::type_complexity)]
@@ -14,35 +14,35 @@ pub mod mycontract_mod {
         types::*,
     };
     use ethers::providers::Middleware;
-    #[doc = "MyContract was auto-generated with ethers-rs Abigen. More information at: https://github.com/gakonst/ethers-rs"]
+    #[doc = "SafeERC20 was auto-generated with ethers-rs Abigen. More information at: https://github.com/gakonst/ethers-rs"]
     use std::sync::Arc;
-    pub static MYCONTRACT_ABI: ethers::contract::Lazy<ethers::core::abi::Abi> =
+    pub static SAFEERC20_ABI: ethers::contract::Lazy<ethers::core::abi::Abi> =
         ethers::contract::Lazy::new(|| serde_json::from_str("[]").expect("invalid abi"));
     #[doc = r" Bytecode of the #name contract"]
-    pub static MYCONTRACT_BYTECODE: ethers::contract::Lazy<ethers::core::types::Bytes> =
+    pub static SAFEERC20_BYTECODE: ethers::contract::Lazy<ethers::core::types::Bytes> =
         ethers::contract::Lazy::new(|| {
-            "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea264697066735822122067cc20c2b81be9170e31dc352494d86c11f13f38936b44b4876c85d0491ed10c64736f6c634300080a0033" . parse () . expect ("invalid bytecode")
+            "0x60566037600b82828239805160001a607314602a57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea264697066735822122071f540c40be7b012d266bf34483d991ea6e48599de37c47af825112934e9ebd864736f6c634300080a0033" . parse () . expect ("invalid bytecode")
         });
-    pub struct MyContract<M>(ethers::contract::Contract<M>);
-    impl<M> Clone for MyContract<M> {
+    pub struct SafeERC20<M>(ethers::contract::Contract<M>);
+    impl<M> Clone for SafeERC20<M> {
         fn clone(&self) -> Self {
-            MyContract(self.0.clone())
+            SafeERC20(self.0.clone())
         }
     }
-    impl<M> std::ops::Deref for MyContract<M> {
+    impl<M> std::ops::Deref for SafeERC20<M> {
         type Target = ethers::contract::Contract<M>;
         fn deref(&self) -> &Self::Target {
             &self.0
         }
     }
-    impl<M: ethers::providers::Middleware> std::fmt::Debug for MyContract<M> {
+    impl<M: ethers::providers::Middleware> std::fmt::Debug for SafeERC20<M> {
         fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-            f.debug_tuple(stringify!(MyContract))
+            f.debug_tuple(stringify!(SafeERC20))
                 .field(&self.address())
                 .finish()
         }
     }
-    impl<M: ethers::providers::Middleware> MyContract<M> {
+    impl<M: ethers::providers::Middleware> SafeERC20<M> {
         #[doc = r" Creates a new contract instance with the specified `ethers`"]
         #[doc = r" client at the given `Address`. The contract derefs to a `ethers::Contract`"]
         #[doc = r" object"]
@@ -50,7 +50,7 @@ pub mod mycontract_mod {
             address: T,
             client: ::std::sync::Arc<M>,
         ) -> Self {
-            ethers::contract::Contract::new(address.into(), MYCONTRACT_ABI.clone(), client).into()
+            ethers::contract::Contract::new(address.into(), SAFEERC20_ABI.clone(), client).into()
         }
         #[doc = r" Constructs the general purpose `Deployer` instance based on the provided constructor arguments and sends it."]
         #[doc = r" Returns a new instance of a deployer that returns an instance of this contract after sending the transaction"]
@@ -83,8 +83,8 @@ pub mod mycontract_mod {
             ethers::contract::ContractError<M>,
         > {
             let factory = ethers::contract::ContractFactory::new(
-                MYCONTRACT_ABI.clone(),
-                MYCONTRACT_BYTECODE.clone().into(),
+                SAFEERC20_ABI.clone(),
+                SAFEERC20_BYTECODE.clone().into(),
                 client,
             );
             let deployer = factory.deploy(constructor_args)?;
@@ -92,7 +92,7 @@ pub mod mycontract_mod {
             Ok(deployer)
         }
     }
-    impl<M: ethers::providers::Middleware> From<ethers::contract::Contract<M>> for MyContract<M> {
+    impl<M: ethers::providers::Middleware> From<ethers::contract::Contract<M>> for SafeERC20<M> {
         fn from(contract: ethers::contract::Contract<M>) -> Self {
             Self(contract)
         }

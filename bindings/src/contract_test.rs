@@ -1,6 +1,6 @@
 pub use contracttest_mod::*;
-#[allow(clippy::too_many_arguments)]
-mod contracttest_mod {
+#[allow(clippy::too_many_arguments, non_camel_case_types)]
+pub mod contracttest_mod {
     #![allow(clippy::enum_variant_names)]
     #![allow(dead_code)]
     #![allow(clippy::type_complexity)]
@@ -23,10 +23,14 @@ mod contracttest_mod {
     #[doc = r" Bytecode of the #name contract"]
     pub static CONTRACTTEST_BYTECODE: ethers::contract::Lazy<ethers::core::types::Bytes> =
         ethers::contract::Lazy::new(|| {
-            "0x60806040526000805460ff1916600117905534801561001d57600080fd5b5060b48061002c6000396000f3fe6080604052348015600f57600080fd5b506004361060465760003560e01c80630a9254e414604b5780633f5a4a2a14604b578063ba414fa614604d578063fa7626d4146072575b600080fd5b005b600054605e90610100900460ff1681565b604051901515815260200160405180910390f35b600054605e9060ff168156fea264697066735822122083ff26e442ab6b58584ad86e8706f553ab11a97b97d7554a64306a9a89000c3864736f6c634300080a0033" . parse () . expect ("invalid bytecode")
+            "0x60806040526000805460ff1916600117905534801561001d57600080fd5b5060b48061002c6000396000f3fe6080604052348015600f57600080fd5b506004361060465760003560e01c80630a9254e414604b5780633f5a4a2a14604b578063ba414fa614604d578063fa7626d4146072575b600080fd5b005b600054605e90610100900460ff1681565b604051901515815260200160405180910390f35b600054605e9060ff168156fea26469706673582212207dc038bfeaebea39ded4d7c226d748dbcd08b64f7869ab3c0915a7c02a0ae7f264736f6c634300080a0033" . parse () . expect ("invalid bytecode")
         });
-    #[derive(Clone)]
     pub struct ContractTest<M>(ethers::contract::Contract<M>);
+    impl<M> Clone for ContractTest<M> {
+        fn clone(&self) -> Self {
+            ContractTest(self.0.clone())
+        }
+    }
     impl<M> std::ops::Deref for ContractTest<M> {
         type Target = ethers::contract::Contract<M>;
         fn deref(&self) -> &Self::Target {
@@ -40,7 +44,7 @@ mod contracttest_mod {
                 .finish()
         }
     }
-    impl<'a, M: ethers::providers::Middleware> ContractTest<M> {
+    impl<M: ethers::providers::Middleware> ContractTest<M> {
         #[doc = r" Creates a new contract instance with the specified `ethers`"]
         #[doc = r" client at the given `Address`. The contract derefs to a `ethers::Contract`"]
         #[doc = r" object"]
