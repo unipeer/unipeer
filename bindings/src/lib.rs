@@ -6,3 +6,4 @@
 pub mod contract_test;
 pub mod ds_test;
 pub mod my_contract;
+pub mod unipeer;
