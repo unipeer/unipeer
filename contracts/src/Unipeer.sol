@@ -71,15 +71,20 @@ contract Unipeer {
         paymentAddressBySellerPaymentId[msg.sender][_paymentId] = _paymentAddress;
     }
 
-    function depositTokens(address _token, uint256 _amount, uint16 _paymentId) public {
-        tokenBalanceBySeller[msg.sender][_token] = _amount;
-        tokenPaymentIdsBySeller[msg.sender][_token].push(_paymentId);
+    function addSupportedPaymentId(address _token, uint16 _paymentId) public {
+        tokenPaymentIdsBySeller[msg.sender][_token].push(_paymentId); // enum or bitmask?
+    }
 
+    function depositTokens(address _token, uint256 _amount) public {
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
+
+        tokenBalanceBySeller[msg.sender][_token] += _amount;
         emit Deposit(msg.sender, _token, _amount);
     }
 
     function withdrawTokens(address _token, uint256 _amount) public {
+        require(tokenBalanceBySeller[msg.sender][_token] >= _amount, "Not enough balance to withdraw");
+
         IERC20(_token).safeTransfer(msg.sender, _amount);
         emit Withdraw(msg.sender, _token, _amount);
     }
