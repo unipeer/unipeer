@@ -23,9 +23,19 @@ contract Unipeer {
     // tokenBalance[token][seller] = balance
     mapping(address => mapping(address => uint256)) public tokenBalance;
 
-    event NewPaymentMethod(uint16 paymentId, string paymentName);
+    event PaymentMethodUpdate(
+        uint16 paymentId,
+        uint8 metaEvidenceId,
+        string paymentName,
+        bytes extraData
+    );
+    event SellerPaymentMethod(address sender, uint16 paymentId, string paymentAddress);
+    event SellerPaymentDisabled(address sender, uint16 paymentId);
     event SellerDeposit(address sender, address token, uint256 amount);
     event SellerWithdraw(address sender, address token, uint256 amount);
+    event BuyOrder(address buyer, uint16 paymentId, address seller, address token, uint256 amount);
+    event OrderDispute();
+    event OrderComplete();
 
     modifier onlyAdmin() {
         require(admin == msg.sender, "Access not allowed: Admin only.");
@@ -48,7 +58,7 @@ contract Unipeer {
         pm.paymentName = _paymentName;
         pm.extraData = _extraData;
 
-        emit NewPaymentMethod(numOfMethods - 1, _paymentName);
+        emit PaymentMethodUpdate(numOfMethods - 1, _metaEvidenceId, _paymentName, _extraData);
     }
 
     function updateMetaEvidenceId(uint16 _paymentId, uint8 _metaEvidenceId) external onlyAdmin {
@@ -56,6 +66,7 @@ contract Unipeer {
         require(pm.metaEvidenceId != 0, "Invalid Payment Id");
 
         pm.metaEvidenceId = _metaEvidenceId;
+        emit PaymentMethodUpdate(_paymentId, pm.metaEvidenceId, pm.paymentName, pm.extraData);
     }
 
     function updatePaymentName(uint16 _paymentId, string calldata _paymentName) external onlyAdmin {
@@ -63,6 +74,7 @@ contract Unipeer {
         require(pm.metaEvidenceId != 0, "Invalid Payment Id");
 
         pm.paymentName = _paymentName;
+        emit PaymentMethodUpdate(_paymentId, pm.metaEvidenceId, pm.paymentName, pm.extraData);
     }
 
     function updateExtraData(uint16 _paymentId, bytes calldata _extraData) external onlyAdmin {
@@ -70,6 +82,7 @@ contract Unipeer {
         require(pm.metaEvidenceId != 0, "Invalid Payment Id");
 
         pm.extraData = _extraData;
+        emit PaymentMethodUpdate(_paymentId, pm.metaEvidenceId, pm.paymentName, pm.extraData);
     }
 
     function updateTokenEnabled(uint16 _paymentId, address _token, bool _enabled) external onlyAdmin {
@@ -87,6 +100,7 @@ contract Unipeer {
         require(pm.metaEvidenceId != 0, "Invalid Payment Id");
 
         pm.paymentAddress[msg.sender] = _paymentAddress;
+        emit SellerPaymentMethod(msg.sender, _paymentId, _paymentAddress);
     }
 
     function disablePaymentMethod(uint16 _paymentId) external {
@@ -94,6 +108,7 @@ contract Unipeer {
         require(pm.metaEvidenceId != 0, "Invalid Payment Id");
 
         pm.paymentAddress[msg.sender] = "";
+        emit SellerPaymentDisabled(msg.sender, _paymentId);
     }
 
     function depositTokens(uint16 _paymentId, address _token, uint256 _amount) external {
@@ -125,6 +140,7 @@ contract Unipeer {
 
 
         // TODO: create arbitration request and lock seller funds.
+        emit BuyOrder(msg.sender, _paymentId, _seller, _token, _amount);
     }
 
     function completeOrder() external {
