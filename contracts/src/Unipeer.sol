@@ -7,20 +7,18 @@ contract Unipeer {
     using SafeERC20 for IERC20;
 
     address public admin;
-    mapping(address => bool) public tokenWhitelist;
 
     struct PaymentMethod {
         uint8 metaEvidenceId;
         string paymentName;
         bytes extraData; // subcourtId + minJurors;
+
+        mapping(address => bool) tokenEnabled;
+        mapping(address => string) paymentAddress;
     }
+
     uint16 public numOfMethods;
     mapping(uint16 => PaymentMethod) public paymentMethods;
-
-    // supportedPaymentIdForToken[seller][paymentId][token]
-    mapping(address => mapping(uint16 => mapping(address => bool))) supportedPaymentIdForToken;
-    // paymentAddress[seller][paymentId] = paymentAddress
-    mapping(address => mapping(uint16 => string)) paymentAddress;
 
     // tokenBalance[token][seller] = balance
     mapping(address => mapping(address => uint256)) public tokenBalance;
@@ -53,23 +51,54 @@ contract Unipeer {
         emit NewPaymentMethod(numOfMethods - 1, _paymentName);
     }
 
-    function whitelistToken(address _token, bool _allow) external onlyAdmin {
-        tokenWhitelist[_token] = _allow;
+    function updateMetaEvidenceId(uint16 _paymentId, uint8 _metaEvidenceId) external onlyAdmin {
+        PaymentMethod storage pm = paymentMethods[_paymentId];
+        require(pm.metaEvidenceId != 0, "Invalid Payment Id");
+
+        pm.metaEvidenceId = _metaEvidenceId;
+    }
+
+    function updatePaymentName(uint16 _paymentId, string calldata _paymentName) external onlyAdmin {
+        PaymentMethod storage pm = paymentMethods[_paymentId];
+        require(pm.metaEvidenceId != 0, "Invalid Payment Id");
+
+        pm.paymentName = _paymentName;
+    }
+
+    function updateExtraData(uint16 _paymentId, bytes calldata _extraData) external onlyAdmin {
+        PaymentMethod storage pm = paymentMethods[_paymentId];
+        require(pm.metaEvidenceId != 0, "Invalid Payment Id");
+
+        pm.extraData = _extraData;
+    }
+
+    function updateTokenEnabled(uint16 _paymentId, address _token, bool _enabled) external onlyAdmin {
+        PaymentMethod storage pm = paymentMethods[_paymentId];
+        require(pm.metaEvidenceId != 0, "Invalid Payment Id");
+
+        pm.tokenEnabled[_token] = _enabled;
     }
 
     /******** Mutating functions *******/
 
-    function addSupportedPaymentMethod(address _token, uint16 _paymentId, string calldata _paymentAddress) external {
-        supportedPaymentIdForToken[msg.sender][_paymentId][_token] = true;
-        paymentAddress[msg.sender][_paymentId] = _paymentAddress;
+    function addSupportedPaymentMethod(uint16 _paymentId, string calldata _paymentAddress) external {
+        PaymentMethod storage pm = paymentMethods[_paymentId];
+        require(pm.metaEvidenceId != 0, "Invalid Payment Id");
+
+        pm.paymentAddress[msg.sender] = _paymentAddress;
     }
 
-    function disablePaymentMethod(address _token, uint16 _paymentId) external {
-        supportedPaymentIdForToken[msg.sender][_paymentId][_token] = false;
+    function disablePaymentMethod(uint16 _paymentId) external {
+        PaymentMethod storage pm = paymentMethods[_paymentId];
+        require(pm.metaEvidenceId != 0, "Invalid Payment Id");
+
+        pm.paymentAddress[msg.sender] = "";
     }
 
-    function depositTokens(address _token, uint256 _amount) external {
-        require(tokenWhitelist[_token] == true, "Token not yet enabled for selling");
+    function depositTokens(uint16 _paymentId, address _token, uint256 _amount) external {
+        PaymentMethod storage pm = paymentMethods[_paymentId];
+        require(pm.tokenEnabled[_token] == true, "Token not yet enabled for selling");
+
         tokenBalance[_token][msg.sender] += _amount;
 
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
@@ -78,6 +107,7 @@ contract Unipeer {
 
     function withdrawTokens(address _token, uint256 _amount) external {
         require(tokenBalance[_token][msg.sender] >= _amount, "Not enough balance to withdraw");
+
         tokenBalance[_token][msg.sender] -= _amount;
 
         IERC20(_token).safeTransfer(msg.sender, _amount);
