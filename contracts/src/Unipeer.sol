@@ -80,6 +80,7 @@ contract Unipeer {
     }
 
     /******** Mutating functions *******/
+    /********       Seller       *******/
 
     function addSupportedPaymentMethod(uint16 _paymentId, string calldata _paymentAddress) external {
         PaymentMethod storage pm = paymentMethods[_paymentId];
@@ -112,5 +113,26 @@ contract Unipeer {
 
         IERC20(_token).safeTransfer(msg.sender, _amount);
         emit SellerWithdraw(msg.sender, _token, _amount);
+    }
+
+    /********       Buyer       *******/
+
+    function placeOrder(uint16 _paymentId, address _seller, address _token, uint256 _amount) external {
+        PaymentMethod storage pm = paymentMethods[_paymentId];
+        require(bytes(pm.paymentAddress[_seller]).length != 0, "Seller doesn't accept this payment method");
+        require(pm.tokenEnabled[_token] == true, "Token is not enabled for this payment method");
+        require(tokenBalance[_token][_seller] >= _amount, "Not enough seller balance");
+
+
+        // TODO: create arbitration request and lock seller funds.
+    }
+
+    function completeOrder() external {
+    }
+
+    /******** View functions *******/
+
+    function totalPaymentMethods() external view returns (uint16){
+        return numOfMethods;
     }
 }
