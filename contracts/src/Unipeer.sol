@@ -7,85 +7,80 @@ contract Unipeer {
     using SafeERC20 for IERC20;
 
     address public admin;
+    mapping(address => bool) public tokenWhitelist;
 
     struct PaymentMethod {
         uint8 metaEvidenceId;
         string paymentName;
         bytes extraData; // subcourtId + minJurors;
-        mapping(address => bool) tokenWhitelist;
-        // address[] tokens;
     }
     uint16 public numOfMethods;
-    mapping(uint => PaymentMethod) paymentMethods;
+    mapping(uint16 => PaymentMethod) public paymentMethods;
 
-    // paymentAddressBySellerPaymentId[seller][paymentId] = paymentAddress
-    mapping(address => mapping(uint16 => string)) paymentAddressBySellerPaymentId;
+    // supportedPaymentIdForToken[seller][paymentId][token]
+    mapping(address => mapping(uint16 => mapping(address => bool))) supportedPaymentIdForToken;
+    // paymentAddress[seller][paymentId] = paymentAddress
+    mapping(address => mapping(uint16 => string)) paymentAddress;
 
-    // tokenBalanceBySeller[seller][token] = balance
-    mapping(address => mapping(address => uint256)) tokenBalanceBySeller;
-    // tokenPaymentIdsBySeller[seller][token] = paymentMethodId
-    mapping(address => mapping(address => uint16[])) tokenPaymentIdsBySeller;
-
-    // sellerByTokenPaymentId[token][paymentId] = sellers;
-    mapping(address => mapping(uint16 => address[])) sellerByTokenPaymentId;
-    mapping(address => mapping(uint16 => uint256)) sellerByTokenPaymentIdCounter;
+    // tokenBalance[token][seller] = balance
+    mapping(address => mapping(address => uint256)) public tokenBalance;
 
     event NewPaymentMethod(uint16 paymentId, string paymentName);
-    event Deposit(address sender, address token, uint256 amount);
-    event Withdraw(address sender, address token, uint256 amount);
+    event SellerDeposit(address sender, address token, uint256 amount);
+    event SellerWithdraw(address sender, address token, uint256 amount);
 
     modifier onlyAdmin() {
         require(admin == msg.sender, "Access not allowed: Admin only.");
         _;
     }
 
+    constructor(address _admin) {
+        admin = _admin;
+    }
+
+    /***** Admin Only functions *****/
+
     function addPaymentMethod(
         uint8 _metaEvidenceId,
         string calldata _paymentName,
-        bytes calldata _extraData,
-        address[] calldata _tokens
-    ) public onlyAdmin {
+        bytes calldata _extraData
+    ) external onlyAdmin {
         PaymentMethod storage pm = paymentMethods[numOfMethods++];
         pm.metaEvidenceId = _metaEvidenceId;
         pm.paymentName = _paymentName;
         pm.extraData = _extraData;
-        for (uint256 i = 0; i < _tokens.length; i++) {
-            pm.tokenWhitelist[_tokens[i]] = true;
-        }
 
         emit NewPaymentMethod(numOfMethods - 1, _paymentName);
     }
 
-    function updatePaymentToken(uint16 _paymentId, address[] calldata _tokens, bool[] memory _enabled) public onlyAdmin {
-        require(_paymentId < numOfMethods);
-
-        PaymentMethod storage pm = paymentMethods[_paymentId];
-        for (uint256 i = 0; i < _tokens.length; i++) {
-            pm.tokenWhitelist[_tokens[i]] = _enabled[i];
-        }
+    function whitelistToken(address _token, bool _allow) external onlyAdmin {
+        tokenWhitelist[_token] = _allow;
     }
 
-    function updatePaymentAddress(uint16 _paymentId, string calldata _paymentAddress) public {
-        require(_paymentId < numOfMethods);
+    /******** Mutating functions *******/
 
-        paymentAddressBySellerPaymentId[msg.sender][_paymentId] = _paymentAddress;
+    function addSupportedPaymentMethod(address _token, uint16 _paymentId, string calldata _paymentAddress) external {
+        supportedPaymentIdForToken[msg.sender][_paymentId][_token] = true;
+        paymentAddress[msg.sender][_paymentId] = _paymentAddress;
     }
 
-    function addSupportedPaymentId(address _token, uint16 _paymentId) public {
-        tokenPaymentIdsBySeller[msg.sender][_token].push(_paymentId); // enum or bitmask?
+    function disablePaymentMethod(address _token, uint16 _paymentId) external {
+        supportedPaymentIdForToken[msg.sender][_paymentId][_token] = false;
     }
 
-    function depositTokens(address _token, uint256 _amount) public {
+    function depositTokens(address _token, uint256 _amount) external {
+        require(tokenWhitelist[_token] == true, "Token not yet enabled for selling");
+        tokenBalance[_token][msg.sender] += _amount;
+
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
-
-        tokenBalanceBySeller[msg.sender][_token] += _amount;
-        emit Deposit(msg.sender, _token, _amount);
+        emit SellerDeposit(msg.sender, _token, _amount);
     }
 
-    function withdrawTokens(address _token, uint256 _amount) public {
-        require(tokenBalanceBySeller[msg.sender][_token] >= _amount, "Not enough balance to withdraw");
+    function withdrawTokens(address _token, uint256 _amount) external {
+        require(tokenBalance[_token][msg.sender] >= _amount, "Not enough balance to withdraw");
+        tokenBalance[_token][msg.sender] -= _amount;
 
         IERC20(_token).safeTransfer(msg.sender, _amount);
-        emit Withdraw(msg.sender, _token, _amount);
+        emit SellerWithdraw(msg.sender, _token, _amount);
     }
 }
