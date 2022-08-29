@@ -6,7 +6,7 @@ import "oz/token/ERC20/utils/SafeERC20.sol";
 contract Unipeer {
     using SafeERC20 for IERC20;
 
-    address public admin;
+    /* Structs */
 
     struct PaymentMethod {
         uint8 metaEvidenceId;
@@ -17,11 +17,24 @@ contract Unipeer {
         mapping(address => string) paymentAddress;
     }
 
-    uint16 public numOfMethods;
+    /* Storage */
+
+    address public admin;
+
+    uint16 public totalPaymentMethods;
     mapping(uint16 => PaymentMethod) public paymentMethods;
 
     // tokenBalance[seller][token] = balance
     mapping(address => mapping(address => uint256)) public tokenBalance;
+
+    /* Modifiers */
+
+    modifier onlyAdmin() {
+        require(admin == msg.sender, "Access not allowed: Admin only.");
+        _;
+    }
+
+    /* Events */
 
     event PaymentMethodUpdate(
         uint16 paymentId,
@@ -37,11 +50,6 @@ contract Unipeer {
     event OrderDispute();
     event OrderComplete();
 
-    modifier onlyAdmin() {
-        require(admin == msg.sender, "Access not allowed: Admin only.");
-        _;
-    }
-
     constructor(address _admin) {
         admin = _admin;
     }
@@ -53,12 +61,12 @@ contract Unipeer {
         string calldata _paymentName,
         bytes calldata _extraData
     ) external onlyAdmin {
-        PaymentMethod storage pm = paymentMethods[numOfMethods++];
+        PaymentMethod storage pm = paymentMethods[totalPaymentMethods++];
         pm.metaEvidenceId = _metaEvidenceId;
         pm.paymentName = _paymentName;
         pm.extraData = _extraData;
 
-        emit PaymentMethodUpdate(numOfMethods - 1, _metaEvidenceId, _paymentName, _extraData);
+        emit PaymentMethodUpdate(totalPaymentMethods - 1, _metaEvidenceId, _paymentName, _extraData);
     }
 
     function updateMetaEvidenceId(uint16 _paymentId, uint8 _metaEvidenceId) external onlyAdmin {
@@ -147,8 +155,4 @@ contract Unipeer {
     }
 
     /******** View functions *******/
-
-    function totalPaymentMethods() external view returns (uint16){
-        return numOfMethods;
-    }
 }
