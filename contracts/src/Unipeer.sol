@@ -44,8 +44,7 @@ contract Unipeer is IArbitrable, IEvidence {
     // Updated each time the data is changed.
     ArbitratorData[] public arbitratorDataList;
     // Holds the total/count of Meta Evidence updates.
-    // Starts with 1 to enable paymentMethods sanity check.
-    uint256 metaEvidenceUpdates = 1;
+    uint256 metaEvidenceUpdates;
 
     // tokenBalance[seller][token] = balance
     mapping(address => mapping(address => uint256)) public tokenBalance;
@@ -121,26 +120,28 @@ contract Unipeer is IArbitrable, IEvidence {
     }
 
     function updateMetaEvidenceID(uint16 _paymentId, uint8 _metaEvidenceID) external onlyAdmin {
+        require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
         require(_metaEvidenceID <= metaEvidenceUpdates, "Invalid Meta Evidence ID");
-        PaymentMethod storage pm = paymentMethods[_paymentId];
-        require(pm.metaEvidenceID != 0, "Invalid Payment Id");
 
+        PaymentMethod storage pm = paymentMethods[_paymentId];
         pm.metaEvidenceID = _metaEvidenceID;
+
         emit PaymentMethodUpdate(_paymentId, pm.paymentName, pm.metaEvidenceID);
     }
 
     function updatePaymentName(uint16 _paymentId, string calldata _paymentName) external onlyAdmin {
-        PaymentMethod storage pm = paymentMethods[_paymentId];
-        require(pm.metaEvidenceID != 0, "Invalid Payment Id");
+        require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
 
+        PaymentMethod storage pm = paymentMethods[_paymentId];
         pm.paymentName = _paymentName;
+
         emit PaymentMethodUpdate(_paymentId, pm.paymentName, pm.metaEvidenceID);
     }
 
     function updateTokenEnabled(uint16 _paymentId, address _token, bool _enabled) external onlyAdmin {
-        PaymentMethod storage pm = paymentMethods[_paymentId];
-        require(pm.metaEvidenceID != 0, "Invalid Payment Id");
+        require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
 
+        PaymentMethod storage pm = paymentMethods[_paymentId];
         pm.tokenEnabled[_token] = _enabled;
     }
 
@@ -148,28 +149,32 @@ contract Unipeer is IArbitrable, IEvidence {
     /********       Seller       *******/
 
     function addSupportedPaymentMethod(uint16 _paymentId, string calldata _paymentAddress) external {
-        PaymentMethod storage pm = paymentMethods[_paymentId];
-        require(pm.metaEvidenceID != 0, "Invalid Payment Id");
+        require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
 
+        PaymentMethod storage pm = paymentMethods[_paymentId];
         pm.paymentAddress[msg.sender] = _paymentAddress;
+
         emit SellerPaymentMethod(msg.sender, _paymentId, _paymentAddress);
     }
 
     function disablePaymentMethod(uint16 _paymentId) external {
-        PaymentMethod storage pm = paymentMethods[_paymentId];
-        require(pm.metaEvidenceID != 0, "Invalid Payment Id");
+        require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
 
+        PaymentMethod storage pm = paymentMethods[_paymentId];
         pm.paymentAddress[msg.sender] = "";
+
         emit SellerPaymentDisabled(msg.sender, _paymentId);
     }
 
     function depositTokens(uint16 _paymentId, address _token, uint256 _amount) external {
+        require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
+
         PaymentMethod storage pm = paymentMethods[_paymentId];
         require(pm.tokenEnabled[_token] == true, "Token not yet enabled for selling");
 
         tokenBalance[msg.sender][_token] += _amount;
-
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
+
         emit SellerDeposit(msg.sender, _token, _amount);
     }
 
@@ -185,11 +190,12 @@ contract Unipeer is IArbitrable, IEvidence {
     /********       Buyer       *******/
 
     function placeOrder(uint16 _paymentId, address _seller, address _token, uint256 _amount) external {
+        require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
+
         PaymentMethod storage pm = paymentMethods[_paymentId];
         require(bytes(pm.paymentAddress[_seller]).length != 0, "Seller doesn't accept this payment method");
         require(pm.tokenEnabled[_token] == true, "Token is not enabled for this payment method");
         require(tokenBalance[_seller][_token] >= _amount, "Not enough seller balance");
-
 
         // TODO: create arbitration request and lock seller funds.
         emit BuyOrder(msg.sender, _paymentId, _seller, _token, _amount);
