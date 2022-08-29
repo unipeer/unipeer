@@ -20,7 +20,7 @@ contract Unipeer {
     uint16 public numOfMethods;
     mapping(uint16 => PaymentMethod) public paymentMethods;
 
-    // tokenBalance[token][seller] = balance
+    // tokenBalance[seller][token] = balance
     mapping(address => mapping(address => uint256)) public tokenBalance;
 
     event PaymentMethodUpdate(
@@ -115,16 +115,16 @@ contract Unipeer {
         PaymentMethod storage pm = paymentMethods[_paymentId];
         require(pm.tokenEnabled[_token] == true, "Token not yet enabled for selling");
 
-        tokenBalance[_token][msg.sender] += _amount;
+        tokenBalance[msg.sender][_token] += _amount;
 
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
         emit SellerDeposit(msg.sender, _token, _amount);
     }
 
     function withdrawTokens(address _token, uint256 _amount) external {
-        require(tokenBalance[_token][msg.sender] >= _amount, "Not enough balance to withdraw");
+        require(tokenBalance[msg.sender][_token] >= _amount, "Not enough balance to withdraw");
 
-        tokenBalance[_token][msg.sender] -= _amount;
+        tokenBalance[msg.sender][_token] -= _amount;
 
         IERC20(_token).safeTransfer(msg.sender, _amount);
         emit SellerWithdraw(msg.sender, _token, _amount);
@@ -136,7 +136,7 @@ contract Unipeer {
         PaymentMethod storage pm = paymentMethods[_paymentId];
         require(bytes(pm.paymentAddress[_seller]).length != 0, "Seller doesn't accept this payment method");
         require(pm.tokenEnabled[_token] == true, "Token is not enabled for this payment method");
-        require(tokenBalance[_token][_seller] >= _amount, "Not enough seller balance");
+        require(tokenBalance[_seller][_token] >= _amount, "Not enough seller balance");
 
 
         // TODO: create arbitration request and lock seller funds.
