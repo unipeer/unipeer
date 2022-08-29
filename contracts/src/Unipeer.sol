@@ -2,18 +2,34 @@
 pragma solidity 0.8.10;
 
 import "oz/token/ERC20/utils/SafeERC20.sol";
+import "kleros/IArbitrable.sol";
+import "kleros/erc-1497/IEvidence.sol";
+import "kleros/IArbitrator.sol";
 
-contract Unipeer {
+contract Unipeer is IArbitrable, IEvidence {
     using SafeERC20 for IERC20;
 
     /* Structs */
 
-    struct PaymentMethod {
-        uint8 metaEvidenceId;
-        string paymentName;
-        bytes extraData; // subcourtId + minJurors;
+    struct ArbitratorData {
+        // Address of the trusted arbitrator to solve disputes.
+        IArbitrator arbitrator;
+        // Extra data for the arbitrator.
+        bytes arbitratorExtraData;
+    }
 
+    struct PaymentMethod {
+        // User friendly name used to identify the payment method.
+        string paymentName;
+        // Stores the meta evidence ID specific to the payment method
+        // that is to be used in disputes.
+        uint256 metaEvidenceID;
+        // Tokens that are accepted via this payment method.
+        // tokenEnabled[token] = true
         mapping(address => bool) tokenEnabled;
+        // The payment address of a seller for this payment method that
+        // a buyer will make payments to.
+        // paymentAddress[seller] = "example@paypal.me"
         mapping(address => string) paymentAddress;
     }
 
@@ -23,6 +39,13 @@ contract Unipeer {
 
     uint16 public totalPaymentMethods;
     mapping(uint16 => PaymentMethod) public paymentMethods;
+
+    // Stores the arbitrator data of the contract.
+    // Updated each time the data is changed.
+    ArbitratorData[] public arbitratorDataList;
+    // Holds the total/count of Meta Evidence updates.
+    // Starts with 1 to enable paymentMethods sanity check.
+    uint256 metaEvidenceUpdates = 1;
 
     // tokenBalance[seller][token] = balance
     mapping(address => mapping(address => uint256)) public tokenBalance;
@@ -38,9 +61,8 @@ contract Unipeer {
 
     event PaymentMethodUpdate(
         uint16 paymentId,
-        uint8 metaEvidenceId,
         string paymentName,
-        bytes extraData
+        uint256 metaEvidenceID
     );
     event SellerPaymentMethod(address sender, uint16 paymentId, string paymentAddress);
     event SellerPaymentDisabled(address sender, uint16 paymentId);
@@ -50,52 +72,74 @@ contract Unipeer {
     event OrderDispute();
     event OrderComplete();
 
-    constructor(address _admin) {
+    constructor(address _admin, IArbitrator _arbitrator, bytes memory _arbitratorExtraData) {
         admin = _admin;
+        arbitratorDataList.push(ArbitratorData({
+            arbitrator: _arbitrator,
+            arbitratorExtraData: _arbitratorExtraData
+        }));
     }
 
     /***** Admin Only functions *****/
 
-    function addPaymentMethod(
-        uint8 _metaEvidenceId,
-        string calldata _paymentName,
-        bytes calldata _extraData
-    ) external onlyAdmin {
-        PaymentMethod storage pm = paymentMethods[totalPaymentMethods++];
-        pm.metaEvidenceId = _metaEvidenceId;
-        pm.paymentName = _paymentName;
-        pm.extraData = _extraData;
-
-        emit PaymentMethodUpdate(totalPaymentMethods - 1, _metaEvidenceId, _paymentName, _extraData);
+    /** @dev Change the arbitrator to be used for disputes.
+     *  The arbitrator is trusted to support appeal period and not reenter.
+     *  @param _arbitrator The new trusted arbitrator to be used in the next requests.
+     *  @param _arbitratorExtraData The extra data used by the new arbitrator.
+     */
+    function changeArbitrator(IArbitrator _arbitrator, bytes calldata _arbitratorExtraData) external onlyAdmin {
+        arbitratorDataList.push(ArbitratorData({
+            arbitrator: _arbitrator,
+            arbitratorExtraData: _arbitratorExtraData
+        }));
     }
 
-    function updateMetaEvidenceId(uint16 _paymentId, uint8 _metaEvidenceId) external onlyAdmin {
-        PaymentMethod storage pm = paymentMethods[_paymentId];
-        require(pm.metaEvidenceId != 0, "Invalid Payment Id");
+    /** @dev Add a new meta evidence used for disputes.
+     *  @param _metaEvidence The meta evidence to be used for future disputes
+     *  requests.
+     *  returns metaEvidenceID The ID of the associated meta evidence that
+     *  can be then linked to a payment method.
+     */
+    function addMetaEvidence(string calldata _metaEvidence) external onlyAdmin returns (uint256 metaEvidenceID) {
+        metaEvidenceID = metaEvidenceUpdates + 1;
+        emit MetaEvidence(metaEvidenceID, _metaEvidence);
+    }
 
-        pm.metaEvidenceId = _metaEvidenceId;
-        emit PaymentMethodUpdate(_paymentId, pm.metaEvidenceId, pm.paymentName, pm.extraData);
+    function addPaymentMethod(
+        string calldata _paymentName,
+        uint8 _metaEvidenceID,
+        address _initalEnabledToken
+    ) external onlyAdmin {
+        require(_metaEvidenceID <= metaEvidenceUpdates, "Invalid Meta Evidence ID");
+        PaymentMethod storage pm = paymentMethods[totalPaymentMethods++];
+        pm.paymentName = _paymentName;
+        pm.metaEvidenceID = _metaEvidenceID;
+        pm.tokenEnabled[_initalEnabledToken] = true;
+
+        // emit MetaEvidence(0, _metaEvidence);
+        emit PaymentMethodUpdate(totalPaymentMethods - 1, _paymentName, _metaEvidenceID);
+    }
+
+    function updateMetaEvidenceID(uint16 _paymentId, uint8 _metaEvidenceID) external onlyAdmin {
+        require(_metaEvidenceID <= metaEvidenceUpdates, "Invalid Meta Evidence ID");
+        PaymentMethod storage pm = paymentMethods[_paymentId];
+        require(pm.metaEvidenceID != 0, "Invalid Payment Id");
+
+        pm.metaEvidenceID = _metaEvidenceID;
+        emit PaymentMethodUpdate(_paymentId, pm.paymentName, pm.metaEvidenceID);
     }
 
     function updatePaymentName(uint16 _paymentId, string calldata _paymentName) external onlyAdmin {
         PaymentMethod storage pm = paymentMethods[_paymentId];
-        require(pm.metaEvidenceId != 0, "Invalid Payment Id");
+        require(pm.metaEvidenceID != 0, "Invalid Payment Id");
 
         pm.paymentName = _paymentName;
-        emit PaymentMethodUpdate(_paymentId, pm.metaEvidenceId, pm.paymentName, pm.extraData);
-    }
-
-    function updateExtraData(uint16 _paymentId, bytes calldata _extraData) external onlyAdmin {
-        PaymentMethod storage pm = paymentMethods[_paymentId];
-        require(pm.metaEvidenceId != 0, "Invalid Payment Id");
-
-        pm.extraData = _extraData;
-        emit PaymentMethodUpdate(_paymentId, pm.metaEvidenceId, pm.paymentName, pm.extraData);
+        emit PaymentMethodUpdate(_paymentId, pm.paymentName, pm.metaEvidenceID);
     }
 
     function updateTokenEnabled(uint16 _paymentId, address _token, bool _enabled) external onlyAdmin {
         PaymentMethod storage pm = paymentMethods[_paymentId];
-        require(pm.metaEvidenceId != 0, "Invalid Payment Id");
+        require(pm.metaEvidenceID != 0, "Invalid Payment Id");
 
         pm.tokenEnabled[_token] = _enabled;
     }
@@ -105,7 +149,7 @@ contract Unipeer {
 
     function addSupportedPaymentMethod(uint16 _paymentId, string calldata _paymentAddress) external {
         PaymentMethod storage pm = paymentMethods[_paymentId];
-        require(pm.metaEvidenceId != 0, "Invalid Payment Id");
+        require(pm.metaEvidenceID != 0, "Invalid Payment Id");
 
         pm.paymentAddress[msg.sender] = _paymentAddress;
         emit SellerPaymentMethod(msg.sender, _paymentId, _paymentAddress);
@@ -113,7 +157,7 @@ contract Unipeer {
 
     function disablePaymentMethod(uint16 _paymentId) external {
         PaymentMethod storage pm = paymentMethods[_paymentId];
-        require(pm.metaEvidenceId != 0, "Invalid Payment Id");
+        require(pm.metaEvidenceID != 0, "Invalid Payment Id");
 
         pm.paymentAddress[msg.sender] = "";
         emit SellerPaymentDisabled(msg.sender, _paymentId);
@@ -152,6 +196,16 @@ contract Unipeer {
     }
 
     function completeOrder() external {
+    }
+
+    /********       Arbitrator       *******/
+
+    /** @dev Give a ruling for a dispute. Can only be called by the arbitrator. TRUSTED.
+     *  Account for the situation where the winner loses a case due to paying less appeal fees than expected.
+     *  @param _disputeID ID of the dispute in the arbitrator contract.
+     *  @param _ruling Ruling given by the arbitrator. Note that 0 is reserved for "Refused to arbitrate".
+     */
+    function rule(uint _disputeID, uint _ruling) public {
     }
 
     /******** View functions *******/
