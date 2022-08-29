@@ -9,6 +9,14 @@ import "kleros/IArbitrator.sol";
 contract Unipeer is IArbitrable, IEvidence {
     using SafeERC20 for IERC20;
 
+    /* Enums */
+
+    enum Party {
+        None, // Party per default when there is no challenger or requester. Also used for unconclusive ruling.
+        Buyer, // Party that placed the buy order.
+        Seller// Party that provided funds that were locked in a order.
+    }
+
     /* Structs */
 
     struct ArbitratorData {
@@ -26,11 +34,44 @@ contract Unipeer is IArbitrable, IEvidence {
         uint256 metaEvidenceID;
         // Tokens that are accepted via this payment method.
         // tokenEnabled[token] = true
-        mapping(address => bool) tokenEnabled;
+        mapping(IERC20 => bool) tokenEnabled;
         // The payment address of a seller for this payment method that
         // a buyer will make payments to.
         // paymentAddress[seller] = "example@paypal.me"
         mapping(address => string) paymentAddress;
+    }
+
+    struct Order {
+        bool disputed;
+        bool resolved;
+        address buyer;
+        address seller;
+        IERC20 token;
+        uint256 amount;
+        // If dispute exists, the ID of the dispute.
+        uint256 disputeID;
+    }
+
+    // Some arrays below have 3 elements to map with the Party enums for better readability:
+    // - 0: is unused, matches `Party.None`.
+    // - 1: for `Party.Buyer`.
+    // - 2: for `Party.Seller`.
+    struct Round {
+        uint256[3] paidFees; // Tracks the fees paid by each side in this round.
+        // Stores the side that successfully paid the appeal fees in the latest round.
+        // Note that if both sides have paid a new round is created.
+        Party sideFunded;
+        // Sum of reimbursable fees and stake rewards available to the parties
+        // that made contributions to the side that ultimately wins a dispute.
+        uint256 feeRewards;
+        mapping(address => uint256[3]) contributions; // Maps contributors to their contributions for each side.
+    }
+
+    struct DisputeDetails {
+        uint disputeID; // The ID of the dispute related to the challenge.
+        Party ruling; // Ruling given by the arbitrator of the dispute.
+        uint16 lastRoundID; // The ID of the last round.
+        mapping(uint => Round) rounds; // Tracks the info of each funding round of the challenge.
     }
 
     /* Storage */
@@ -47,7 +88,7 @@ contract Unipeer is IArbitrable, IEvidence {
     uint256 metaEvidenceUpdates;
 
     // tokenBalance[seller][token] = balance
-    mapping(address => mapping(address => uint256)) public tokenBalance;
+    mapping(address => mapping(IERC20 => uint256)) public tokenBalance;
 
     /* Modifiers */
 
@@ -65,9 +106,9 @@ contract Unipeer is IArbitrable, IEvidence {
     );
     event SellerPaymentMethod(address sender, uint16 paymentId, string paymentAddress);
     event SellerPaymentDisabled(address sender, uint16 paymentId);
-    event SellerDeposit(address sender, address token, uint256 amount);
-    event SellerWithdraw(address sender, address token, uint256 amount);
-    event BuyOrder(address buyer, uint16 paymentId, address seller, address token, uint256 amount);
+    event SellerDeposit(address sender, IERC20 token, uint256 amount);
+    event SellerWithdraw(address sender, IERC20 token, uint256 amount);
+    event BuyOrder(address buyer, uint16 paymentId, address seller, IERC20 token, uint256 amount);
     event OrderDispute();
     event OrderComplete();
 
@@ -107,7 +148,7 @@ contract Unipeer is IArbitrable, IEvidence {
     function addPaymentMethod(
         string calldata _paymentName,
         uint8 _metaEvidenceID,
-        address _initalEnabledToken
+        IERC20 _initalEnabledToken
     ) external onlyAdmin {
         require(_metaEvidenceID <= metaEvidenceUpdates, "Invalid Meta Evidence ID");
         PaymentMethod storage pm = paymentMethods[totalPaymentMethods++];
@@ -138,7 +179,7 @@ contract Unipeer is IArbitrable, IEvidence {
         emit PaymentMethodUpdate(_paymentId, pm.paymentName, pm.metaEvidenceID);
     }
 
-    function updateTokenEnabled(uint16 _paymentId, address _token, bool _enabled) external onlyAdmin {
+    function updateTokenEnabled(uint16 _paymentId, IERC20 _token, bool _enabled) external onlyAdmin {
         require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
 
         PaymentMethod storage pm = paymentMethods[_paymentId];
@@ -148,7 +189,7 @@ contract Unipeer is IArbitrable, IEvidence {
     /******** Mutating functions *******/
     /********       Seller       *******/
 
-    function addSupportedPaymentMethod(uint16 _paymentId, string calldata _paymentAddress) external {
+    function acceptPaymentMethod(uint16 _paymentId, string calldata _paymentAddress) external {
         require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
 
         PaymentMethod storage pm = paymentMethods[_paymentId];
@@ -166,30 +207,30 @@ contract Unipeer is IArbitrable, IEvidence {
         emit SellerPaymentDisabled(msg.sender, _paymentId);
     }
 
-    function depositTokens(uint16 _paymentId, address _token, uint256 _amount) external {
+    function depositTokens(uint16 _paymentId, IERC20 _token, uint256 _amount) external {
         require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
 
         PaymentMethod storage pm = paymentMethods[_paymentId];
         require(pm.tokenEnabled[_token] == true, "Token not yet enabled for selling");
 
         tokenBalance[msg.sender][_token] += _amount;
-        IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
+        _token.safeTransferFrom(msg.sender, address(this), _amount);
 
         emit SellerDeposit(msg.sender, _token, _amount);
     }
 
-    function withdrawTokens(address _token, uint256 _amount) external {
+    function withdrawTokens(IERC20 _token, uint256 _amount) external {
         require(tokenBalance[msg.sender][_token] >= _amount, "Not enough balance to withdraw");
 
         tokenBalance[msg.sender][_token] -= _amount;
 
-        IERC20(_token).safeTransfer(msg.sender, _amount);
+        _token.safeTransfer(msg.sender, _amount);
         emit SellerWithdraw(msg.sender, _token, _amount);
     }
 
     /********       Buyer       *******/
 
-    function placeOrder(uint16 _paymentId, address _seller, address _token, uint256 _amount) external {
+    function placeOrder(uint16 _paymentId, address _seller, IERC20 _token, uint256 _amount) external {
         require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
 
         PaymentMethod storage pm = paymentMethods[_paymentId];
