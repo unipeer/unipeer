@@ -9,12 +9,26 @@ import "kleros/IArbitrator.sol";
 contract Unipeer is IArbitrable, IEvidence {
     using SafeERC20 for IERC20;
 
+    /* Constants and immutable */
+
+    uint private constant RULING_OPTIONS = 2; // The amount of non 0 choices the arbitrator can give.
+    uint private constant MULTIPLIER_DIVISOR = 10000; // Divisor parameter for multipliers.
+
     /* Enums */
 
     enum Party {
         None, // Party per default when there is no challenger or requester. Also used for unconclusive ruling.
         Buyer, // Party that placed the buy order.
         Seller// Party that provided funds that were locked in a order.
+    }
+
+    enum Status {
+        Created, // The buy order has been created and seller funds locked.
+        Paid, // The buy has marked making the off-chain payment to seller.
+        Completed, // The seller confirms receiving the off-chain payment.
+        Cancelled, // The buyer never made the off-chain payment
+        Disputed, // The seller has raised a dispute, claiming to have not received the payment.
+        Resolved // The dispute has been successfully resolved.
     }
 
     /* Structs */
@@ -42,14 +56,14 @@ contract Unipeer is IArbitrable, IEvidence {
     }
 
     struct Order {
-        bool disputed;
-        bool resolved;
         address buyer;
         address seller;
         IERC20 token;
         uint256 amount;
         // If dispute exists, the ID of the dispute.
         uint256 disputeID;
+        uint256 lastInteraction;
+        Status status;
     }
 
     // Some arrays below have 3 elements to map with the Party enums for better readability:
@@ -79,6 +93,7 @@ contract Unipeer is IArbitrable, IEvidence {
     address public admin;
 
     uint16 public totalPaymentMethods;
+    // List of Payment Methods by paymentID
     mapping(uint16 => PaymentMethod) public paymentMethods;
 
     // Stores the arbitrator data of the contract.
@@ -86,9 +101,14 @@ contract Unipeer is IArbitrable, IEvidence {
     ArbitratorData[] public arbitratorDataList;
     // Holds the total/count of Meta Evidence updates.
     uint256 metaEvidenceUpdates;
+    uint256 confirmationTimeout = 1 days;
 
     // tokenBalance[seller][token] = balance
     mapping(address => mapping(IERC20 => uint256)) public tokenBalance;
+    // List of dispute details by disputeID
+    mapping(uint256 => DisputeDetails) public disputes;
+    // List of orders by orderID
+    Order[] public orders;
 
     /* Modifiers */
 
@@ -100,17 +120,17 @@ contract Unipeer is IArbitrable, IEvidence {
     /* Events */
 
     event PaymentMethodUpdate(
-        uint16 paymentId,
+        uint16 paymentID,
         string paymentName,
         uint256 metaEvidenceID
     );
-    event SellerPaymentMethod(address sender, uint16 paymentId, string paymentAddress);
-    event SellerPaymentDisabled(address sender, uint16 paymentId);
+    event SellerPaymentMethod(address sender, uint16 paymentID, string paymentAddress);
+    event SellerPaymentDisabled(address sender, uint16 paymentID);
     event SellerDeposit(address sender, IERC20 token, uint256 amount);
     event SellerWithdraw(address sender, IERC20 token, uint256 amount);
-    event BuyOrder(address buyer, uint16 paymentId, address seller, IERC20 token, uint256 amount);
-    event OrderDispute();
-    event OrderComplete();
+    event BuyOrder(uint256 orderID, address buyer, uint16 paymentID, address seller, IERC20 token, uint256 amount);
+    event Paid(uint256 orderID);
+    event OrderComplete(uint256 orderID);
 
     constructor(address _admin, IArbitrator _arbitrator, bytes memory _arbitratorExtraData) {
         admin = _admin;
@@ -156,61 +176,60 @@ contract Unipeer is IArbitrable, IEvidence {
         pm.metaEvidenceID = _metaEvidenceID;
         pm.tokenEnabled[_initalEnabledToken] = true;
 
-        // emit MetaEvidence(0, _metaEvidence);
         emit PaymentMethodUpdate(totalPaymentMethods - 1, _paymentName, _metaEvidenceID);
     }
 
-    function updateMetaEvidenceID(uint16 _paymentId, uint8 _metaEvidenceID) external onlyAdmin {
-        require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
+    function updateMetaEvidenceID(uint16 _paymentID, uint8 _metaEvidenceID) external onlyAdmin {
+        require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
         require(_metaEvidenceID <= metaEvidenceUpdates, "Invalid Meta Evidence ID");
 
-        PaymentMethod storage pm = paymentMethods[_paymentId];
+        PaymentMethod storage pm = paymentMethods[_paymentID];
         pm.metaEvidenceID = _metaEvidenceID;
 
-        emit PaymentMethodUpdate(_paymentId, pm.paymentName, pm.metaEvidenceID);
+        emit PaymentMethodUpdate(_paymentID, pm.paymentName, pm.metaEvidenceID);
     }
 
-    function updatePaymentName(uint16 _paymentId, string calldata _paymentName) external onlyAdmin {
-        require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
+    function updatePaymentName(uint16 _paymentID, string calldata _paymentName) external onlyAdmin {
+        require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
 
-        PaymentMethod storage pm = paymentMethods[_paymentId];
+        PaymentMethod storage pm = paymentMethods[_paymentID];
         pm.paymentName = _paymentName;
 
-        emit PaymentMethodUpdate(_paymentId, pm.paymentName, pm.metaEvidenceID);
+        emit PaymentMethodUpdate(_paymentID, pm.paymentName, pm.metaEvidenceID);
     }
 
-    function updateTokenEnabled(uint16 _paymentId, IERC20 _token, bool _enabled) external onlyAdmin {
-        require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
+    function updateTokenEnabled(uint16 _paymentID, IERC20 _token, bool _enabled) external onlyAdmin {
+        require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
 
-        PaymentMethod storage pm = paymentMethods[_paymentId];
+        PaymentMethod storage pm = paymentMethods[_paymentID];
         pm.tokenEnabled[_token] = _enabled;
     }
 
     /******** Mutating functions *******/
     /********       Seller       *******/
 
-    function acceptPaymentMethod(uint16 _paymentId, string calldata _paymentAddress) external {
-        require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
+    function acceptPaymentMethod(uint16 _paymentID, string calldata _paymentAddress) external {
+        require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
 
-        PaymentMethod storage pm = paymentMethods[_paymentId];
+        PaymentMethod storage pm = paymentMethods[_paymentID];
         pm.paymentAddress[msg.sender] = _paymentAddress;
 
-        emit SellerPaymentMethod(msg.sender, _paymentId, _paymentAddress);
+        emit SellerPaymentMethod(msg.sender, _paymentID, _paymentAddress);
     }
 
-    function disablePaymentMethod(uint16 _paymentId) external {
-        require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
+    function disablePaymentMethod(uint16 _paymentID) external {
+        require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
 
-        PaymentMethod storage pm = paymentMethods[_paymentId];
+        PaymentMethod storage pm = paymentMethods[_paymentID];
         pm.paymentAddress[msg.sender] = "";
 
-        emit SellerPaymentDisabled(msg.sender, _paymentId);
+        emit SellerPaymentDisabled(msg.sender, _paymentID);
     }
 
-    function depositTokens(uint16 _paymentId, IERC20 _token, uint256 _amount) external {
-        require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
+    function depositTokens(uint16 _paymentID, IERC20 _token, uint256 _amount) external {
+        require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
 
-        PaymentMethod storage pm = paymentMethods[_paymentId];
+        PaymentMethod storage pm = paymentMethods[_paymentID];
         require(pm.tokenEnabled[_token] == true, "Token not yet enabled for selling");
 
         tokenBalance[msg.sender][_token] += _amount;
@@ -230,19 +249,60 @@ contract Unipeer is IArbitrable, IEvidence {
 
     /********       Buyer       *******/
 
-    function placeOrder(uint16 _paymentId, address _seller, IERC20 _token, uint256 _amount) external {
-        require(_paymentId < totalPaymentMethods, "Payment method does not exist.");
+    function buyOrder(uint16 _paymentID, address _seller, IERC20 _token, uint256 _amount) external {
+        require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
 
-        PaymentMethod storage pm = paymentMethods[_paymentId];
+        PaymentMethod storage pm = paymentMethods[_paymentID];
         require(bytes(pm.paymentAddress[_seller]).length != 0, "Seller doesn't accept this payment method");
         require(pm.tokenEnabled[_token] == true, "Token is not enabled for this payment method");
         require(tokenBalance[_seller][_token] >= _amount, "Not enough seller balance");
 
-        // TODO: create arbitration request and lock seller funds.
-        emit BuyOrder(msg.sender, _paymentId, _seller, _token, _amount);
+        orders.push(Order({
+            buyer: msg.sender,
+            seller: _seller,
+            token: _token,
+            amount: _amount,
+            disputeID: 0,
+            lastInteraction: block.timestamp,
+            status: Status.Created
+        }));
+        tokenBalance[_seller][_token] -= _amount;
+
+        emit BuyOrder(orders.length -1, msg.sender, _paymentID, _seller, _token, _amount);
     }
 
-    function completeOrder() external {
+    function confirmPaid(uint256 _orderID) external {
+        Order storage order = orders[_orderID];
+        require(order.buyer == msg.sender, "Only buyer can confirm the off-chain payment");
+        require(order.status == Status.Created, "Order already cancelled, completed or disputed");
+        require(order.lastInteraction + confirmationTimeout >= block.timestamp, "Order confirmation period is over");
+
+        order.lastInteraction = block.timestamp;
+        order.status = Status.Paid;
+
+        emit Paid(_orderID);
+    }
+
+    function completeOrder(uint256 _orderID) external {
+        Order storage order = orders[_orderID];
+        require(order.seller == msg.sender, "Only seller mark an order complete");
+        require(order.status < Status.Completed, "Order already cancelled, completed or disputed");
+
+        order.lastInteraction = block.timestamp;
+        order.status = Status.Completed;
+
+        order.token.safeTransfer(order.buyer, order.amount);
+
+        emit OrderComplete(_orderID);
+    }
+
+    function cancelOrder(uint256 _orderID) external {
+        Order storage order = orders[_orderID];
+        require(order.status != Status.Created, "Order can only be cancelled immediately after creation");
+        require(order.lastInteraction + confirmationTimeout < block.timestamp, "Confirmation period has not yet timed out");
+
+        order.status = Status.Cancelled;
+        tokenBalance[order.seller][order.token] += order.amount;
     }
 
     /********       Arbitrator       *******/
@@ -252,8 +312,12 @@ contract Unipeer is IArbitrable, IEvidence {
      *  @param _disputeID ID of the dispute in the arbitrator contract.
      *  @param _ruling Ruling given by the arbitrator. Note that 0 is reserved for "Refused to arbitrate".
      */
-    function rule(uint _disputeID, uint _ruling) public {
+    function rule(uint _disputeID, uint _ruling) external {
     }
 
     /******** View functions *******/
+
+    function numOfOrders() external view returns(uint) {
+        return orders.length;
+    }
 }
