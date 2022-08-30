@@ -8,4 +8,8 @@ remappings = [
     'kleros/=lib/kleros/contracts'
 ]
 
+[fmt]
+line_length = 91
+tab_width = 4
+bracket_spacing = false
 # See more config options https://github.com/gakonst/foundry/tree/master/config
