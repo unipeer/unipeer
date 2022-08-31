@@ -60,6 +60,10 @@ contract Unipeer is IArbitrable, IEvidence {
         address seller;
         IERC20 token;
         uint256 amount;
+        // The fee buyer has paid for arbitration at the time of placing an order.
+        uint256 buyerFee;
+        // The fee seller has paid for raising a dispute.
+        uint256 sellerFee;
         // If dispute exists, the ID of the dispute.
         uint256 disputeID;
         uint256 lastInteraction;
@@ -81,8 +85,8 @@ contract Unipeer is IArbitrable, IEvidence {
         mapping(address => uint256[3]) contributions; // Maps contributors to their contributions for each side.
     }
 
-    struct DisputeDetails {
-        uint256 disputeID; // The ID of the dispute related to the challenge.
+    struct DisputeData {
+        uint256 orderID; // The ID of the order related to the dispute.
         Party ruling; // Ruling given by the arbitrator of the dispute.
         uint16 lastRoundID; // The ID of the last round.
         mapping(uint256 => Round) rounds; // Tracks the info of each funding round of the challenge.
@@ -106,7 +110,7 @@ contract Unipeer is IArbitrable, IEvidence {
     // tokenBalance[seller][token] = balance
     mapping(address => mapping(IERC20 => uint256)) public tokenBalance;
     // List of dispute details by disputeID
-    mapping(uint256 => DisputeDetails) public disputes;
+    mapping(uint256 => DisputeData) public disputes;
     // List of orders by orderID
     Order[] public orders;
 
@@ -289,6 +293,7 @@ contract Unipeer is IArbitrable, IEvidence {
 
     function buyOrder(uint16 _paymentID, address _seller, IERC20 _token, uint256 _amount)
         external
+        payable
     {
         require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
 
@@ -302,12 +307,19 @@ contract Unipeer is IArbitrable, IEvidence {
         );
         require(tokenBalance[_seller][_token] >= _amount, "Not enough seller balance");
 
+        ArbitratorData memory arbitratorData = arbitratorDataList[arbitratorDataList.length - 1];
+        uint256 arbitrationCost = arbitratorData.arbitrator.arbitrationCost(arbitratorData.arbitratorExtraData);
+
+        require(msg.value >= arbitrationCost, "Arbitration fees need to be paid");
+
         orders.push(
             Order({
                 buyer: msg.sender,
                 seller: _seller,
                 token: _token,
                 amount: _amount,
+                buyerFee: msg.value,
+                sellerFee: 0,
                 disputeID: 0,
                 lastInteraction: block.timestamp,
                 status: Status.Created
@@ -337,7 +349,7 @@ contract Unipeer is IArbitrable, IEvidence {
 
     function completeOrder(uint256 _orderID) external {
         Order storage order = orders[_orderID];
-        require(order.seller == msg.sender, "Only seller mark an order complete");
+        require(order.seller == msg.sender, "Only seller marks an order complete");
         require(
             order.status < Status.Completed, "Order already cancelled, completed or disputed"
         );
@@ -365,6 +377,31 @@ contract Unipeer is IArbitrable, IEvidence {
         tokenBalance[order.seller][order.token] += order.amount;
     }
 
+    function disputeOrder(uint256 _orderID) payable external {
+        Order storage order = orders[_orderID];
+        require(order.seller == msg.sender, "Only seller");
+        require(
+            order.status == Status.Paid, "Cannot dispute a not yet paid order"
+        );
+
+        ArbitratorData memory arbitratorData = arbitratorDataList[arbitratorDataList.length - 1];
+        uint256 arbitrationCost = arbitratorData.arbitrator.arbitrationCost(arbitratorData.arbitratorExtraData);
+
+        require(msg.value >= arbitrationCost, "Arbitration fees need to be paid");
+
+        order.sellerFee = msg.value;
+        order.status = Status.Disputed;
+        order.disputeID = arbitratorData.arbitrator.createDispute{ value: msg.value } (
+            RULING_OPTIONS,
+            arbitratorData.arbitratorExtraData
+        );
+
+        DisputeData storage dispute = disputes[order.disputeID];
+        dispute.orderID = _orderID;
+
+        emit Dispute(arbitratorData.arbitrator, order.disputeID, _orderID, _orderID);
+    }
+
     /**
      * **********   Arbitrator       **************
      */
@@ -375,7 +412,13 @@ contract Unipeer is IArbitrable, IEvidence {
      * @param _disputeID ID of the dispute in the arbitrator contract.
      * @param _ruling Ruling given by the arbitrator. Note that 0 is reserved for "Refused to arbitrate".
      */
-    function rule(uint256 _disputeID, uint256 _ruling) external {}
+    function rule(uint256 _disputeID, uint256 _ruling) external {
+        DisputeData storage dispute = disputes[_disputeID];
+        Order storage order = orders[dispute.orderID];
+
+        order.status = Status.Cancelled;
+        tokenBalance[order.seller][order.token] += order.amount;
+    }
 
     /**
      ************   View functions   **************
