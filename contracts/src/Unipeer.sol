@@ -14,6 +14,15 @@ contract Unipeer is IArbitrable, IEvidence {
     uint256 private constant RULING_OPTIONS = 2; // The amount of non 0 choices the arbitrator can give.
     uint256 private constant MULTIPLIER_DIVISOR = 10000; // Divisor parameter for multipliers.
 
+    // Multiplier for calculating the appeal fee that must be paid by the
+    // submitter in the case where there is no winner or loser
+    // (e.g. when the arbitrator ruled "refuse to arbitrate").
+    uint256 public immutable sharedStakeMultiplier;
+    // Multiplier for calculating the appeal fee of the party that won the previous round.
+    uint256 public immutable winnerStakeMultiplier;
+    // Multiplier for calculating the appeal fee of the party that lost the previous round.
+    uint256 public immutable loserStakeMultiplier;
+
     /* Enums */
 
     enum Party {
@@ -106,7 +115,8 @@ contract Unipeer is IArbitrable, IEvidence {
     ArbitratorData[] public arbitratorDataList;
     // Holds the total/count of Meta Evidence updates.
     uint256 metaEvidenceUpdates;
-    uint256 confirmationTimeout = 1 days;
+    uint256 confirmTimeout;
+    uint256 orderTimeout;
 
     // tokenBalance[seller][token] = balance
     mapping(address => mapping(IERC20 => uint256)) public tokenBalance;
@@ -140,15 +150,59 @@ contract Unipeer is IArbitrable, IEvidence {
     event Paid(uint256 orderID);
     event OrderComplete(uint256 orderID);
 
+    /** @dev To be emitted when the appeal fees of one of the parties are fully funded.
+     *  @param _orderID The ID of the respective order.
+     *  @param _party The party that is fully funded.
+     */
+    event HasPaidAppealFee(uint256 indexed _orderID, Party _party);
+
+    /**
+     * @dev To be emitted when someone contributes to the appeal process.
+     * @param _orderID The ID of the respective order.
+     * @param _party The party which received the contribution.
+     * @param _contributor The address of the contributor.
+     * @param _amount The amount contributed.
+     */
+    event AppealContribution(
+        uint256 indexed _orderID,
+        Party _party,
+        address _contributor,
+        uint256 _amount
+    );
+
+    /** @dev Constructor.
+     *  @param _admin The administrator of the contract.
+     *  @param _arbitrator The arbitrator of the contract.
+     *  @param _arbitratorExtraData Extra data for the arbitrator.
+     *  @param _confirmTimeout The payment timeout for the buyer.
+     *  @param _orderTimeout The general interaction timeout for the parties.
+     *  @param _sharedStakeMultiplier Multiplier of the appeal cost that the
+     *  submitter must pay for a round when there is no winner/loser in
+     *  the previous round. In basis points.
+     *  @param _winnerStakeMultiplier Multiplier of the appeal cost that the winner
+     *  has to pay for a round. In basis points.
+     *  @param _loserStakeMultiplier Multiplier of the appeal cost that the loser
+     *  has to pay for a round. In basis points.
+     */
     constructor(
         address _admin,
         IArbitrator _arbitrator,
-        bytes memory _arbitratorExtraData
+        bytes memory _arbitratorExtraData,
+        uint256 _confirmTimeout,
+        uint256 _orderTimeout,
+        uint256 _sharedStakeMultiplier,
+        uint256 _winnerStakeMultiplier,
+        uint256 _loserStakeMultiplier
     ) {
         admin = _admin;
         arbitratorDataList.push(
             ArbitratorData({arbitrator: _arbitrator, arbitratorExtraData: _arbitratorExtraData})
         );
+        confirmTimeout = _confirmTimeout;
+        orderTimeout = _orderTimeout;
+        sharedStakeMultiplier = _sharedStakeMultiplier;
+        winnerStakeMultiplier = _winnerStakeMultiplier;
+        loserStakeMultiplier = _loserStakeMultiplier;
     }
 
     /**
@@ -309,7 +363,9 @@ contract Unipeer is IArbitrable, IEvidence {
         require(tokenBalance[_seller][_token] >= _amount, "Not enough seller balance");
 
         ArbitratorData memory arbitratorData = arbitratorDataList[arbitratorDataList.length - 1];
-        uint256 arbitrationCost = arbitratorData.arbitrator.arbitrationCost(arbitratorData.arbitratorExtraData);
+        IArbitrator arbitrator = arbitratorData.arbitrator;
+        bytes memory arbitratorExtraData = arbitratorData.arbitratorExtraData;
+        uint256 arbitrationCost = arbitrator.arbitrationCost(arbitratorExtraData);
 
         require(msg.value >= arbitrationCost, "Arbitration fees need to be paid");
 
@@ -339,7 +395,7 @@ contract Unipeer is IArbitrable, IEvidence {
             order.status == Status.Created, "Order already cancelled, completed or disputed"
         );
         require(
-            order.lastInteraction + confirmationTimeout >= block.timestamp,
+            order.lastInteraction + confirmTimeout >= block.timestamp,
             "Order confirmation period is over"
         );
 
@@ -349,6 +405,7 @@ contract Unipeer is IArbitrable, IEvidence {
         emit Paid(_orderID);
     }
 
+    // i.e timeout by buyer
     function cancelOrder(uint256 _orderID) external {
         Order storage order = orders[_orderID];
         require(
@@ -356,13 +413,16 @@ contract Unipeer is IArbitrable, IEvidence {
             "Order can only be cancelled immediately after creation"
         );
         require(
-            order.lastInteraction + confirmationTimeout < block.timestamp,
+            order.lastInteraction + confirmTimeout < block.timestamp,
             "Confirmation period has not yet timed out"
         );
 
         // TODO: return buyer arb fees
         order.status = Status.Cancelled;
         tokenBalance[order.seller][order.token] += order.amount;
+    }
+
+    function timeoutBySeller(uint256 _orderID) external {
     }
 
     /**
@@ -397,21 +457,23 @@ contract Unipeer is IArbitrable, IEvidence {
         );
 
         ArbitratorData memory arbitratorData = arbitratorDataList[arbitratorDataList.length - 1];
-        uint256 arbitrationCost = arbitratorData.arbitrator.arbitrationCost(arbitratorData.arbitratorExtraData);
+        IArbitrator arbitrator = arbitratorData.arbitrator;
+        bytes memory arbitratorExtraData = arbitratorData.arbitratorExtraData;
+        uint256 arbitrationCost = arbitrator.arbitrationCost(arbitratorExtraData);
 
         require(msg.value >= arbitrationCost, "Arbitration fees need to be paid");
 
         order.sellerFee = msg.value;
         order.status = Status.Disputed;
-        order.disputeID = arbitratorData.arbitrator.createDispute{ value: msg.value } (
+        order.disputeID = arbitrator.createDispute{ value: msg.value } (
             RULING_OPTIONS,
-            arbitratorData.arbitratorExtraData
+            arbitratorExtraData
         );
 
         DisputeData storage dispute = disputes[order.disputeID];
         dispute.orderID = _orderID;
 
-        emit Dispute(arbitratorData.arbitrator, order.disputeID, _orderID, _orderID);
+        emit Dispute(arbitrator, order.disputeID, _orderID, _orderID);
     }
 
     /**
@@ -436,23 +498,23 @@ contract Unipeer is IArbitrable, IEvidence {
         emit Evidence(arbitratorData.arbitrator, _orderID, msg.sender, _evidence);
     }
 
-    
+
     /** @dev Takes up to the total amount required to fund a side of an appeal.
      *  Reimburses the rest. Creates an appeal if both sides are fully funded.
-     *  @param _transactionID The ID of the disputed transaction.
-     *  @param _transaction The transaction state.
+     *  @param _orderID The ID of the buy order.
      *  @param _side The party that pays the appeal fee.
      */
-    /*
     function fundAppeal(
         uint256 _orderID,
         Party _side
     ) external payable {
+        Order storage order = orders[_orderID];
         require(_side != Party.None, "Wrong party.");
-        require(_transaction.status == Status.DisputeCreated, "No dispute to appeal");
+        require(order.status == Status.Disputed, "No dispute to appeal");
 
-        (uint256 appealPeriodStart, uint256 appealPeriodEnd) = arbitrator.appealPeriod(
-            _transaction.disputeID
+        ArbitratorData memory arbitratorData = arbitratorDataList[order.arbitratorID];
+        (uint256 appealPeriodStart, uint256 appealPeriodEnd) = arbitratorData.arbitrator.appealPeriod(
+            order.disputeID
         );
         require(
             block.timestamp >= appealPeriodStart && block.timestamp < appealPeriodEnd,
@@ -460,7 +522,7 @@ contract Unipeer is IArbitrable, IEvidence {
         );
 
         uint256 multiplier;
-        uint256 winner = arbitrator.currentRuling(_transaction.disputeID);
+        uint256 winner = arbitratorData.arbitrator.currentRuling(order.disputeID);
         if (winner == uint256(_side)) {
             multiplier = winnerStakeMultiplier;
         } else if (winner == 0) {
@@ -473,44 +535,47 @@ contract Unipeer is IArbitrable, IEvidence {
             multiplier = loserStakeMultiplier;
         }
 
-        Round storage round = roundsByTransactionID[_transactionID][
-            roundsByTransactionID[_transactionID].length - 1
-        ];
+        DisputeData storage dispute = disputes[order.disputeID];
+        Round storage round = dispute.rounds[dispute.lastRoundID];
         require(_side != round.sideFunded, "Appeal fee has already been paid.");
 
-        uint256 appealCost = arbitrator.appealCost(_transaction.disputeID, arbitratorExtraData);
-        uint256 totalCost = appealCost.addCap((appealCost.mulCap(multiplier)) / MULTIPLIER_DIVISOR);
+        uint256 appealCost = arbitratorData.arbitrator.appealCost(order.disputeID, arbitratorData.arbitratorExtraData);
+        uint256 totalCost = appealCost + ((appealCost * multiplier) / MULTIPLIER_DIVISOR);
 
-        // Take up to the amount necessary to fund the current round at the current costs.
-        uint256 contribution; // Amount contributed.
-        uint256 remainingETH; // Remaining ETH to send back.
-        (contribution, remainingETH) = calculateContribution(
-            msg.value,
-            totalCost.subCap(round.paidFees[uint256(_side)])
-        );
-        round.contributions[msg.sender][uint256(_side)] += contribution;
-        round.paidFees[uint256(_side)] += contribution;
+        {
+            // Take up to the amount necessary to fund the current round at the current costs.
+            uint256 contribution; // Amount contributed.
+            uint256 remainingETH; // Remaining ETH to send back.
+            (contribution, remainingETH) = calculateContribution(
+                msg.value,
+                totalCost - round.paidFees[uint256(_side)]
+            );
+            round.contributions[msg.sender][uint256(_side)] += contribution;
+            round.paidFees[uint256(_side)] += contribution;
 
-        emit AppealContribution(_transactionID, _side, msg.sender, contribution);
+            emit AppealContribution(_orderID, _side, msg.sender, contribution);
 
-        // Reimburse leftover ETH if any.
-        // Deliberate use of send in order to not block the contract in case of reverting fallback.
-        if (remainingETH > 0) msg.sender.send(remainingETH);
+            // Reimburse leftover ETH if any.
+            // Deliberate use of send in order to not block the contract in case of reverting fallback.
+            if (remainingETH > 0) payable(msg.sender).send(remainingETH);
+        }
 
         if (round.paidFees[uint256(_side)] >= totalCost) {
             if (round.sideFunded == Party.None) {
                 round.sideFunded = _side;
             } else {
                 // Both sides are fully funded. Create an appeal.
-                arbitrator.appeal{ value: appealCost }(_transaction.disputeID, arbitratorExtraData);
-                round.feeRewards = (round.paidFees[uint256(Party.Sender)] +
-                    round.paidFees[uint256(Party.Receiver)]).subCap(appealCost);
-                roundsByTransactionID[_transactionID].push();
+                arbitratorData.arbitrator.appeal{ value: appealCost }(order.disputeID, arbitratorData.arbitratorExtraData);
+                round.feeRewards = (round.paidFees[uint256(Party.Buyer)]
+                    + round.paidFees[uint256(Party.Seller)])
+                    - appealCost;
+
+                dispute.lastRoundID++;
                 round.sideFunded = Party.None;
             }
-            emit HasPaidAppealFee(_transactionID, _side);
+            emit HasPaidAppealFee(_orderID, _side);
         }
-    } */
+    }
 
     /**
      * @dev Give a ruling for a dispute. Can only be called by the arbitrator. TRUSTED.
@@ -562,5 +627,23 @@ contract Unipeer is IArbitrable, IEvidence {
         } else {
 
         }
+    }
+
+    /** @dev Returns the contribution value and remainder from available ETH and required amount.
+     *  @param _available The amount of ETH available for the contribution.
+     *  @param _requiredAmount The amount of ETH required for the contribution.
+     *  @return taken The amount of ETH taken.
+     *  @return remainder The amount of ETH left from the contribution.
+     */
+    function calculateContribution(uint256 _available, uint256 _requiredAmount)
+        internal
+        pure
+        returns (uint256 taken, uint256 remainder)
+    {
+        // Take whatever is available, return 0 as leftover ETH.
+        if (_requiredAmount > _available) return (_available, 0);
+
+        remainder = _available - _requiredAmount;
+        return (_requiredAmount, remainder);
     }
 }
