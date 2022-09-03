@@ -9,7 +9,9 @@ import "kleros/IArbitrator.sol";
 contract Unipeer is IArbitrable, IEvidence {
     using SafeERC20 for IERC20;
 
-    /* Constants and immutable */
+    // ************************************* //
+    // *      Constants and immutable      * //
+    // ************************************* //
 
     uint256 private constant RULING_OPTIONS = 2; // The amount of non 0 choices the arbitrator can give.
     uint256 private constant MULTIPLIER_DIVISOR = 10000; // Divisor parameter for multipliers.
@@ -23,7 +25,9 @@ contract Unipeer is IArbitrable, IEvidence {
     // Multiplier for calculating the appeal fee of the party that lost the previous round.
     uint256 public immutable loserStakeMultiplier;
 
-    /* Enums */
+    // ************************************* //
+    // *              Enums                * //
+    // ************************************* //
 
     enum Party {
         None, // Party per default when there is no challenger or requester. Also used for unconclusive ruling.
@@ -40,7 +44,9 @@ contract Unipeer is IArbitrable, IEvidence {
         Resolved // The dispute has been successfully resolved.
     }
 
-    /* Structs */
+    // ************************************* //
+    // *              Structs              * //
+    // ************************************* //
 
     struct ArbitratorData {
         // Address of the trusted arbitrator to solve disputes.
@@ -102,7 +108,9 @@ contract Unipeer is IArbitrable, IEvidence {
         mapping(uint256 => Round) rounds; // Tracks the info of each funding round of the challenge.
     }
 
-    /* Storage */
+    // ************************************* //
+    // *             Storage               * //
+    // ************************************* //
 
     address public admin;
 
@@ -125,14 +133,18 @@ contract Unipeer is IArbitrable, IEvidence {
     // List of orders by orderID
     Order[] public orders;
 
-    /* Modifiers */
+    // ************************************* //
+    // *             Modifiers             * //
+    // ************************************* //
 
     modifier onlyAdmin() {
         require(admin == msg.sender, "Access not allowed: Admin only.");
         _;
     }
 
-    /* Events */
+    // ************************************* //
+    // *             Events                * //
+    // ************************************* //
 
     event PaymentMethodUpdate(uint16 paymentID, string paymentName, uint256 metaEvidenceID);
     event SellerPaymentMethod(address sender, uint16 paymentID, string paymentAddress);
@@ -150,9 +162,10 @@ contract Unipeer is IArbitrable, IEvidence {
     event Paid(uint256 orderID);
     event OrderComplete(uint256 orderID);
 
-    /** @dev To be emitted when the appeal fees of one of the parties are fully funded.
-     *  @param _orderID The ID of the respective order.
-     *  @param _party The party that is fully funded.
+    /**
+     * @dev To be emitted when the appeal fees of one of the parties are fully funded.
+     * @param _orderID The ID of the respective order.
+     * @param _party The party that is fully funded.
      */
     event HasPaidAppealFee(uint256 indexed _orderID, Party _party);
 
@@ -164,25 +177,23 @@ contract Unipeer is IArbitrable, IEvidence {
      * @param _amount The amount contributed.
      */
     event AppealContribution(
-        uint256 indexed _orderID,
-        Party _party,
-        address _contributor,
-        uint256 _amount
+        uint256 indexed _orderID, Party _party, address _contributor, uint256 _amount
     );
 
-    /** @dev Constructor.
-     *  @param _admin The administrator of the contract.
-     *  @param _arbitrator The arbitrator of the contract.
-     *  @param _arbitratorExtraData Extra data for the arbitrator.
-     *  @param _confirmTimeout The payment timeout for the buyer.
-     *  @param _orderTimeout The general interaction timeout for the parties.
-     *  @param _sharedStakeMultiplier Multiplier of the appeal cost that the
-     *  submitter must pay for a round when there is no winner/loser in
-     *  the previous round. In basis points.
-     *  @param _winnerStakeMultiplier Multiplier of the appeal cost that the winner
-     *  has to pay for a round. In basis points.
-     *  @param _loserStakeMultiplier Multiplier of the appeal cost that the loser
-     *  has to pay for a round. In basis points.
+    /**
+     * @dev Constructor.
+     * @param _admin The administrator of the contract.
+     * @param _arbitrator The arbitrator of the contract.
+     * @param _arbitratorExtraData Extra data for the arbitrator.
+     * @param _confirmTimeout The payment timeout for the buyer.
+     * @param _orderTimeout The general interaction timeout for the parties.
+     * @param _sharedStakeMultiplier Multiplier of the appeal cost that the
+     * submitter must pay for a round when there is no winner/loser in
+     * the previous round. In basis points.
+     * @param _winnerStakeMultiplier Multiplier of the appeal cost that the winner
+     * has to pay for a round. In basis points.
+     * @param _loserStakeMultiplier Multiplier of the appeal cost that the loser
+     * has to pay for a round. In basis points.
      */
     constructor(
         address _admin,
@@ -206,7 +217,7 @@ contract Unipeer is IArbitrable, IEvidence {
     }
 
     /**
-     ************** Admin Only functions *************
+     * Admin Only functions *************
      */
 
     /**
@@ -292,12 +303,13 @@ contract Unipeer is IArbitrable, IEvidence {
         pm.tokenEnabled[_token] = _enabled;
     }
 
-    /**
-     ************  Mutating functions  **************
-     */
-    /**
-     ************      Seller          **************
-     */
+    // ************************************* //
+    // *            Mutating               * //
+    // ************************************* //
+
+    // ************************************* //
+    // *             Seller                * //
+    // ************************************* //
 
     function acceptPaymentMethod(uint16 _paymentID, string calldata _paymentAddress)
         external
@@ -342,9 +354,10 @@ contract Unipeer is IArbitrable, IEvidence {
         emit SellerWithdraw(msg.sender, _token, _amount);
     }
 
-    /**
-     ************      Buyer          **************
-     */
+
+    // ************************************* //
+    // *              Buyer                * //
+    // ************************************* //
 
     function buyOrder(uint16 _paymentID, address _seller, IERC20 _token, uint256 _amount)
         external
@@ -362,7 +375,8 @@ contract Unipeer is IArbitrable, IEvidence {
         );
         require(tokenBalance[_seller][_token] >= _amount, "Not enough seller balance");
 
-        ArbitratorData memory arbitratorData = arbitratorDataList[arbitratorDataList.length - 1];
+        ArbitratorData memory arbitratorData =
+            arbitratorDataList[arbitratorDataList.length - 1];
         IArbitrator arbitrator = arbitratorData.arbitrator;
         bytes memory arbitratorExtraData = arbitratorData.arbitratorExtraData;
         uint256 arbitrationCost = arbitrator.arbitrationCost(arbitratorExtraData);
@@ -378,7 +392,7 @@ contract Unipeer is IArbitrable, IEvidence {
                 buyerFee: msg.value,
                 sellerFee: 0,
                 disputeID: 0,
-                arbitratorID: arbitratorDataList.length -1,
+                arbitratorID: arbitratorDataList.length - 1,
                 lastInteraction: block.timestamp,
                 status: Status.Created
             })
@@ -422,13 +436,12 @@ contract Unipeer is IArbitrable, IEvidence {
         tokenBalance[order.seller][order.token] += order.amount;
     }
 
-    function timeoutBySeller(uint256 _orderID) external {
-    }
+    function timeoutBySeller(uint256 _orderID) external {}
 
     /**
      * @notice Called by a seller to mark a payment complete
-     *  It can timeout and default to confirmed is the seller doesn't
-     *  respond.
+     * It can timeout and default to confirmed is the seller doesn't
+     * respond.
      */
     function completeOrder(uint256 _orderID) external {
         Order storage order = orders[_orderID];
@@ -446,17 +459,15 @@ contract Unipeer is IArbitrable, IEvidence {
     }
 
     /**
-     *
      * @dev Can timeout.
      */
-    function disputeOrder(uint256 _orderID) payable external {
+    function disputeOrder(uint256 _orderID) external payable {
         Order storage order = orders[_orderID];
         require(order.seller == msg.sender, "Only seller");
-        require(
-            order.status == Status.Paid, "Cannot dispute a not yet paid order"
-        );
+        require(order.status == Status.Paid, "Cannot dispute a not yet paid order");
 
-        ArbitratorData memory arbitratorData = arbitratorDataList[arbitratorDataList.length - 1];
+        ArbitratorData memory arbitratorData =
+            arbitratorDataList[arbitratorDataList.length - 1];
         IArbitrator arbitrator = arbitratorData.arbitrator;
         bytes memory arbitratorExtraData = arbitratorData.arbitratorExtraData;
         uint256 arbitrationCost = arbitrator.arbitrationCost(arbitratorExtraData);
@@ -465,10 +476,8 @@ contract Unipeer is IArbitrable, IEvidence {
 
         order.sellerFee = msg.value;
         order.status = Status.Disputed;
-        order.disputeID = arbitrator.createDispute{ value: msg.value } (
-            RULING_OPTIONS,
-            arbitratorExtraData
-        );
+        order.disputeID =
+            arbitrator.createDispute{value: msg.value}(RULING_OPTIONS, arbitratorExtraData);
 
         DisputeData storage dispute = disputes[order.disputeID];
         dispute.orderID = _orderID;
@@ -476,18 +485,16 @@ contract Unipeer is IArbitrable, IEvidence {
         emit Dispute(arbitrator, order.disputeID, _orderID, _orderID);
     }
 
-    /**
-     * **********   Arbitrator       **************
-     */
+    // ************************************* //
+    // *             Arbitrator            * //
+    // ************************************* //
 
-    /** @dev Submit a reference to evidence. EVENT.
-     *  @param _orderID The index of the order.
-     *  @param _evidence A link to an evidence using its URI.
+    /**
+     * @dev Submit a reference to evidence. EVENT.
+     * @param _orderID The index of the order.
+     * @param _evidence A link to an evidence using its URI.
      */
-    function submitEvidence(
-        uint256 _orderID,
-        string calldata _evidence
-    ) external {
+    function submitEvidence(uint256 _orderID, string calldata _evidence) external {
         Order memory order = orders[_orderID];
         require(
             order.status < Status.Resolved,
@@ -498,24 +505,20 @@ contract Unipeer is IArbitrable, IEvidence {
         emit Evidence(arbitratorData.arbitrator, _orderID, msg.sender, _evidence);
     }
 
-
-    /** @dev Takes up to the total amount required to fund a side of an appeal.
-     *  Reimburses the rest. Creates an appeal if both sides are fully funded.
-     *  @param _orderID The ID of the buy order.
-     *  @param _side The party that pays the appeal fee.
+    /**
+     * @dev Takes up to the total amount required to fund a side of an appeal.
+     * Reimburses the rest. Creates an appeal if both sides are fully funded.
+     * @param _orderID The ID of the buy order.
+     * @param _side The party that pays the appeal fee.
      */
-    function fundAppeal(
-        uint256 _orderID,
-        Party _side
-    ) external payable {
+    function fundAppeal(uint256 _orderID, Party _side) external payable {
         Order storage order = orders[_orderID];
         require(_side != Party.None, "Wrong party.");
         require(order.status == Status.Disputed, "No dispute to appeal");
 
         ArbitratorData memory arbitratorData = arbitratorDataList[order.arbitratorID];
-        (uint256 appealPeriodStart, uint256 appealPeriodEnd) = arbitratorData.arbitrator.appealPeriod(
-            order.disputeID
-        );
+        (uint256 appealPeriodStart, uint256 appealPeriodEnd) =
+            arbitratorData.arbitrator.appealPeriod(order.disputeID);
         require(
             block.timestamp >= appealPeriodStart && block.timestamp < appealPeriodEnd,
             "Funding must be made within the appeal period."
@@ -539,17 +542,17 @@ contract Unipeer is IArbitrable, IEvidence {
         Round storage round = dispute.rounds[dispute.lastRoundID];
         require(_side != round.sideFunded, "Appeal fee has already been paid.");
 
-        uint256 appealCost = arbitratorData.arbitrator.appealCost(order.disputeID, arbitratorData.arbitratorExtraData);
+        uint256 appealCost = arbitratorData.arbitrator.appealCost(
+            order.disputeID, arbitratorData.arbitratorExtraData
+        );
         uint256 totalCost = appealCost + ((appealCost * multiplier) / MULTIPLIER_DIVISOR);
 
         {
             // Take up to the amount necessary to fund the current round at the current costs.
             uint256 contribution; // Amount contributed.
             uint256 remainingETH; // Remaining ETH to send back.
-            (contribution, remainingETH) = calculateContribution(
-                msg.value,
-                totalCost - round.paidFees[uint256(_side)]
-            );
+            (contribution, remainingETH) =
+                calculateContribution(msg.value, totalCost - round.paidFees[uint256(_side)]);
             round.contributions[msg.sender][uint256(_side)] += contribution;
             round.paidFees[uint256(_side)] += contribution;
 
@@ -557,7 +560,9 @@ contract Unipeer is IArbitrable, IEvidence {
 
             // Reimburse leftover ETH if any.
             // Deliberate use of send in order to not block the contract in case of reverting fallback.
-            if (remainingETH > 0) payable(msg.sender).send(remainingETH);
+            if (remainingETH > 0) {
+                payable(msg.sender).send(remainingETH);
+            }
         }
 
         if (round.paidFees[uint256(_side)] >= totalCost) {
@@ -565,10 +570,13 @@ contract Unipeer is IArbitrable, IEvidence {
                 round.sideFunded = _side;
             } else {
                 // Both sides are fully funded. Create an appeal.
-                arbitratorData.arbitrator.appeal{ value: appealCost }(order.disputeID, arbitratorData.arbitratorExtraData);
-                round.feeRewards = (round.paidFees[uint256(Party.Buyer)]
-                    + round.paidFees[uint256(Party.Seller)])
-                    - appealCost;
+                arbitratorData.arbitrator.appeal{value: appealCost}(
+                    order.disputeID, arbitratorData.arbitratorExtraData
+                );
+                round.feeRewards = (
+                    round.paidFees[uint256(Party.Buyer)]
+                        + round.paidFees[uint256(Party.Seller)]
+                ) - appealCost;
 
                 dispute.lastRoundID++;
                 round.sideFunded = Party.None;
@@ -595,26 +603,30 @@ contract Unipeer is IArbitrable, IEvidence {
         Round storage round = dispute.rounds[dispute.lastRoundID];
 
         // If only one side paid its fees we assume the ruling to be in its favor.
-        if (round.sideFunded == Party.Buyer) dispute.ruling = Party.Buyer;
-        else if (round.sideFunded == Party.Seller) dispute.ruling = Party.Seller;
-        else dispute.ruling = Party(_ruling);
+        if (round.sideFunded == Party.Buyer) {
+            dispute.ruling = Party.Buyer;
+        } else if (round.sideFunded == Party.Seller) {
+            dispute.ruling = Party.Seller;
+        } else {
+            dispute.ruling = Party(_ruling);
+        }
 
         order.status = Status.Resolved;
         executeRuling(_disputeID);
         emit Ruling(arbitrator, _disputeID, uint256(dispute.ruling));
     }
 
-    /**
-     ************   View functions   **************
-     */
+    // ************************************* //
+    // *              Views                * //
+    // ************************************* //
 
     function numOfOrders() external view returns (uint256) {
         return orders.length;
     }
 
-    /**
-     ************   Internal functions   **************
-     */
+    // ************************************* //
+    // *            Internal               * //
+    // ************************************* //
 
     function executeRuling(uint256 _disputeID) internal {
         DisputeData storage dispute = disputes[_disputeID];
@@ -624,16 +636,15 @@ contract Unipeer is IArbitrable, IEvidence {
             order.token.safeTransfer(order.buyer, order.amount);
         } else if (dispute.ruling == Party.Seller) {
             tokenBalance[order.seller][order.token] += order.amount;
-        } else {
-
-        }
+        } else {}
     }
 
-    /** @dev Returns the contribution value and remainder from available ETH and required amount.
-     *  @param _available The amount of ETH available for the contribution.
-     *  @param _requiredAmount The amount of ETH required for the contribution.
-     *  @return taken The amount of ETH taken.
-     *  @return remainder The amount of ETH left from the contribution.
+    /**
+     * @dev Returns the contribution value and remainder from available ETH and required amount.
+     * @param _available The amount of ETH available for the contribution.
+     * @param _requiredAmount The amount of ETH required for the contribution.
+     * @return taken The amount of ETH taken.
+     * @return remainder The amount of ETH left from the contribution.
      */
     function calculateContribution(uint256 _available, uint256 _requiredAmount)
         internal
@@ -641,7 +652,9 @@ contract Unipeer is IArbitrable, IEvidence {
         returns (uint256 taken, uint256 remainder)
     {
         // Take whatever is available, return 0 as leftover ETH.
-        if (_requiredAmount > _available) return (_available, 0);
+        if (_requiredAmount > _available) {
+            return (_available, 0);
+        }
 
         remainder = _available - _requiredAmount;
         return (_requiredAmount, remainder);
