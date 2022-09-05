@@ -12,4 +12,6 @@ remappings = [
 line_length = 91
 tab_width = 4
 bracket_spacing = false
+func_attrs_with_params_multiline = true
+number_underscore = "thousands"
 # See more config options https://github.com/gakonst/foundry/tree/master/config

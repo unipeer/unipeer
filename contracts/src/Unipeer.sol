@@ -14,7 +14,7 @@ contract Unipeer is IArbitrable, IEvidence {
     // ************************************* //
 
     uint256 private constant RULING_OPTIONS = 2; // The amount of non 0 choices the arbitrator can give.
-    uint256 private constant MULTIPLIER_DIVISOR = 10000; // Divisor parameter for multipliers.
+    uint256 private constant MULTIPLIER_DIVISOR = 10_000; // Divisor parameter for multipliers.
 
     // Multiplier for calculating the appeal fee that must be paid by the
     // submitter in the case where there is no winner or loser
@@ -353,7 +353,6 @@ contract Unipeer is IArbitrable, IEvidence {
         _token.safeTransfer(msg.sender, _amount);
         emit SellerWithdraw(msg.sender, _token, _amount);
     }
-
 
     // ************************************* //
     // *              Buyer                * //
