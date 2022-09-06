@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.10;
+// SPDX-License-Identifier: GPL-2.0
+pragma solidity 0.8.16;
 
 import "oz/token/ERC20/utils/SafeERC20.sol";
 import "kleros/IArbitrable.sol";
