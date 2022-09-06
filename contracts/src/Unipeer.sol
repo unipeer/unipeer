@@ -71,8 +71,8 @@ contract Unipeer is IArbitrable, IEvidence {
     }
 
     struct Order {
-        address buyer;
-        address seller;
+        address payable buyer;
+        address payable seller;
         IERC20 token;
         uint256 amount;
         // The fee buyer has paid for arbitration at the time of placing an order.
@@ -161,6 +161,7 @@ contract Unipeer is IArbitrable, IEvidence {
     );
     event Paid(uint256 orderID);
     event OrderComplete(uint256 orderID);
+    event OrderResolved(uint256 orderID);
 
     /**
      * @dev To be emitted when the appeal fees of one of the parties are fully funded.
@@ -384,8 +385,8 @@ contract Unipeer is IArbitrable, IEvidence {
 
         orders.push(
             Order({
-                buyer: msg.sender,
-                seller: _seller,
+                buyer: payable(msg.sender),
+                seller: payable(_seller),
                 token: _token,
                 amount: _amount,
                 buyerFee: msg.value,
@@ -610,8 +611,8 @@ contract Unipeer is IArbitrable, IEvidence {
             dispute.ruling = Party(_ruling);
         }
 
-        order.status = Status.Resolved;
         executeRuling(_disputeID);
+
         emit Ruling(arbitrator, _disputeID, uint256(dispute.ruling));
     }
 
@@ -632,10 +633,25 @@ contract Unipeer is IArbitrable, IEvidence {
         Order storage order = orders[dispute.orderID];
 
         if (dispute.ruling == Party.Buyer) {
-            order.token.safeTransfer(order.buyer, order.amount);
+            order.buyer.send(order.buyerFee);
+            order.token.transfer(order.buyer, order.amount);
         } else if (dispute.ruling == Party.Seller) {
+            order.seller.send(order.sellerFee);
             tokenBalance[order.seller][order.token] += order.amount;
-        } else {}
+        } else {
+            // `buyerFee` and `sellerFee` are equal to the arbitration cost.
+            uint256 splitArbitrationFee = order.buyerFee / 2;
+            order.buyer.send(splitArbitrationFee);
+            order.seller.send(splitArbitrationFee);
+
+            uint256 splitAmount = order.amount / 2;
+            order.token.transfer(order.buyer, splitAmount);
+            order.token.transfer(order.seller, splitAmount);
+        }
+
+        order.status = Status.Resolved;
+
+        emit OrderResolved(dispute.orderID);
     }
 
     /**
