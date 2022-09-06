@@ -667,7 +667,7 @@ contract Unipeer is IArbitrable, IEvidence {
 
         uint256 reward;
         uint256 totalRounds = dispute.lastRoundID;
-        for (uint256 i = _cursor; i < totalRounds && (_count == 0 || i < _cursor + _count); i++)
+        for (uint256 i = _cursor; i <= totalRounds && (_count == 0 || i < _cursor + _count); i++)
             reward += _withdrawFeesAndRewards(_beneficiary, _orderID, i, finalRuling);
         _beneficiary.send(reward); // It is the user responsibility to accept ETH.
     }
@@ -676,8 +676,107 @@ contract Unipeer is IArbitrable, IEvidence {
     // *              Views                * //
     // ************************************* //
 
-    function numOfOrders() external view returns (uint256) {
+    function getCountOrders() external view returns (uint256) {
         return orders.length;
+    }
+
+    /** @dev Returns the sum of withdrawable wei from appeal rounds.
+     *  This function is O(n), where n is the number of rounds of the order.
+     *  This could exceed the gas limit, therefore this function should only
+     *  be used for interface display and not by other contracts.
+     *  @param _orderID The index of the order.
+     *  @param _beneficiary The contributor for which to query.
+     *  @return total The total amount of wei available to withdraw.
+     */
+    function amountWithdrawable(
+        uint256 _orderID,
+        address _beneficiary
+    ) external view returns (uint256 total) {
+        Order storage order = orders[_orderID];
+        DisputeData storage dispute = disputes[order.disputeID];
+        if (order.status != Status.Resolved) return total;
+        if (dispute.orderID != _orderID) return total;
+        uint256 finalRuling = uint256(dispute.ruling);
+
+        uint256 totalRounds = dispute.lastRoundID;
+        for (uint256 i = 0; i <= totalRounds; i++) {
+            Round storage round = dispute.rounds[i];
+            if (i == totalRounds - 1) {
+                total +=
+                    round.contributions[_beneficiary][uint256(Party.Buyer)] +
+                    round.contributions[_beneficiary][uint256(Party.Seller)];
+            } else if (finalRuling == uint256(Party.None)) {
+                uint256 totalFeesPaid = round.paidFees[uint256(Party.Buyer)] +
+                    round.paidFees[uint256(Party.Seller)];
+                uint256 totalBeneficiaryContributions = round.contributions[_beneficiary][
+                    uint256(Party.Buyer)
+                ] + round.contributions[_beneficiary][uint256(Party.Seller)];
+                total += totalFeesPaid > 0
+                    ? (totalBeneficiaryContributions * round.feeRewards) / totalFeesPaid
+                    : 0;
+            } else {
+                total += round.paidFees[finalRuling] > 0
+                    ? (round.contributions[_beneficiary][finalRuling] * round.feeRewards) /
+                        round.paidFees[finalRuling]
+                    : 0;
+            }
+        }
+    }
+
+    /** @dev Gets the number of rounds of the specific order.
+     *  @param _orderID The ID of the order.
+     *  @return The number of rounds.
+     */
+    function getNumberOfRounds(uint256 _orderID) external view returns (uint256) {
+        Order storage order = orders[_orderID];
+        DisputeData storage dispute = disputes[order.disputeID];
+        return dispute.lastRoundID + 1;
+    }
+
+    /** @dev Gets the contributions made by a party for a given round of the appeal.
+     *  @param _orderID The ID of the order.
+     *  @param _round The position of the round.
+     *  @param _contributor The address of the contributor.
+     *  @return contributions The contributions.
+     */
+    function getContributions(
+        uint256 _orderID,
+        uint256 _round,
+        address _contributor
+    ) external view returns (uint256[3] memory contributions) {
+        Order storage order = orders[_orderID];
+        DisputeData storage dispute = disputes[order.disputeID];
+        Round storage round = dispute.rounds[_round];
+        contributions = round.contributions[_contributor];
+    }
+
+    /** @dev Gets the information on a round of a order.
+     *  @param _orderID The ID of the order.
+     *  @param _round The round to query.
+     *  @return paidFees
+     *          sideFunded
+     *          feeRewards
+     *          appealed
+     */
+    function getRoundInfo(uint256 _orderID, uint256 _round)
+        external
+        view
+        returns (
+            uint256[3] memory paidFees,
+            Party sideFunded,
+            uint256 feeRewards,
+            bool appealed
+        )
+    {
+        Order storage order = orders[_orderID];
+        DisputeData storage dispute = disputes[order.disputeID];
+        Round storage round = dispute.rounds[_round];
+        return (
+            round.paidFees,
+            round.sideFunded,
+            round.feeRewards,
+            _round != dispute.lastRoundID
+        );
     }
 
     // ************************************* //
