@@ -2,6 +2,7 @@
 pragma solidity 0.8.16;
 
 import "oz/token/ERC20/utils/SafeERC20.sol";
+import "oz/utils/math/Math.sol";
 import "kleros/IArbitrable.sol";
 import "kleros/erc-1497/IEvidence.sol";
 import "kleros/IArbitrator.sol";
@@ -472,6 +473,7 @@ contract Unipeer is IArbitrable, IEvidence {
         bytes memory arbitratorExtraData = arbitratorData.arbitratorExtraData;
         uint256 arbitrationCost = arbitrator.arbitrationCost(arbitratorExtraData);
 
+        // Seller can overpay to draw more jurors.
         require(msg.value >= arbitrationCost, "Arbitration fees need to be paid");
 
         order.sellerFee = msg.value;
@@ -789,17 +791,20 @@ contract Unipeer is IArbitrable, IEvidence {
 
         if (dispute.ruling == Party.Buyer) {
             order.buyer.send(order.buyerFee);
+            // non-safe transfer used here to prevent blocking on revert
             order.token.transfer(order.buyer, order.amount);
         } else if (dispute.ruling == Party.Seller) {
             order.seller.send(order.sellerFee);
             tokenBalance[order.seller][order.token] += order.amount;
         } else {
             // `buyerFee` and `sellerFee` are equal to the arbitration cost.
-            uint256 splitArbitrationFee = order.buyerFee / 2;
+            // We take the min of the two in case someone overpaid.
+            uint256 splitArbitrationFee = Math.min(order.buyerFee, order.sellerFee) / 2;
             order.buyer.send(splitArbitrationFee);
             order.seller.send(splitArbitrationFee);
 
             uint256 splitAmount = order.amount / 2;
+            // non-safe transfer used here to prevent blocking on revert
             order.token.transfer(order.buyer, splitAmount);
             order.token.transfer(order.seller, splitAmount);
         }
