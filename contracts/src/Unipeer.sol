@@ -616,6 +616,62 @@ contract Unipeer is IArbitrable, IEvidence {
         emit Ruling(arbitrator, _disputeID, uint256(dispute.ruling));
     }
 
+    /** @dev Withdraws contributions of appeal rounds. Reimburses contributions
+     *  if the appeal was not fully funded.
+     *  If the appeal was fully funded, sends the fee stake rewards and reimbursements
+     *  proportional to the contributions made to the winner of a dispute.
+     *  @param _beneficiary The address that made contributions.
+     *  @param _orderID The ID of the resolved order.
+     *  @param _round The round from which to withdraw.
+     */
+    function withdrawFeesAndRewards(
+        address payable _beneficiary,
+        uint256 _orderID,
+        uint256 _round
+    ) external {
+        Order storage order = orders[_orderID];
+        require(order.status == Status.Resolved, "The order must be resolved.");
+        DisputeData storage dispute = disputes[order.disputeID];
+        require(dispute.orderID == _orderID, "Undisputed order");
+
+        uint256 reward = _withdrawFeesAndRewards(
+            _beneficiary,
+            _orderID,
+            _round,
+            uint256(dispute.ruling)
+        );
+        _beneficiary.send(reward); // It is the user responsibility to accept ETH.
+    }
+
+    /** @dev Withdraws contributions of multiple appeal rounds at once.
+     *  This function is O(n) where n is the number of rounds.
+     *  This could exceed the gas limit, therefore this function should be used
+     *  only as a utility and not be relied upon by other contracts.
+     *  @param _beneficiary The address that made contributions.
+     *  @param _orderID The ID of the resolved order.
+     *  @param _cursor The round from where to start withdrawing.
+     *  @param _count The number of rounds to iterate. If set to 0 or a value
+     *  larger than the number of rounds, iterates until the last round.
+     */
+    function batchRoundWithdraw(
+        address payable _beneficiary,
+        uint256 _orderID,
+        uint256 _cursor,
+        uint256 _count
+    ) external {
+        Order storage order = orders[_orderID];
+        require(order.status == Status.Resolved, "The order must be resolved.");
+        DisputeData storage dispute = disputes[order.disputeID];
+        require(dispute.orderID == _orderID, "Undisputed order");
+        uint256 finalRuling = uint256(dispute.ruling);
+
+        uint256 reward;
+        uint256 totalRounds = dispute.lastRoundID;
+        for (uint256 i = _cursor; i < totalRounds && (_count == 0 || i < _cursor + _count); i++)
+            reward += _withdrawFeesAndRewards(_beneficiary, _orderID, i, finalRuling);
+        _beneficiary.send(reward); // It is the user responsibility to accept ETH.
+    }
+
     // ************************************* //
     // *              Views                * //
     // ************************************* //
@@ -652,6 +708,52 @@ contract Unipeer is IArbitrable, IEvidence {
         order.status = Status.Resolved;
 
         emit OrderResolved(dispute.orderID);
+    }
+
+    /** @dev Updates contributions of appeal rounds which are going to be withdrawn.
+     *  Caller functions MUST:
+     *  (1) check that the order is valid and Resolved
+     *  (2) send the rewards to the _beneficiary.
+     *  @param _beneficiary The address that made contributions.
+     *  @param _orderID The ID of the resolved order.
+     *  @param _round The round from which to withdraw.
+     *  @param _finalRuling The final ruling of this order.
+     *  @return reward The amount of wei available to withdraw from _round.
+     */
+    function _withdrawFeesAndRewards(
+        address _beneficiary,
+        uint256 _orderID,
+        uint256 _round,
+        uint256 _finalRuling
+    ) internal returns (uint256 reward) {
+        Order storage order = orders[_orderID];
+        DisputeData storage dispute = disputes[order.disputeID];
+        Round storage round = dispute.rounds[_round];
+        uint256[3] storage contributionTo = round.contributions[_beneficiary];
+        uint256 lastRound = dispute.lastRoundID;
+
+        if (_round == lastRound) {
+            // Allow to reimburse if funding was unsuccessful.
+            reward =
+                contributionTo[uint256(Party.Buyer)] +
+                contributionTo[uint256(Party.Seller)];
+        } else if (_finalRuling == uint256(Party.None)) {
+            // Reimburse unspent fees proportionally if there is no winner and loser.
+            uint256 totalFeesPaid = round.paidFees[uint256(Party.Buyer)] +
+                round.paidFees[uint256(Party.Seller)];
+            uint256 totalBeneficiaryContributions = contributionTo[uint256(Party.Buyer)] +
+                contributionTo[uint256(Party.Seller)];
+            reward = totalFeesPaid > 0
+                ? (totalBeneficiaryContributions * round.feeRewards) / totalFeesPaid
+                : 0;
+        } else {
+            // Reward the winner.
+            reward = round.paidFees[_finalRuling] > 0
+                ? (contributionTo[_finalRuling] * round.feeRewards) / round.paidFees[_finalRuling]
+                : 0;
+        }
+        contributionTo[uint256(Party.Buyer)] = 0;
+        contributionTo[uint256(Party.Seller)] = 0;
     }
 
     /**
