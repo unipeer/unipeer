@@ -357,7 +357,7 @@ contract Unipeer is IArbitrable, IEvidence {
     }
 
     // ************************************* //
-    // *              Buyer                * //
+    // *           Order (Buyer)           * //
     // ************************************* //
 
     function buyOrder(uint16 _paymentID, address _seller, IERC20 _token, uint256 _amount)
@@ -405,13 +405,13 @@ contract Unipeer is IArbitrable, IEvidence {
 
     function confirmPaid(uint256 _orderID) external {
         Order storage order = orders[_orderID];
-        require(order.buyer == msg.sender, "Only buyer can confirm the off-chain payment");
+        require(order.buyer == msg.sender, "Only buyer");
         require(
             order.status == Status.Created, "Order already cancelled, completed or disputed"
         );
         require(
             order.lastInteraction + confirmTimeout >= block.timestamp,
-            "Order confirmation period is over"
+            "Payment confirmation period is over"
         );
 
         order.lastInteraction = block.timestamp;
@@ -420,52 +420,37 @@ contract Unipeer is IArbitrable, IEvidence {
         emit Paid(_orderID);
     }
 
-    // i.e timeout by buyer
-    function cancelOrder(uint256 _orderID) external {
-        Order storage order = orders[_orderID];
-        require(
-            order.status == Status.Created,
-            "Order can only be cancelled immediately after creation"
-        );
-        require(
-            order.lastInteraction + confirmTimeout < block.timestamp,
-            "Confirmation period has not yet timed out"
-        );
-
-        // TODO: return buyer arb fees
-        order.status = Status.Cancelled;
-        tokenBalance[order.seller][order.token] += order.amount;
-    }
-
-    function timeoutBySeller(uint256 _orderID) external {}
+    // ************************************* //
+    // *           Order (Seller)          * //
+    // ************************************* //
 
     /**
-     * @notice Called by a seller to mark a payment complete
-     * It can timeout and default to confirmed is the seller doesn't
+     * @notice Called by a seller to mark an order complete
+     * It can timeout and default to confirmed if the seller doesn't
      * respond.
      */
     function completeOrder(uint256 _orderID) external {
         Order storage order = orders[_orderID];
-        require(order.seller == msg.sender, "Only seller can mark an order complete");
+        require(order.seller == msg.sender, "Only seller");
         require(
             order.status < Status.Completed, "Order already cancelled, completed or disputed"
         );
+        require(
+            order.status == Status.Created || order.lastInteraction + orderTimeout >= block.timestamp,
+            "Order completed by timeout"
+        );
 
-        order.lastInteraction = block.timestamp;
-        order.status = Status.Completed;
-
-        order.token.safeTransfer(order.buyer, order.amount);
-
-        emit OrderComplete(_orderID);
+        _markOrderComplete(_orderID, order);
     }
 
-    /**
-     * @dev Can timeout.
-     */
     function disputeOrder(uint256 _orderID) external payable {
         Order storage order = orders[_orderID];
         require(order.seller == msg.sender, "Only seller");
         require(order.status == Status.Paid, "Cannot dispute a not yet paid order");
+        require(
+            order.lastInteraction + orderTimeout >= block.timestamp,
+            "Order already completed by timeout"
+        );
 
         ArbitratorData memory arbitratorData =
             arbitratorDataList[arbitratorDataList.length - 1];
@@ -485,6 +470,41 @@ contract Unipeer is IArbitrable, IEvidence {
         dispute.orderID = _orderID;
 
         emit Dispute(arbitrator, order.disputeID, _orderID, _orderID);
+    }
+
+    // ************************************* //
+    // *             Anonymous             * //
+    // ************************************* //
+
+    function timeoutByBuyer(uint256 _orderID) external {
+        Order storage order = orders[_orderID];
+        require(
+            order.status == Status.Created,
+            "Order can only be cancelled immediately after creation"
+        );
+        require(
+            order.lastInteraction + confirmTimeout < block.timestamp,
+            "Confirmation period has not yet timed out"
+        );
+
+        // Return the buyers arbitration fees.
+        order.buyer.send(order.buyerFee);
+        order.status = Status.Cancelled;
+        tokenBalance[order.seller][order.token] += order.amount;
+    }
+
+    function timeoutBySeller(uint256 _orderID) external {
+        Order storage order = orders[_orderID];
+        require(
+            order.status == Status.Paid,
+            "Order can only be cancelled immediately after creation"
+        );
+        require(
+            order.lastInteraction + orderTimeout < block.timestamp,
+            "Order completion period has not yet timed out"
+        );
+
+        _markOrderComplete(_orderID, order);
     }
 
     // ************************************* //
@@ -554,7 +574,7 @@ contract Unipeer is IArbitrable, IEvidence {
             uint256 contribution; // Amount contributed.
             uint256 remainingETH; // Remaining ETH to send back.
             (contribution, remainingETH) =
-                calculateContribution(msg.value, totalCost - round.paidFees[uint256(_side)]);
+                _calculateContribution(msg.value, totalCost - round.paidFees[uint256(_side)]);
             round.contributions[msg.sender][uint256(_side)] += contribution;
             round.paidFees[uint256(_side)] += contribution;
 
@@ -613,7 +633,7 @@ contract Unipeer is IArbitrable, IEvidence {
             dispute.ruling = Party(_ruling);
         }
 
-        executeRuling(_disputeID);
+        _executeRuling(_disputeID);
 
         emit Ruling(arbitrator, _disputeID, uint256(dispute.ruling));
     }
@@ -785,7 +805,7 @@ contract Unipeer is IArbitrable, IEvidence {
     // *            Internal               * //
     // ************************************* //
 
-    function executeRuling(uint256 _disputeID) internal {
+    function _executeRuling(uint256 _disputeID) internal {
         DisputeData storage dispute = disputes[_disputeID];
         Order storage order = orders[dispute.orderID];
 
@@ -867,7 +887,7 @@ contract Unipeer is IArbitrable, IEvidence {
      * @return taken The amount of ETH taken.
      * @return remainder The amount of ETH left from the contribution.
      */
-    function calculateContribution(uint256 _available, uint256 _requiredAmount)
+    function _calculateContribution(uint256 _available, uint256 _requiredAmount)
         internal
         pure
         returns (uint256 taken, uint256 remainder)
@@ -879,5 +899,13 @@ contract Unipeer is IArbitrable, IEvidence {
 
         remainder = _available - _requiredAmount;
         return (_requiredAmount, remainder);
+    }
+
+    function _markOrderComplete(uint256 _orderID, Order storage order) internal {
+        order.lastInteraction = block.timestamp;
+        order.status = Status.Completed;
+
+        order.token.safeTransfer(order.buyer, order.amount);
+        emit OrderComplete(_orderID);
     }
 }
