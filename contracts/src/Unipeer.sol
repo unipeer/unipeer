@@ -440,7 +440,8 @@ contract Unipeer is IArbitrable, IEvidence {
             "Order completed by timeout"
         );
 
-        _markOrderComplete(_orderID, order);
+        _markOrderComplete(order);
+        emit OrderComplete(_orderID);
     }
 
     function disputeOrder(uint256 _orderID) external payable {
@@ -487,10 +488,18 @@ contract Unipeer is IArbitrable, IEvidence {
             "Confirmation period has not yet timed out"
         );
 
-        // Return the buyers arbitration fees.
-        order.buyer.send(order.buyerFee);
+        uint256 amount = order.amount;
+        uint256 buyerFee = order.buyerFee;
+
+        order.amount = 0;
+        order.buyerFee = 0;
         order.status = Status.Cancelled;
-        tokenBalance[order.seller][order.token] += order.amount;
+
+        // Unlock seller funds
+        tokenBalance[order.seller][order.token] += amount;
+
+        // Return the buyers arbitration fees.
+        order.buyer.send(buyerFee);
     }
 
     function timeoutBySeller(uint256 _orderID) external {
@@ -504,7 +513,8 @@ contract Unipeer is IArbitrable, IEvidence {
             "Order completion period has not yet timed out"
         );
 
-        _markOrderComplete(_orderID, order);
+        _markOrderComplete(order);
+        emit OrderComplete(_orderID);
     }
 
     // ************************************* //
@@ -809,27 +819,34 @@ contract Unipeer is IArbitrable, IEvidence {
         DisputeData storage dispute = disputes[_disputeID];
         Order storage order = orders[dispute.orderID];
 
+        uint256 amount = order.amount;
+        uint256 buyerFee = order.buyerFee;
+        uint256 sellerFee = order.sellerFee;
+
+        order.amount = 0;
+        order.buyerFee = 0;
+        order.sellerFee = 0;
+        order.status = Status.Resolved;
+
         if (dispute.ruling == Party.Buyer) {
-            order.buyer.send(order.buyerFee);
+            order.buyer.send(buyerFee);
             // non-safe transfer used here to prevent blocking on revert
-            order.token.transfer(order.buyer, order.amount);
+            order.token.transfer(order.buyer, amount);
         } else if (dispute.ruling == Party.Seller) {
-            order.seller.send(order.sellerFee);
-            tokenBalance[order.seller][order.token] += order.amount;
+            order.seller.send(sellerFee);
+            tokenBalance[order.seller][order.token] += amount;
         } else {
             // `buyerFee` and `sellerFee` are equal to the arbitration cost.
             // We take the min of the two in case someone overpaid.
-            uint256 splitArbitrationFee = Math.min(order.buyerFee, order.sellerFee) / 2;
+            uint256 splitArbitrationFee = Math.min(buyerFee, sellerFee) / 2;
             order.buyer.send(splitArbitrationFee);
             order.seller.send(splitArbitrationFee);
 
-            uint256 splitAmount = order.amount / 2;
+            uint256 splitAmount = amount / 2;
             // non-safe transfer used here to prevent blocking on revert
             order.token.transfer(order.buyer, splitAmount);
             order.token.transfer(order.seller, splitAmount);
         }
-
-        order.status = Status.Resolved;
 
         emit OrderResolved(dispute.orderID);
     }
@@ -901,11 +918,19 @@ contract Unipeer is IArbitrable, IEvidence {
         return (_requiredAmount, remainder);
     }
 
-    function _markOrderComplete(uint256 _orderID, Order storage order) internal {
-        order.lastInteraction = block.timestamp;
+    function _markOrderComplete(Order storage order) internal {
+        uint256 amount = order.amount;
+        uint256 buyerFee = order.buyerFee;
+
+        order.amount = 0;
+        order.buyerFee = 0;
         order.status = Status.Completed;
 
-        order.token.safeTransfer(order.buyer, order.amount);
-        emit OrderComplete(_orderID);
+        // Actually close the order by
+        // transferring the bought tokens
+        order.token.safeTransfer(order.buyer, amount);
+
+        // Return the buyers arbitration fees.
+        order.buyer.send(buyerFee);
     }
 }
