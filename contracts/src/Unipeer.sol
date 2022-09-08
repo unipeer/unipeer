@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0
-pragma solidity 0.8.16;
+pragma solidity 0.8.15;
 
+import "oz/access/Ownable.sol";
 import "oz/token/ERC20/utils/SafeERC20.sol";
 import "oz/utils/math/Math.sol";
 import "kleros/IArbitrable.sol";
 import "kleros/erc-1497/IEvidence.sol";
 import "kleros/IArbitrator.sol";
+import "delegatable/Delegatable.sol";
 
-contract Unipeer is IArbitrable, IEvidence {
+contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
     using SafeERC20 for IERC20;
 
     // ************************************* //
@@ -144,7 +146,7 @@ contract Unipeer is IArbitrable, IEvidence {
     // ************************************* //
 
     modifier onlyAdmin() {
-        require(admin == msg.sender, "Access not allowed: Admin only.");
+        _checkOwner();
         _;
     }
 
@@ -207,6 +209,7 @@ contract Unipeer is IArbitrable, IEvidence {
      * has to pay for a round. In basis points.
      */
     constructor(
+        string memory version,
         address _admin,
         IArbitrator _arbitrator,
         bytes memory _arbitratorExtraData,
@@ -216,7 +219,9 @@ contract Unipeer is IArbitrable, IEvidence {
         uint256 _winnerStakeMultiplier,
         uint256 _loserStakeMultiplier,
         uint256 _tradeFees
-    ) {
+    )
+        Delegatable("Unipeer", version)
+    {
         admin = _admin;
         arbitratorDataList.push(
             ArbitratorData({arbitrator: _arbitrator, arbitratorExtraData: _arbitratorExtraData})
@@ -1014,5 +1019,25 @@ contract Unipeer is IArbitrable, IEvidence {
         // Actually close the order by
         // transferring the bought tokens
         order.token.safeTransfer(order.buyer, tradeAmount);
+    }
+
+    function _msgSender()
+        internal
+        view
+        override (DelegatableCore, Context)
+        returns (address sender)
+    {
+        if (msg.sender == address(this)) {
+            bytes memory array = msg.data;
+            uint256 index = msg.data.length;
+            assembly {
+                // Load the 32 bytes word from memory with the address on the lower 20 bytes, and mask those.
+                sender :=
+                    and(mload(add(array, index)), 0xffffffffffffffffffffffffffffffffffffffff)
+            }
+        } else {
+            sender = msg.sender;
+        }
+        return sender;
     }
 }

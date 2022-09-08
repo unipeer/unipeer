@@ -5,7 +5,8 @@ libs = ['lib']
 remappings = [
     'ds-test/=lib/ds-test/src/',
     'oz/=lib/openzeppelin-contracts/contracts',
-    'kleros/=lib/kleros/contracts'
+    'kleros/=lib/kleros/contracts',
+    'delegatable/=lib/delegatable-sol/contracts/'
 ]
 
 [fmt]
