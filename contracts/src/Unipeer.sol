@@ -320,32 +320,20 @@ contract Unipeer is IArbitrable, IEvidence {
         pm.tokenEnabled[_token] = _enabled;
     }
 
-    function changeConfirmTimeout(uint256 _timeout)
-        external
-        onlyAdmin
-    {
+    function changeConfirmTimeout(uint256 _timeout) external onlyAdmin {
         confirmTimeout = _timeout;
     }
 
-    function changeOrderTimeout(uint256 _timeout)
-        external
-        onlyAdmin
-    {
+    function changeOrderTimeout(uint256 _timeout) external onlyAdmin {
         orderTimeout = _timeout;
     }
 
-    function changeFees(uint256 _fees)
-        external
-        onlyAdmin
-    {
+    function changeFees(uint256 _fees) external onlyAdmin {
         require(_fees < MULTIPLIER_DIVISOR, "fees cannot be more than 100%");
         tradeFees = _fees;
     }
 
-    function withdrawFees(uint256 _amount, address payable _to)
-        external
-        onlyAdmin
-    {
+    function withdrawFees(uint256 _amount, address payable _to) external onlyAdmin {
         require(_amount <= protocolFeesSum, "Cannot withdraw more than available fees");
         protocolFeesSum -= _amount;
         _to.transfer(_amount);
@@ -443,7 +431,9 @@ contract Unipeer is IArbitrable, IEvidence {
         tokenBalance[_seller][_token] -= _amount;
 
         (uint256 fee, uint256 tradeAmount) = buyQuoteWithFees(_amount);
-        emit BuyOrder(orders.length - 1, msg.sender, _paymentID, _seller, _token, tradeAmount, fee);
+        emit BuyOrder(
+            orders.length - 1, msg.sender, _paymentID, _seller, _token, tradeAmount, fee
+            );
     }
 
     function confirmPaid(uint256 _orderID) external {
@@ -693,49 +683,51 @@ contract Unipeer is IArbitrable, IEvidence {
         emit Ruling(arbitrator, _disputeID, uint256(dispute.ruling));
     }
 
-    /** @dev Withdraws contributions of appeal rounds. Reimburses contributions
-     *  if the appeal was not fully funded.
-     *  If the appeal was fully funded, sends the fee stake rewards and reimbursements
-     *  proportional to the contributions made to the winner of a dispute.
-     *  @param _beneficiary The address that made contributions.
-     *  @param _orderID The ID of the resolved order.
-     *  @param _round The round from which to withdraw.
+    /**
+     * @dev Withdraws contributions of appeal rounds. Reimburses contributions
+     * if the appeal was not fully funded.
+     * If the appeal was fully funded, sends the fee stake rewards and reimbursements
+     * proportional to the contributions made to the winner of a dispute.
+     * @param _beneficiary The address that made contributions.
+     * @param _orderID The ID of the resolved order.
+     * @param _round The round from which to withdraw.
      */
     function withdrawFeesAndRewards(
         address payable _beneficiary,
         uint256 _orderID,
         uint256 _round
-    ) external {
+    )
+        external
+    {
         Order storage order = orders[_orderID];
         require(order.status == Status.Resolved, "The order must be resolved.");
         DisputeData storage dispute = disputes[order.disputeID];
         require(dispute.orderID == _orderID, "Undisputed order");
 
-        uint256 reward = _withdrawFeesAndRewards(
-            _beneficiary,
-            _orderID,
-            _round,
-            uint256(dispute.ruling)
-        );
+        uint256 reward =
+            _withdrawFeesAndRewards(_beneficiary, _orderID, _round, uint256(dispute.ruling));
         _beneficiary.send(reward); // It is the user responsibility to accept ETH.
     }
 
-    /** @dev Withdraws contributions of multiple appeal rounds at once.
-     *  This function is O(n) where n is the number of rounds.
-     *  This could exceed the gas limit, therefore this function should be used
-     *  only as a utility and not be relied upon by other contracts.
-     *  @param _beneficiary The address that made contributions.
-     *  @param _orderID The ID of the resolved order.
-     *  @param _cursor The round from where to start withdrawing.
-     *  @param _count The number of rounds to iterate. If set to 0 or a value
-     *  larger than the number of rounds, iterates until the last round.
+    /**
+     * @dev Withdraws contributions of multiple appeal rounds at once.
+     * This function is O(n) where n is the number of rounds.
+     * This could exceed the gas limit, therefore this function should be used
+     * only as a utility and not be relied upon by other contracts.
+     * @param _beneficiary The address that made contributions.
+     * @param _orderID The ID of the resolved order.
+     * @param _cursor The round from where to start withdrawing.
+     * @param _count The number of rounds to iterate. If set to 0 or a value
+     * larger than the number of rounds, iterates until the last round.
      */
     function batchRoundWithdraw(
         address payable _beneficiary,
         uint256 _orderID,
         uint256 _cursor,
         uint256 _count
-    ) external {
+    )
+        external
+    {
         Order storage order = orders[_orderID];
         require(order.status == Status.Resolved, "The order must be resolved.");
         DisputeData storage dispute = disputes[order.disputeID];
@@ -744,8 +736,11 @@ contract Unipeer is IArbitrable, IEvidence {
 
         uint256 reward;
         uint256 totalRounds = dispute.lastRoundID;
-        for (uint256 i = _cursor; i <= totalRounds && (_count == 0 || i < _cursor + _count); i++)
+        for (
+            uint256 i = _cursor; i <= totalRounds && (_count == 0 || i < _cursor + _count); i++
+        ) {
             reward += _withdrawFeesAndRewards(_beneficiary, _orderID, i, finalRuling);
+        }
         _beneficiary.send(reward); // It is the user responsibility to accept ETH.
     }
 
@@ -758,13 +753,17 @@ contract Unipeer is IArbitrable, IEvidence {
      * @return fee The fee amount according to the tradeFee rate.
      * @return tradeAmount The amount minus fees to be transferred to the buyer.
      */
-    function buyQuoteWithFees(uint256 _amount) public view returns (uint256 fee, uint256 tradeAmount) {
-        fee = _amount * tradeFees / MULTIPLIER_DIVISOR ;
+    function buyQuoteWithFees(uint256 _amount)
+        public
+        view
+        returns (uint256 fee, uint256 tradeAmount)
+    {
+        fee = _amount * tradeFees / MULTIPLIER_DIVISOR;
         tradeAmount = _amount - fee;
     }
 
     function calculateFee(uint256 _amount) public view returns (uint256) {
-        (uint256 fee, ) = buyQuoteWithFees(_amount);
+        (uint256 fee,) = buyQuoteWithFees(_amount);
         return fee;
     }
 
@@ -777,52 +776,60 @@ contract Unipeer is IArbitrable, IEvidence {
         return orders.length;
     }
 
-    /** @dev Returns the sum of withdrawable wei from appeal rounds.
-     *  This function is O(n), where n is the number of rounds of the order.
-     *  This could exceed the gas limit, therefore this function should only
-     *  be used for interface display and not by other contracts.
-     *  @param _orderID The index of the order.
-     *  @param _beneficiary The contributor for which to query.
-     *  @return total The total amount of wei available to withdraw.
+    /**
+     * @dev Returns the sum of withdrawable wei from appeal rounds.
+     * This function is O(n), where n is the number of rounds of the order.
+     * This could exceed the gas limit, therefore this function should only
+     * be used for interface display and not by other contracts.
+     * @param _orderID The index of the order.
+     * @param _beneficiary The contributor for which to query.
+     * @return total The total amount of wei available to withdraw.
      */
-    function amountWithdrawable(
-        uint256 _orderID,
-        address _beneficiary
-    ) external view returns (uint256 total) {
+    function amountWithdrawable(uint256 _orderID, address _beneficiary)
+        external
+        view
+        returns (uint256 total)
+    {
         Order storage order = orders[_orderID];
         DisputeData storage dispute = disputes[order.disputeID];
-        if (order.status != Status.Resolved) return total;
-        if (dispute.orderID != _orderID) return total;
+        if (order.status != Status.Resolved) {
+            return total;
+        }
+        if (dispute.orderID != _orderID) {
+            return total;
+        }
         uint256 finalRuling = uint256(dispute.ruling);
 
         uint256 totalRounds = dispute.lastRoundID;
         for (uint256 i = 0; i <= totalRounds; i++) {
             Round storage round = dispute.rounds[i];
             if (i == totalRounds - 1) {
-                total +=
-                    round.contributions[_beneficiary][uint256(Party.Buyer)] +
-                    round.contributions[_beneficiary][uint256(Party.Seller)];
+                total += round.contributions[_beneficiary][uint256(Party.Buyer)]
+                    + round.contributions[_beneficiary][uint256(Party.Seller)];
             } else if (finalRuling == uint256(Party.None)) {
-                uint256 totalFeesPaid = round.paidFees[uint256(Party.Buyer)] +
-                    round.paidFees[uint256(Party.Seller)];
-                uint256 totalBeneficiaryContributions = round.contributions[_beneficiary][
-                    uint256(Party.Buyer)
-                ] + round.contributions[_beneficiary][uint256(Party.Seller)];
-                total += totalFeesPaid > 0
+                uint256 totalFeesPaid = round.paidFees[uint256(Party.Buyer)]
+                    + round.paidFees[uint256(Party.Seller)];
+                uint256 totalBeneficiaryContributions = round.contributions[_beneficiary][uint256(
+                    Party.Buyer
+                )] + round.contributions[_beneficiary][uint256(Party.Seller)];
+                total +=
+                    totalFeesPaid > 0
                     ? (totalBeneficiaryContributions * round.feeRewards) / totalFeesPaid
                     : 0;
             } else {
-                total += round.paidFees[finalRuling] > 0
-                    ? (round.contributions[_beneficiary][finalRuling] * round.feeRewards) /
-                        round.paidFees[finalRuling]
+                total +=
+                    round.paidFees[finalRuling] > 0
+                    ? (round.contributions[_beneficiary][finalRuling] * round.feeRewards)
+                        / round.paidFees[finalRuling]
                     : 0;
             }
         }
     }
 
-    /** @dev Gets the number of rounds of the specific order.
-     *  @param _orderID The ID of the order.
-     *  @return The number of rounds.
+    /**
+     * @dev Gets the number of rounds of the specific order.
+     * @param _orderID The ID of the order.
+     * @return The number of rounds.
      */
     function getNumberOfRounds(uint256 _orderID) external view returns (uint256) {
         Order storage order = orders[_orderID];
@@ -830,30 +837,32 @@ contract Unipeer is IArbitrable, IEvidence {
         return dispute.lastRoundID + 1;
     }
 
-    /** @dev Gets the contributions made by a party for a given round of the appeal.
-     *  @param _orderID The ID of the order.
-     *  @param _round The position of the round.
-     *  @param _contributor The address of the contributor.
-     *  @return contributions The contributions.
+    /**
+     * @dev Gets the contributions made by a party for a given round of the appeal.
+     * @param _orderID The ID of the order.
+     * @param _round The position of the round.
+     * @param _contributor The address of the contributor.
+     * @return contributions The contributions.
      */
-    function getContributions(
-        uint256 _orderID,
-        uint256 _round,
-        address _contributor
-    ) external view returns (uint256[3] memory contributions) {
+    function getContributions(uint256 _orderID, uint256 _round, address _contributor)
+        external
+        view
+        returns (uint256[3] memory contributions)
+    {
         Order storage order = orders[_orderID];
         DisputeData storage dispute = disputes[order.disputeID];
         Round storage round = dispute.rounds[_round];
         contributions = round.contributions[_contributor];
     }
 
-    /** @dev Gets the information on a round of a order.
-     *  @param _orderID The ID of the order.
-     *  @param _round The round to query.
-     *  @return paidFees
-     *          sideFunded
-     *          feeRewards
-     *          appealed
+    /**
+     * @dev Gets the information on a round of a order.
+     * @param _orderID The ID of the order.
+     * @param _round The round to query.
+     * @return paidFees
+     * @return sideFunded
+     * @return feeRewards
+     * @return appealed
      */
     function getRoundInfo(uint256 _orderID, uint256 _round)
         external
@@ -869,10 +878,7 @@ contract Unipeer is IArbitrable, IEvidence {
         DisputeData storage dispute = disputes[order.disputeID];
         Round storage round = dispute.rounds[_round];
         return (
-            round.paidFees,
-            round.sideFunded,
-            round.feeRewards,
-            _round != dispute.lastRoundID
+            round.paidFees, round.sideFunded, round.feeRewards, _round != dispute.lastRoundID
         );
     }
 
@@ -919,22 +925,26 @@ contract Unipeer is IArbitrable, IEvidence {
         emit OrderResolved(dispute.orderID);
     }
 
-    /** @dev Updates contributions of appeal rounds which are going to be withdrawn.
-     *  Caller functions MUST:
-     *  (1) check that the order is valid and Resolved
-     *  (2) send the rewards to the _beneficiary.
-     *  @param _beneficiary The address that made contributions.
-     *  @param _orderID The ID of the resolved order.
-     *  @param _round The round from which to withdraw.
-     *  @param _finalRuling The final ruling of this order.
-     *  @return reward The amount of wei available to withdraw from _round.
+    /**
+     * @dev Updates contributions of appeal rounds which are going to be withdrawn.
+     * Caller functions MUST:
+     * (1) check that the order is valid and Resolved
+     * (2) send the rewards to the _beneficiary.
+     * @param _beneficiary The address that made contributions.
+     * @param _orderID The ID of the resolved order.
+     * @param _round The round from which to withdraw.
+     * @param _finalRuling The final ruling of this order.
+     * @return reward The amount of wei available to withdraw from _round.
      */
     function _withdrawFeesAndRewards(
         address _beneficiary,
         uint256 _orderID,
         uint256 _round,
         uint256 _finalRuling
-    ) internal returns (uint256 reward) {
+    )
+        internal
+        returns (uint256 reward)
+    {
         Order storage order = orders[_orderID];
         DisputeData storage dispute = disputes[order.disputeID];
         Round storage round = dispute.rounds[_round];
@@ -944,20 +954,21 @@ contract Unipeer is IArbitrable, IEvidence {
         if (_round == lastRound) {
             // Allow to reimburse if funding was unsuccessful.
             reward =
-                contributionTo[uint256(Party.Buyer)] +
-                contributionTo[uint256(Party.Seller)];
+                contributionTo[uint256(Party.Buyer)] + contributionTo[uint256(Party.Seller)];
         } else if (_finalRuling == uint256(Party.None)) {
             // Reimburse unspent fees proportionally if there is no winner and loser.
-            uint256 totalFeesPaid = round.paidFees[uint256(Party.Buyer)] +
-                round.paidFees[uint256(Party.Seller)];
-            uint256 totalBeneficiaryContributions = contributionTo[uint256(Party.Buyer)] +
-                contributionTo[uint256(Party.Seller)];
-            reward = totalFeesPaid > 0
+            uint256 totalFeesPaid =
+                round.paidFees[uint256(Party.Buyer)] + round.paidFees[uint256(Party.Seller)];
+            uint256 totalBeneficiaryContributions =
+                contributionTo[uint256(Party.Buyer)] + contributionTo[uint256(Party.Seller)];
+            reward =
+                totalFeesPaid > 0
                 ? (totalBeneficiaryContributions * round.feeRewards) / totalFeesPaid
                 : 0;
         } else {
             // Reward the winner.
-            reward = round.paidFees[_finalRuling] > 0
+            reward =
+                round.paidFees[_finalRuling] > 0
                 ? (contributionTo[_finalRuling] * round.feeRewards) / round.paidFees[_finalRuling]
                 : 0;
         }
