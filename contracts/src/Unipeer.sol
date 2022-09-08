@@ -163,6 +163,8 @@ contract Unipeer is IArbitrable, IEvidence {
     event Paid(uint256 orderID);
     event OrderComplete(uint256 orderID);
     event OrderResolved(uint256 orderID);
+    event TimedOutByBuyer(uint256 orderID);
+    event TimedOutBySeller(uint256 orderID);
 
     /**
      * @dev To be emitted when the appeal fees of one of the parties are fully funded.
@@ -500,6 +502,7 @@ contract Unipeer is IArbitrable, IEvidence {
 
         // Return the buyers arbitration fees.
         order.buyer.send(buyerFee);
+        emit TimedOutByBuyer(_orderID);
     }
 
     function timeoutBySeller(uint256 _orderID) external {
@@ -515,6 +518,7 @@ contract Unipeer is IArbitrable, IEvidence {
 
         _markOrderComplete(order);
         emit OrderComplete(_orderID);
+        emit TimedOutBySeller(_orderID);
     }
 
     // ************************************* //
