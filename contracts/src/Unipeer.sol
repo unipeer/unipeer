@@ -114,6 +114,11 @@ contract Unipeer is IArbitrable, IEvidence {
     // ************************************* //
 
     address public admin;
+    // Total non-withdrawn fees accumulated by the protocol.
+    uint256 public protocolFeesSum;
+    // The fee rate applicable to trades,
+    // max to the MULTIPLIER_DIVISOR decimal
+    uint256 public tradeFees;
 
     uint16 public totalPaymentMethods;
     // List of Payment Methods by paymentID
@@ -147,6 +152,7 @@ contract Unipeer is IArbitrable, IEvidence {
     // *             Events                * //
     // ************************************* //
 
+    event FeeWithdrawn(uint256 amount);
     event PaymentMethodUpdate(uint16 paymentID, string paymentName, uint256 metaEvidenceID);
     event SellerPaymentMethod(address sender, uint16 paymentID, string paymentAddress);
     event SellerPaymentDisabled(address sender, uint16 paymentID);
@@ -158,7 +164,8 @@ contract Unipeer is IArbitrable, IEvidence {
         uint16 paymentID,
         address seller,
         IERC20 token,
-        uint256 amount
+        uint256 amount,
+        uint256 feeAmount
     );
     event Paid(uint256 orderID);
     event OrderComplete(uint256 orderID);
@@ -207,7 +214,8 @@ contract Unipeer is IArbitrable, IEvidence {
         uint256 _orderTimeout,
         uint256 _sharedStakeMultiplier,
         uint256 _winnerStakeMultiplier,
-        uint256 _loserStakeMultiplier
+        uint256 _loserStakeMultiplier,
+        uint256 _tradeFees
     ) {
         admin = _admin;
         arbitratorDataList.push(
@@ -218,6 +226,7 @@ contract Unipeer is IArbitrable, IEvidence {
         sharedStakeMultiplier = _sharedStakeMultiplier;
         winnerStakeMultiplier = _winnerStakeMultiplier;
         loserStakeMultiplier = _loserStakeMultiplier;
+        tradeFees = _tradeFees;
     }
 
     /**
@@ -402,7 +411,8 @@ contract Unipeer is IArbitrable, IEvidence {
         );
         tokenBalance[_seller][_token] -= _amount;
 
-        emit BuyOrder(orders.length - 1, msg.sender, _paymentID, _seller, _token, _amount);
+        (uint256 fee, uint256 tradeAmount) = buyQuoteWithFees(_amount);
+        emit BuyOrder(orders.length - 1, msg.sender, _paymentID, _seller, _token, tradeAmount, fee);
     }
 
     function confirmPaid(uint256 _orderID) external {
@@ -517,8 +527,8 @@ contract Unipeer is IArbitrable, IEvidence {
         );
 
         _markOrderComplete(order);
-        emit OrderComplete(_orderID);
         emit TimedOutBySeller(_orderID);
+        emit OrderComplete(_orderID);
     }
 
     // ************************************* //
@@ -712,6 +722,26 @@ contract Unipeer is IArbitrable, IEvidence {
     // *              Views                * //
     // ************************************* //
 
+    /**
+     * @dev Gets the trade amount after fees
+     * @return fee The fee amount according to the tradeFee rate.
+     * @return tradeAmount The amount minus fees to be transferred to the buyer.
+     */
+    function buyQuoteWithFees(uint256 _amount) public view returns (uint256 fee, uint256 tradeAmount) {
+        fee = _amount * tradeFees / MULTIPLIER_DIVISOR ;
+        tradeAmount = _amount - fee;
+    }
+
+    function calculateFee(uint256 _amount) public view returns (uint256) {
+        (uint256 fee, uint256 tradeAmount) = buyQuoteWithFees(_amount);
+        return fee;
+    }
+
+    function getFeeAmount(uint256 _orderID) external view returns (uint256) {
+        Order storage order = orders[_orderID];
+        return calculateFee(order.amount);
+    }
+
     function getCountOrders() external view returns (uint256) {
         return orders.length;
     }
@@ -832,10 +862,13 @@ contract Unipeer is IArbitrable, IEvidence {
         order.sellerFee = 0;
         order.status = Status.Resolved;
 
+        (uint256 fee, uint256 tradeAmount) = buyQuoteWithFees(amount);
+        protocolFeesSum += fee;
+
         if (dispute.ruling == Party.Buyer) {
             order.buyer.send(buyerFee);
             // non-safe transfer used here to prevent blocking on revert
-            order.token.transfer(order.buyer, amount);
+            order.token.transfer(order.buyer, tradeAmount);
         } else if (dispute.ruling == Party.Seller) {
             order.seller.send(sellerFee);
             tokenBalance[order.seller][order.token] += amount;
@@ -930,11 +963,14 @@ contract Unipeer is IArbitrable, IEvidence {
         order.buyerFee = 0;
         order.status = Status.Completed;
 
-        // Actually close the order by
-        // transferring the bought tokens
-        order.token.safeTransfer(order.buyer, amount);
+        (uint256 fee, uint256 tradeAmount) = buyQuoteWithFees(amount);
+        protocolFeesSum += fee;
 
         // Return the buyers arbitration fees.
         order.buyer.send(buyerFee);
+
+        // Actually close the order by
+        // transferring the bought tokens
+        order.token.safeTransfer(order.buyer, tradeAmount);
     }
 }
