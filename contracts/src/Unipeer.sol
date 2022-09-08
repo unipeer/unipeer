@@ -229,9 +229,13 @@ contract Unipeer is IArbitrable, IEvidence {
         tradeFees = _tradeFees;
     }
 
-    /**
-     * Admin Only functions *************
-     */
+    // ************************************* //
+    // *            Mutating               * //
+    // ************************************* //
+
+    // ************************************* //
+    // *           Admin only              * //
+    // ************************************* //
 
     /**
      * @dev Change the arbitrator to be used for disputes.
@@ -316,9 +320,36 @@ contract Unipeer is IArbitrable, IEvidence {
         pm.tokenEnabled[_token] = _enabled;
     }
 
-    // ************************************* //
-    // *            Mutating               * //
-    // ************************************* //
+    function changeConfirmTimeout(uint256 _timeout)
+        external
+        onlyAdmin
+    {
+        confirmTimeout = _timeout;
+    }
+
+    function changeOrderTimeout(uint256 _timeout)
+        external
+        onlyAdmin
+    {
+        orderTimeout = _timeout;
+    }
+
+    function changeFees(uint256 _fees)
+        external
+        onlyAdmin
+    {
+        require(_fees < MULTIPLIER_DIVISOR, "fees cannot be more than 100%");
+        tradeFees = _fees;
+    }
+
+    function withdrawFees(uint256 _amount, address payable _to)
+        external
+        onlyAdmin
+    {
+        require(_amount <= protocolFeesSum, "Cannot withdraw more than available fees");
+        protocolFeesSum -= _amount;
+        _to.transfer(_amount);
+    }
 
     // ************************************* //
     // *             Seller                * //
@@ -733,7 +764,7 @@ contract Unipeer is IArbitrable, IEvidence {
     }
 
     function calculateFee(uint256 _amount) public view returns (uint256) {
-        (uint256 fee, uint256 tradeAmount) = buyQuoteWithFees(_amount);
+        (uint256 fee, ) = buyQuoteWithFees(_amount);
         return fee;
     }
 
