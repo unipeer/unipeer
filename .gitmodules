@@ -7,3 +7,6 @@
 [submodule "contracts/lib/kleros"]
 	path = contracts/lib/kleros
 	url = https://github.com/kleros/erc-792
+[submodule "contracts/lib/delegatable-sol"]
+	path = contracts/lib/delegatable-sol
+	url = https://github.com/delegatable/delegatable-sol
