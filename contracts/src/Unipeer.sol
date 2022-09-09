@@ -354,18 +354,18 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
         require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
 
         PaymentMethod storage pm = paymentMethods[_paymentID];
-        pm.paymentAddress[msg.sender] = _paymentAddress;
+        pm.paymentAddress[_msgSender()] = _paymentAddress;
 
-        emit SellerPaymentMethod(msg.sender, _paymentID, _paymentAddress);
+        emit SellerPaymentMethod(_msgSender(), _paymentID, _paymentAddress);
     }
 
     function disablePaymentMethod(uint16 _paymentID) external {
         require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
 
         PaymentMethod storage pm = paymentMethods[_paymentID];
-        pm.paymentAddress[msg.sender] = "";
+        pm.paymentAddress[_msgSender()] = "";
 
-        emit SellerPaymentDisabled(msg.sender, _paymentID);
+        emit SellerPaymentDisabled(_msgSender(), _paymentID);
     }
 
     function depositTokens(uint16 _paymentID, IERC20 _token, uint256 _amount) external {
@@ -374,21 +374,21 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
         PaymentMethod storage pm = paymentMethods[_paymentID];
         require(pm.tokenEnabled[_token] == true, "Token not yet enabled for selling");
 
-        tokenBalance[msg.sender][_token] += _amount;
-        _token.safeTransferFrom(msg.sender, address(this), _amount);
+        tokenBalance[_msgSender()][_token] += _amount;
+        _token.safeTransferFrom(_msgSender(), address(this), _amount);
 
-        emit SellerDeposit(msg.sender, _token, _amount);
+        emit SellerDeposit(_msgSender(), _token, _amount);
     }
 
     function withdrawTokens(IERC20 _token, uint256 _amount) external {
         require(
-            tokenBalance[msg.sender][_token] >= _amount, "Not enough balance to withdraw"
+            tokenBalance[_msgSender()][_token] >= _amount, "Not enough balance to withdraw"
         );
 
-        tokenBalance[msg.sender][_token] -= _amount;
+        tokenBalance[_msgSender()][_token] -= _amount;
 
-        _token.safeTransfer(msg.sender, _amount);
-        emit SellerWithdraw(msg.sender, _token, _amount);
+        _token.safeTransfer(_msgSender(), _amount);
+        emit SellerWithdraw(_msgSender(), _token, _amount);
     }
 
     // ************************************* //
@@ -421,7 +421,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
 
         orders.push(
             Order({
-                buyer: payable(msg.sender),
+                buyer: payable(_msgSender()),
                 seller: payable(_seller),
                 token: _token,
                 amount: _amount,
@@ -437,13 +437,13 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
 
         (uint256 fee, uint256 tradeAmount) = buyQuoteWithFees(_amount);
         emit BuyOrder(
-            orders.length - 1, msg.sender, _paymentID, _seller, _token, tradeAmount, fee
+            orders.length - 1, _msgSender(), _paymentID, _seller, _token, tradeAmount, fee
             );
     }
 
     function confirmPaid(uint256 _orderID) external {
         Order storage order = orders[_orderID];
-        require(order.buyer == msg.sender, "Only buyer");
+        require(order.buyer == _msgSender(), "Only buyer");
         require(
             order.status == Status.Created, "Order already cancelled, completed or disputed"
         );
@@ -469,7 +469,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
      */
     function completeOrder(uint256 _orderID) external {
         Order storage order = orders[_orderID];
-        require(order.seller == msg.sender, "Only seller");
+        require(order.seller == _msgSender(), "Only seller");
         require(
             order.status < Status.Completed, "Order already cancelled, completed or disputed"
         );
@@ -484,7 +484,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
 
     function disputeOrder(uint256 _orderID) external payable {
         Order storage order = orders[_orderID];
-        require(order.seller == msg.sender, "Only seller");
+        require(order.seller == _msgSender(), "Only seller");
         require(order.status == Status.Paid, "Cannot dispute a not yet paid order");
         require(
             order.lastInteraction + orderTimeout >= block.timestamp,
@@ -574,7 +574,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
         );
 
         ArbitratorData memory arbitratorData = arbitratorDataList[order.arbitratorID];
-        emit Evidence(arbitratorData.arbitrator, _orderID, msg.sender, _evidence);
+        emit Evidence(arbitratorData.arbitrator, _orderID, _msgSender(), _evidence);
     }
 
     /**
@@ -625,15 +625,15 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
             uint256 remainingETH; // Remaining ETH to send back.
             (contribution, remainingETH) =
                 _calculateContribution(msg.value, totalCost - round.paidFees[uint256(_side)]);
-            round.contributions[msg.sender][uint256(_side)] += contribution;
+            round.contributions[_msgSender()][uint256(_side)] += contribution;
             round.paidFees[uint256(_side)] += contribution;
 
-            emit AppealContribution(_orderID, _side, msg.sender, contribution);
+            emit AppealContribution(_orderID, _side, _msgSender(), contribution);
 
             // Reimburse leftover ETH if any.
             // Deliberate use of send in order to not block the contract in case of reverting fallback.
             if (remainingETH > 0) {
-                payable(msg.sender).send(remainingETH);
+                payable(_msgSender()).send(remainingETH);
             }
         }
 
@@ -668,7 +668,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
         Order storage order = orders[dispute.orderID];
         IArbitrator arbitrator = arbitratorDataList[order.arbitratorID].arbitrator;
 
-        require(msg.sender == address(arbitrator), "Only arbitrator");
+        require(_msgSender() == address(arbitrator), "Only arbitrator");
         require(_ruling <= RULING_OPTIONS, "Invalid ruling.");
         require(order.status != Status.Resolved, " Dispute already resolved.");
 
