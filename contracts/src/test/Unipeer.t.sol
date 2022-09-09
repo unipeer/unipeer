@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import "oz/interfaces/IERC20.sol";
 import "kleros/IArbitrator.sol";
 
-import '../Unipeer.sol';
+import "../Unipeer.sol";
 
 contract ContractTest is Test {
     address public admin = address(1);
@@ -31,11 +31,40 @@ contract ContractTest is Test {
         unipeer.transferOwnership(admin);
     }
 
+    function testAddMetaEvidence() public {
+        assertEq(unipeer.metaEvidenceUpdates(), 0);
+
+        startHoax(admin);
+        unipeer.addMetaEvidence("ipfs://test");
+        assertEq(unipeer.metaEvidenceUpdates(), 1);
+
+        unipeer.addMetaEvidence("ipfs://test");
+        assertEq(unipeer.metaEvidenceUpdates(), 2);
+
+        vm.stopPrank();
+        vm.expectRevert("Ownable: caller is not the owner");
+        unipeer.addMetaEvidence("ipfs://test");
+    }
+
+    function testAddPaymentMethod() public {
+        startHoax(admin);
+        assertEq(unipeer.metaEvidenceUpdates(), 0);
+        unipeer.addMetaEvidence("ipfs://test");
+        unipeer.addPaymentMethod("PayPal", 1, dai);
+
+        vm.expectRevert("Invalid Meta Evidence ID");
+        unipeer.addPaymentMethod("PayPal", 2, dai);
+
+        vm.stopPrank();
+        vm.expectRevert("Ownable: caller is not the owner");
+        unipeer.addPaymentMethod("PayPal", 1, dai);
+    }
+
     function testAdminOnlyFunctions() public {
         startHoax(admin);
         unipeer.changeArbitrator(IArbitrator(user), bytes("1"));
         unipeer.addMetaEvidence("ipfs://test");
-        unipeer.addPaymentMethod("PayPal", 0, dai);
+        unipeer.addPaymentMethod("PayPal", 1, dai);
         unipeer.updatePaymentMetaEvidence(0, 0);
         unipeer.updatePaymentName(0, "PayPal US");
         unipeer.updateTokenEnabled(0, dai, false);
@@ -48,10 +77,6 @@ contract ContractTest is Test {
 
         vm.expectRevert("Ownable: caller is not the owner");
         unipeer.changeArbitrator(IArbitrator(user), bytes("1"));
-        vm.expectRevert("Ownable: caller is not the owner");
-        unipeer.addMetaEvidence("ipfs://test");
-        vm.expectRevert("Ownable: caller is not the owner");
-        unipeer.addPaymentMethod("PayPal", 0, dai);
         vm.expectRevert("Ownable: caller is not the owner");
         unipeer.updatePaymentMetaEvidence(0, 0);
         vm.expectRevert("Ownable: caller is not the owner");

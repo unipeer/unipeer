@@ -130,9 +130,9 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
     // Updated each time the data is changed.
     ArbitratorData[] public arbitratorDataList;
     // Holds the total/count of Meta Evidence updates.
-    uint256 metaEvidenceUpdates;
-    uint256 confirmTimeout;
-    uint256 orderTimeout;
+    uint256 public metaEvidenceUpdates;
+    uint256 public confirmTimeout;
+    uint256 public orderTimeout;
 
     // tokenBalance[seller][token] = balance
     mapping(address => mapping(IERC20 => uint256)) public tokenBalance;
@@ -267,7 +267,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
         onlyAdmin
         returns (uint256 metaEvidenceID)
     {
-        metaEvidenceID = metaEvidenceUpdates + 1;
+        metaEvidenceID = metaEvidenceUpdates++;
         emit MetaEvidence(metaEvidenceID, _metaEvidence);
     }
 
@@ -279,6 +279,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
         external
         onlyAdmin
     {
+        require(_metaEvidenceID != 0, "Non existent meta evidence");
         require(_metaEvidenceID <= metaEvidenceUpdates, "Invalid Meta Evidence ID");
         PaymentMethod storage pm = paymentMethods[totalPaymentMethods++];
         pm.paymentName = _paymentName;
