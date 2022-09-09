@@ -288,7 +288,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
         emit PaymentMethodUpdate(totalPaymentMethods - 1, _paymentName, _metaEvidenceID);
     }
 
-    function updateMetaEvidenceID(uint16 _paymentID, uint8 _metaEvidenceID)
+    function updatePaymentMetaEvidence(uint16 _paymentID, uint8 _metaEvidenceID)
         external
         onlyAdmin
     {
