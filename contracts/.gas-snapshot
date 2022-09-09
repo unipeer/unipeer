@@ -1,1 +1,3 @@
-ContractTest:testAdminOnlyFunctions() (gas: 180934)
+ContractTest:testAddMetaEvidence() (gas: 46928)
+ContractTest:testAddPaymentMethod() (gas: 139836)
+ContractTest:testAdminOnlyFunctions() (gas: 196646)
