@@ -195,7 +195,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
 
     /**
      * @dev Constructor.
-     * @param _admin The administrator of the contract.
+     * @param _version The version number of the contract.
      * @param _arbitrator The arbitrator of the contract.
      * @param _arbitratorExtraData Extra data for the arbitrator.
      * @param _confirmTimeout The payment timeout for the buyer.
@@ -209,8 +209,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
      * has to pay for a round. In basis points.
      */
     constructor(
-        string memory version,
-        address _admin,
+        string memory _version,
         IArbitrator _arbitrator,
         bytes memory _arbitratorExtraData,
         uint256 _confirmTimeout,
@@ -220,9 +219,8 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
         uint256 _loserStakeMultiplier,
         uint256 _tradeFees
     )
-        Delegatable("Unipeer", version)
+        Delegatable("Unipeer", _version)
     {
-        admin = _admin;
         arbitratorDataList.push(
             ArbitratorData({arbitrator: _arbitrator, arbitratorExtraData: _arbitratorExtraData})
         );
