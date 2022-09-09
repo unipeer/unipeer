@@ -3,7 +3,6 @@ src = 'src'
 out = 'out'
 libs = ['lib']
 remappings = [
-    'ds-test/=lib/ds-test/src/',
     'forge-std/=lib/forge-std/src/',
     'oz/=lib/openzeppelin-contracts/contracts',
     'kleros/=lib/kleros/contracts',
