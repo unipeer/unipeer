@@ -279,8 +279,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
         external
         onlyAdmin
     {
-        require(_metaEvidenceID != 0, "Non existent meta evidence");
-        require(_metaEvidenceID <= metaEvidenceUpdates, "Invalid Meta Evidence ID");
+        require(_metaEvidenceID != 0 && _metaEvidenceID <= metaEvidenceUpdates, "Invalid Meta Evidence ID");
         PaymentMethod storage pm = paymentMethods[totalPaymentMethods++];
         pm.paymentName = _paymentName;
         pm.metaEvidenceID = _metaEvidenceID;
@@ -338,9 +337,9 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
     }
 
     function withdrawFees(uint256 _amount, address payable _to) external onlyAdmin {
-        require(_amount <= protocolFeesSum, "Cannot withdraw more than available fees");
+        require(_amount <= protocolFeesSum, "Amount more than accrued fees");
         protocolFeesSum -= _amount;
-        _to.transfer(_amount);
+        _to.send(_amount);
     }
 
     // ************************************* //
