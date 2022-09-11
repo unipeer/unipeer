@@ -64,10 +64,7 @@ contract ContractTest is Test {
 
         vm.expectRevert("Amount more than accrued fees");
         unipeer.withdrawFees(10, payable(user));
-        stdstore
-            .target(address(unipeer))
-            .sig("protocolFeesSum()")
-            .checked_write(120);
+        stdstore.target(address(unipeer)).sig("protocolFeesSum()").checked_write(120);
         assertEq(unipeer.protocolFeesSum(), 120);
         unipeer.withdrawFees(120, payable(admin));
 

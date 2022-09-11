@@ -280,7 +280,10 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         external
         onlyAdmin
     {
-        require(_metaEvidenceID != 0 && _metaEvidenceID <= metaEvidenceUpdates, "Invalid Meta Evidence ID");
+        require(
+            _metaEvidenceID != 0 && _metaEvidenceID <= metaEvidenceUpdates,
+            "Invalid Meta Evidence ID"
+        );
         PaymentMethod storage pm = paymentMethods[totalPaymentMethods++];
         pm.paymentName = _paymentName;
         pm.metaEvidenceID = _metaEvidenceID;
@@ -887,13 +890,18 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     }
 
     /**
-    * @dev Implement a base caveat that prevents delegating owner and admin function.
-    */
+     * @dev Implement a base caveat that prevents delegating owner and admin function.
+     */
     function enforceCaveat(
-        bytes calldata /* terms */,
+        bytes calldata, /* terms */
         Transaction calldata transaction,
         bytes32 /* delegationHash */
-    ) public override pure returns (bool) {
+    )
+        public
+        pure
+        override
+        returns (bool)
+    {
         // Owner/Admin methods are not delegatable in this contract:
         bytes4 targetSig = bytes4(transaction.data[0:4]);
 
