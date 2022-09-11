@@ -70,6 +70,7 @@ contract ContractTest is Test {
             .checked_write(120);
         assertEq(unipeer.protocolFeesSum(), 120);
         unipeer.withdrawFees(120, payable(admin));
+
         vm.expectRevert("Amount more than accrued fees");
         unipeer.withdrawFees(10, payable(user));
     }

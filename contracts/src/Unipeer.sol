@@ -8,8 +8,9 @@ import "kleros/IArbitrable.sol";
 import "kleros/erc-1497/IEvidence.sol";
 import "kleros/IArbitrator.sol";
 import "delegatable/Delegatable.sol";
+import "delegatable/CaveatEnforcer.sol";
 
-contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
+contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer {
     using SafeERC20 for IERC20;
 
     // ************************************* //
@@ -883,6 +884,56 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable, Ownable {
         return (
             round.paidFees, round.sideFunded, round.feeRewards, _round != dispute.lastRoundID
         );
+    }
+
+    /**
+    * @dev Implement a base caveat that prevents delegating owner and admin function.
+    */
+    function enforceCaveat(
+        bytes calldata /* terms */,
+        Transaction calldata transaction,
+        bytes32 /* delegationHash */
+    ) public override pure returns (bool) {
+        // Owner/Admin methods are not delegatable in this contract:
+        bytes4 targetSig = bytes4(transaction.data[0:4]);
+
+        // transferOwnership(address newOwner)
+        require(targetSig != 0xf2fde38b, "transferOwnership is not delegatable");
+
+        // renounceOwnership()
+        require(targetSig != 0x715018a6, "renounceOwnership is not delegatable");
+
+        // changeArbitrator(IArbitrator, bytes)
+        require(targetSig != 0xba7079ca, "changeArbitrator is not delegatable");
+
+        // addMetaEvidence(string)
+        require(targetSig != 0xb6694b7b, "addMetaEvidence is not delegatable");
+
+        // addPaymentMethod(string, uint8, address)
+        require(targetSig != 0x7a982eb6, "addPaymentMethod is not delegatable");
+
+        // updatePaymentMetaEvidence(uint16, uint8)
+        require(targetSig != 0x86c61ce5, "updatePaymentMetaEvidence is not delegatable");
+
+        // updatePaymentName(uint16, string)
+        require(targetSig != 0xae1a38ed, "updatePaymentName is not delegatable");
+
+        // updateTokenEnabled(uint16, address, bool)
+        require(targetSig != 0xabaa14ff, "updateTokenEnabled is not delegatable");
+
+        // changeConfirmTimeout(uint256)
+        require(targetSig != 0x50a4f450, "changeConfirmTimeout is not delegatable");
+
+        // changeOrderTimeout(uint256)
+        require(targetSig != 0xc189fde6, "changeOrderTimeout is not delegatable");
+
+        // changeFees(uint256)
+        require(targetSig != 0x6cda375b, "changeFees is not delegatable");
+
+        // withdrawFees(uint256, address)
+        require(targetSig != 0xdd2cc3f3, "withdrawFees is not delegatable");
+
+        return true;
     }
 
     // ************************************* //
