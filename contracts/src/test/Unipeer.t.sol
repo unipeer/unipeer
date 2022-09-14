@@ -7,6 +7,7 @@ import "forge-std/console2.sol";
 import "oz/interfaces/IERC20.sol";
 import "oz/mocks/ERC20Mock.sol";
 import "kleros/IArbitrator.sol";
+import "kleros/examples/SimpleCentralizedArbitrator.sol";
 
 import "../Unipeer.sol";
 
@@ -44,14 +45,16 @@ contract UnipeerTest is Test {
     address public buyer = address(4);
 
     IERC20 Dai;
+    IArbitrator arbitrator;
     Unipeer unipeer;
 
     function setUp() public {
         Dai = new ERC20Mock("Dai", "DAI", seller, 100_000 * 10**18);
+        arbitrator = new SimpleCentralizedArbitrator();
 
         unipeer = new Unipeer(
             "1",
-            IArbitrator(address(0)),
+            arbitrator,
             bytes(""),
             10 seconds,
             10 seconds,
@@ -123,9 +126,19 @@ contract UnipeerTest is Test {
     // *           Order (Buyer)           * //
     // ************************************* //
 
-    function testCannotWithdrawTokensWhenLocked() public {
+    function testBuyOrder() public {
+        testAcceptPaymentMethod();
+        vm.stopPrank();
+        testDepositTokens();
+        vm.stopPrank();
+
+        startHoax(buyer);
+        (uint256 fees, ) = unipeer.getArbitratorData();
+        unipeer.buyOrder{value: fees}(0, seller, Dai, 500);
     }
 
+    function testCannotWithdrawTokensWhenLocked() public {
+    }
 
     // ************************************* //
     // *           Admin only              * //

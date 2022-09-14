@@ -413,12 +413,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         );
         require(tokenBalance[_seller][_token] >= _amount, "Not enough seller balance");
 
-        ArbitratorData memory arbitratorData =
-            arbitratorDataList[arbitratorDataList.length - 1];
-        IArbitrator arbitrator = arbitratorData.arbitrator;
-        bytes memory arbitratorExtraData = arbitratorData.arbitratorExtraData;
-        uint256 arbitrationCost = arbitrator.arbitrationCost(arbitratorExtraData);
-
+        (uint256 arbitrationCost, ) = getArbitratorData();
         require(msg.value >= arbitrationCost, "Arbitration fees need to be paid");
 
         orders.push(
@@ -493,11 +488,8 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
             "Order already completed by timeout"
         );
 
-        ArbitratorData memory arbitratorData =
-            arbitratorDataList[arbitratorDataList.length - 1];
-        IArbitrator arbitrator = arbitratorData.arbitrator;
-        bytes memory arbitratorExtraData = arbitratorData.arbitratorExtraData;
-        uint256 arbitrationCost = arbitrator.arbitrationCost(arbitratorExtraData);
+        IArbitrator arbitrator = getArbitrator();
+        (uint256 arbitrationCost, bytes memory arbitratorExtraData) = getArbitratorData();
 
         // Seller can overpay to draw more jurors.
         require(msg.value >= arbitrationCost, "Arbitration fees need to be paid");
@@ -803,6 +795,21 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     {
         PaymentMethod storage pm = paymentMethods[_paymentID];
         return pm.tokenEnabled[_token];
+    }
+
+    function getArbitrator() public view returns (IArbitrator arbitrator) {
+        ArbitratorData memory arbitratorData =
+            arbitratorDataList[arbitratorDataList.length - 1];
+        arbitrator = arbitratorData.arbitrator;
+    }
+
+    function getArbitratorData() public view returns (uint256, bytes memory) {
+        ArbitratorData memory arbitratorData =
+            arbitratorDataList[arbitratorDataList.length - 1];
+        IArbitrator arbitrator = arbitratorData.arbitrator;
+        bytes memory arbitratorExtraData = arbitratorData.arbitratorExtraData;
+        uint256 arbitrationCost = arbitrator.arbitrationCost(arbitratorExtraData);
+        return (arbitrationCost, arbitratorExtraData);
     }
 
     function getFeeAmount(uint256 _orderID) external view returns (uint256) {
