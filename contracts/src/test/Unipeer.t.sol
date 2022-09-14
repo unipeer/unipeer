@@ -5,12 +5,17 @@ import "forge-std/Test.sol";
 import "forge-std/console2.sol";
 
 import "oz/interfaces/IERC20.sol";
+import "oz/mocks/ERC20Mock.sol";
 import "kleros/IArbitrator.sol";
 
 import "../Unipeer.sol";
 
 contract UnipeerTest is Test {
     using stdStorage for StdStorage;
+
+    // IERC20 Events
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event Transfer(address indexed from, address indexed to, uint256 value);
 
     event FeeWithdrawn(uint256 amount);
     event PaymentMethodUpdate(uint16 paymentID, string paymentName, uint256 metaEvidenceID);
@@ -35,12 +40,15 @@ contract UnipeerTest is Test {
 
     address public admin = address(1);
     address public user = address(2);
+    address public seller = address(3);
+    address public buyer = address(4);
 
-    IERC20 Dai = IERC20(address(99));
-
+    IERC20 Dai;
     Unipeer unipeer;
 
     function setUp() public {
+        Dai = new ERC20Mock("Dai", "DAI", seller, 100_000 * 10**18);
+
         unipeer = new Unipeer(
             "1",
             IArbitrator(address(0)),
@@ -66,19 +74,35 @@ contract UnipeerTest is Test {
     function testAcceptPaymentMethod() public {
         setUpPaymentMethod();
 
+        startHoax(seller);
         vm.expectEmit(true, true, false, true);
-        emit SellerPaymentMethod(address(this), 0, "seller@paypal.me");
+        emit SellerPaymentMethod(seller, 0, "seller@paypal.me");
         unipeer.acceptPaymentMethod(0, "seller@paypal.me");
-        assertEq(unipeer.getPaymentMethodAddress(0, address(this)), "seller@paypal.me");
+        assertEq(unipeer.getPaymentMethodAddress(0, seller), "seller@paypal.me");
     }
 
     function testDisablePaymentMethod() public {
         setUpPaymentMethod();
 
+        startHoax(seller);
         vm.expectEmit(true, true, false, true);
-        emit SellerPaymentDisabled(address(this), 0);
+        emit SellerPaymentDisabled(seller, 0);
         unipeer.disablePaymentMethod(0);
-        assertEq(unipeer.getPaymentMethodAddress(0, address(this)), "");
+        assertEq(unipeer.getPaymentMethodAddress(0, seller), "");
+    }
+
+    function testDepositTokens() public {
+        setUpPaymentMethod();
+
+        startHoax(seller);
+        Dai.approve(address(unipeer), 1000 ether);
+        vm.expectEmit(true, true, false, true);
+        emit Transfer(seller, address(unipeer), 1000 ether);
+        vm.expectEmit(true, true, false, true);
+        emit SellerDeposit(seller, Dai, 1000 ether);
+        unipeer.depositTokens(0, Dai, 1000 ether);
+        assertEq(Dai.balanceOf(seller), 99_000 ether);
+        assertEq(unipeer.tokenBalance(seller, Dai), 1000 ether);
     }
 
     function testAddMetaEvidence() public {

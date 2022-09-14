@@ -778,17 +778,29 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     // *              Views                * //
     // ************************************* //
 
-    function getPaymentMethodDetails(uint16 _paymentID) external view returns (string memory, uint256) {
+    function getPaymentMethodDetails(uint16 _paymentID)
+        external
+        view
+        returns (string memory, uint256)
+    {
         PaymentMethod storage pm = paymentMethods[_paymentID];
         return (pm.paymentName, pm.metaEvidenceID);
     }
 
-    function getPaymentMethodAddress(uint16 _paymentID, address _seller) external view returns (string memory) {
+    function getPaymentMethodAddress(uint16 _paymentID, address _seller)
+        external
+        view
+        returns (string memory)
+    {
         PaymentMethod storage pm = paymentMethods[_paymentID];
         return pm.paymentAddress[_seller];
     }
 
-    function getPaymentMethodToken(uint16 _paymentID, IERC20 _token) external view returns (bool) {
+    function getPaymentMethodToken(uint16 _paymentID, IERC20 _token)
+        external
+        view
+        returns (bool)
+    {
         PaymentMethod storage pm = paymentMethods[_paymentID];
         return pm.tokenEnabled[_token];
     }
