@@ -64,6 +64,10 @@ contract UnipeerTest is Test {
         unipeer.transferOwnership(admin);
     }
 
+    // ************************************* //
+    // *             Seller                * //
+    // ************************************* //
+
     function setUpPaymentMethod() public {
         startHoax(admin);
         unipeer.addMetaEvidence("ipfs://test");
@@ -104,6 +108,28 @@ contract UnipeerTest is Test {
         assertEq(Dai.balanceOf(seller), 99_000 ether);
         assertEq(unipeer.tokenBalance(seller, Dai), 1000 ether);
     }
+
+    function testWithdrawTokens() public {
+        testDepositTokens();
+
+        vm.expectEmit(true, true, false, true);
+        emit SellerWithdraw(seller, Dai, 1000 ether);
+        unipeer.withdrawTokens(Dai, 1000 ether);
+        assertEq(Dai.balanceOf(seller), 100_000 ether);
+        assertEq(unipeer.tokenBalance(seller, Dai), 0);
+    }
+
+    // ************************************* //
+    // *           Order (Buyer)           * //
+    // ************************************* //
+
+    function testCannotWithdrawTokensWhenLocked() public {
+    }
+
+
+    // ************************************* //
+    // *           Admin only              * //
+    // ************************************* //
 
     function testAddMetaEvidence() public {
         assertEq(unipeer.metaEvidenceUpdates(), 0);
