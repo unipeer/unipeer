@@ -125,7 +125,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
 
     uint16 public totalPaymentMethods;
     // List of Payment Methods by paymentID
-    mapping(uint16 => PaymentMethod) public paymentMethods;
+    mapping(uint16 => PaymentMethod) private paymentMethods;
 
     // Stores the arbitrator data of the contract.
     // Updated each time the data is changed.
@@ -752,7 +752,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     }
 
     // ************************************* //
-    // *              Views                * //
+    // *           Pure functions          * //
     // ************************************* //
 
     /**
@@ -772,6 +772,25 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     function calculateFee(uint256 _amount) public view returns (uint256) {
         (uint256 fee,) = buyQuoteWithFees(_amount);
         return fee;
+    }
+
+    // ************************************* //
+    // *              Views                * //
+    // ************************************* //
+
+    function getPaymentMethodDetails(uint16 _paymentID) external view returns (string memory, uint256) {
+        PaymentMethod storage pm = paymentMethods[_paymentID];
+        return (pm.paymentName, pm.metaEvidenceID);
+    }
+
+    function getPaymentMethodAddress(uint16 _paymentID, address _seller) external view returns (string memory) {
+        PaymentMethod storage pm = paymentMethods[_paymentID];
+        return pm.paymentAddress[_seller];
+    }
+
+    function getPaymentMethodToken(uint16 _paymentID, IERC20 _token) external view returns (bool) {
+        PaymentMethod storage pm = paymentMethods[_paymentID];
+        return pm.tokenEnabled[_token];
     }
 
     function getFeeAmount(uint256 _orderID) external view returns (uint256) {
