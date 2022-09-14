@@ -1,6 +1,6 @@
-pub use safeerc20_mod::*;
+pub use safe_erc20::*;
 #[allow(clippy::too_many_arguments, non_camel_case_types)]
-pub mod safeerc20_mod {
+pub mod safe_erc20 {
     #![allow(clippy::enum_variant_names)]
     #![allow(dead_code)]
     #![allow(clippy::type_complexity)]
@@ -17,11 +17,13 @@ pub mod safeerc20_mod {
     #[doc = "SafeERC20 was auto-generated with ethers-rs Abigen. More information at: https://github.com/gakonst/ethers-rs"]
     use std::sync::Arc;
     pub static SAFEERC20_ABI: ethers::contract::Lazy<ethers::core::abi::Abi> =
-        ethers::contract::Lazy::new(|| serde_json::from_str("[]").expect("invalid abi"));
+        ethers::contract::Lazy::new(|| {
+            ethers::core::utils::__serde_json::from_str("[]").expect("invalid abi")
+        });
     #[doc = r" Bytecode of the #name contract"]
     pub static SAFEERC20_BYTECODE: ethers::contract::Lazy<ethers::core::types::Bytes> =
         ethers::contract::Lazy::new(|| {
-            "0x60566037600b82828239805160001a607314602a57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea264697066735822122071f540c40be7b012d266bf34483d991ea6e48599de37c47af825112934e9ebd864736f6c634300080a0033" . parse () . expect ("invalid bytecode")
+            "0x60566037600b82828239805160001a607314602a57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea2646970667358221220685b00e42db7170d45f546c0b3f77ee6595b129c31322182116ff44112b788b664736f6c634300080f0033" . parse () . expect ("invalid bytecode")
         });
     pub struct SafeERC20<M>(ethers::contract::Contract<M>);
     impl<M> Clone for SafeERC20<M> {
@@ -78,7 +80,7 @@ pub mod safeerc20_mod {
         pub fn deploy<T: ethers::core::abi::Tokenize>(
             client: ::std::sync::Arc<M>,
             constructor_args: T,
-        ) -> Result<
+        ) -> ::std::result::Result<
             ethers::contract::builders::ContractDeployer<M, Self>,
             ethers::contract::ContractError<M>,
         > {

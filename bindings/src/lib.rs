@@ -4,10 +4,28 @@
 //! Do not manually edit these files.
 //! These files may be overwritten by the codegen system at any time.
 pub mod address;
-pub mod contract_test;
-pub mod ds_test;
+pub mod caveat_enforcer;
+pub mod console;
+pub mod console_2;
+pub mod context;
+pub mod delegatable;
+pub mod delegatable_core;
+pub mod ec_recovery;
+pub mod eip712_decoder;
+pub mod i_arbitrable;
+pub mod i_arbitrator;
+pub mod i_delegatable;
+pub mod i_evidence;
 pub mod ierc20;
 pub mod ierc20_permit;
+pub mod math;
 pub mod my_contract;
+pub mod ownable;
 pub mod safe_erc20;
+pub mod shared_types;
+pub mod std_error;
+pub mod std_json;
+pub mod std_math;
+pub mod std_storage;
 pub mod unipeer;
+pub mod vm;

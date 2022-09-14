@@ -1,6 +1,6 @@
-pub use ierc20::*;
+pub use context::*;
 #[allow(clippy::too_many_arguments, non_camel_case_types)]
-pub mod ierc20 {
+pub mod context {
     #![allow(clippy::enum_variant_names)]
     #![allow(dead_code)]
     #![allow(clippy::type_complexity)]
@@ -14,32 +14,32 @@ pub mod ierc20 {
         types::*,
     };
     use ethers::providers::Middleware;
-    #[doc = "IERC20 was auto-generated with ethers-rs Abigen. More information at: https://github.com/gakonst/ethers-rs"]
+    #[doc = "Context was auto-generated with ethers-rs Abigen. More information at: https://github.com/gakonst/ethers-rs"]
     use std::sync::Arc;
-    pub static IERC20_ABI: ethers::contract::Lazy<ethers::core::abi::Abi> =
+    pub static CONTEXT_ABI: ethers::contract::Lazy<ethers::core::abi::Abi> =
         ethers::contract::Lazy::new(|| {
             ethers::core::utils::__serde_json::from_str("[]").expect("invalid abi")
         });
-    pub struct IERC20<M>(ethers::contract::Contract<M>);
-    impl<M> Clone for IERC20<M> {
+    pub struct Context<M>(ethers::contract::Contract<M>);
+    impl<M> Clone for Context<M> {
         fn clone(&self) -> Self {
-            IERC20(self.0.clone())
+            Context(self.0.clone())
         }
     }
-    impl<M> std::ops::Deref for IERC20<M> {
+    impl<M> std::ops::Deref for Context<M> {
         type Target = ethers::contract::Contract<M>;
         fn deref(&self) -> &Self::Target {
             &self.0
         }
     }
-    impl<M: ethers::providers::Middleware> std::fmt::Debug for IERC20<M> {
+    impl<M: ethers::providers::Middleware> std::fmt::Debug for Context<M> {
         fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-            f.debug_tuple(stringify!(IERC20))
+            f.debug_tuple(stringify!(Context))
                 .field(&self.address())
                 .finish()
         }
     }
-    impl<M: ethers::providers::Middleware> IERC20<M> {
+    impl<M: ethers::providers::Middleware> Context<M> {
         #[doc = r" Creates a new contract instance with the specified `ethers`"]
         #[doc = r" client at the given `Address`. The contract derefs to a `ethers::Contract`"]
         #[doc = r" object"]
@@ -47,10 +47,10 @@ pub mod ierc20 {
             address: T,
             client: ::std::sync::Arc<M>,
         ) -> Self {
-            ethers::contract::Contract::new(address.into(), IERC20_ABI.clone(), client).into()
+            ethers::contract::Contract::new(address.into(), CONTEXT_ABI.clone(), client).into()
         }
     }
-    impl<M: ethers::providers::Middleware> From<ethers::contract::Contract<M>> for IERC20<M> {
+    impl<M: ethers::providers::Middleware> From<ethers::contract::Contract<M>> for Context<M> {
         fn from(contract: ethers::contract::Contract<M>) -> Self {
             Self(contract)
         }
