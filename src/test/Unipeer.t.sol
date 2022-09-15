@@ -313,5 +313,9 @@ contract UnipeerTest is Test {
         unipeer.changeFees(100);
         vm.expectRevert("Ownable: caller is not the owner");
         unipeer.withdrawFees(0, payable(user));
+        vm.expectRevert("Ownable: caller is not the owner");
+        unipeer.transferOwnership(user);
+        vm.expectRevert("Ownable: caller is not the owner");
+        unipeer.renounceOwnership();
     }
 }
