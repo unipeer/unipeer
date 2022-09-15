@@ -48,8 +48,11 @@ contract UnipeerTest is Test {
     IArbitrator arbitrator;
     Unipeer unipeer;
 
+    uint256 constant PAYMENT_ID = 1;
+    uint256 constant SELLER_BALANCE = 100_000 ether;
+
     function setUp() public {
-        Dai = new ERC20Mock("Dai", "DAI", seller, 100_000 * 10**18);
+        Dai = new ERC20Mock("Dai", "DAI", seller, SELLER_BALANCE);
         arbitrator = new SimpleCentralizedArbitrator();
 
         unipeer = new Unipeer(
@@ -122,6 +125,13 @@ contract UnipeerTest is Test {
         assertEq(unipeer.tokenBalance(seller, Dai), 0);
     }
 
+    function testCannotWithdrawMoreTokensThanBalance() public {
+        testDepositTokens();
+
+        vm.expectRevert("Not enough balance to withdraw");
+        unipeer.withdrawTokens(Dai, 1_001 ether);
+    }
+
     // ************************************* //
     // *           Order (Buyer)           * //
     // ************************************* //
@@ -133,11 +143,13 @@ contract UnipeerTest is Test {
         vm.stopPrank();
 
         startHoax(buyer);
+        uint256 oldBalance = unipeer.tokenBalance(seller, Dai);
+
         (uint256 fees, ) = unipeer.getArbitratorData();
         unipeer.buyOrder{value: fees}(0, seller, Dai, 500);
-    }
 
-    function testCannotWithdrawTokensWhenLocked() public {
+        uint256 newBalance = unipeer.tokenBalance(seller, Dai);
+        assertEq(oldBalance - newBalance, 500);
     }
 
     // ************************************* //
