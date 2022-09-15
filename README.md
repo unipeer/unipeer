@@ -1,6 +1,6 @@
 # Unipeer contracts 
 
-![Solidity](https://github.com/unipeer/unipeer/actions/workflows/contracts.yml/badge.svg)](https://github.com/unipeer/unipeer/actions/workflows/contracts.yml)
+[![CI](https://github.com/unipeer/unipeer/actions/workflows/contracts.yml/badge.svg)](https://github.com/unipeer/unipeer/actions/workflows/contracts.yml)
 
 ## Testing
 
