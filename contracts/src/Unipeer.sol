@@ -401,7 +401,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         external
         payable
     {
-        require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
+        require(_paymentID < totalPaymentMethods, "Payment method does not exist");
 
         PaymentMethod storage pm = paymentMethods[_paymentID];
         require(
@@ -434,7 +434,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
 
         (uint256 fee, uint256 tradeAmount) = buyQuoteWithFees(_amount);
         emit BuyOrder(
-            orders.length - 1, _msgSender(), _paymentID, _seller, _token, tradeAmount, fee
+            orders.length - 1, _msgSender(), _paymentID, _seller, _token, _amount, fee
             );
     }
 

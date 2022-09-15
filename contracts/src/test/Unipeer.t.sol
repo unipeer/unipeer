@@ -48,7 +48,7 @@ contract UnipeerTest is Test {
     IArbitrator arbitrator;
     Unipeer unipeer;
 
-    uint256 constant PAYMENT_ID = 1;
+    uint16 constant PAYMENT_ID = 0;
     uint256 constant SELLER_BALANCE = 100_000 ether;
 
     function setUp() public {
@@ -86,9 +86,9 @@ contract UnipeerTest is Test {
 
         startHoax(seller);
         vm.expectEmit(true, true, false, true);
-        emit SellerPaymentMethod(seller, 0, "seller@paypal.me");
-        unipeer.acceptPaymentMethod(0, "seller@paypal.me");
-        assertEq(unipeer.getPaymentMethodAddress(0, seller), "seller@paypal.me");
+        emit SellerPaymentMethod(seller, PAYMENT_ID, "seller@paypal.me");
+        unipeer.acceptPaymentMethod(PAYMENT_ID, "seller@paypal.me");
+        assertEq(unipeer.getPaymentMethodAddress(PAYMENT_ID, seller), "seller@paypal.me");
     }
 
     function testDisablePaymentMethod() public {
@@ -96,23 +96,24 @@ contract UnipeerTest is Test {
 
         startHoax(seller);
         vm.expectEmit(true, true, false, true);
-        emit SellerPaymentDisabled(seller, 0);
-        unipeer.disablePaymentMethod(0);
-        assertEq(unipeer.getPaymentMethodAddress(0, seller), "");
+        emit SellerPaymentDisabled(seller, PAYMENT_ID);
+        unipeer.disablePaymentMethod(PAYMENT_ID);
+        assertEq(unipeer.getPaymentMethodAddress(PAYMENT_ID, seller), "");
     }
 
     function testDepositTokens() public {
         setUpPaymentMethod();
 
         startHoax(seller);
-        Dai.approve(address(unipeer), 1000 ether);
+        uint256 amount = 1000 ether;
+        Dai.approve(address(unipeer), amount);
         vm.expectEmit(true, true, false, true);
-        emit Transfer(seller, address(unipeer), 1000 ether);
+        emit Transfer(seller, address(unipeer), amount);
         vm.expectEmit(true, true, false, true);
-        emit SellerDeposit(seller, Dai, 1000 ether);
-        unipeer.depositTokens(0, Dai, 1000 ether);
-        assertEq(Dai.balanceOf(seller), 99_000 ether);
-        assertEq(unipeer.tokenBalance(seller, Dai), 1000 ether);
+        emit SellerDeposit(seller, Dai, amount);
+        unipeer.depositTokens(PAYMENT_ID, Dai, amount);
+        assertEq(Dai.balanceOf(seller), SELLER_BALANCE - amount);
+        assertEq(unipeer.tokenBalance(seller, Dai), amount);
     }
 
     function testWithdrawTokens() public {
@@ -121,7 +122,7 @@ contract UnipeerTest is Test {
         vm.expectEmit(true, true, false, true);
         emit SellerWithdraw(seller, Dai, 1000 ether);
         unipeer.withdrawTokens(Dai, 1000 ether);
-        assertEq(Dai.balanceOf(seller), 100_000 ether);
+        assertEq(Dai.balanceOf(seller), SELLER_BALANCE);
         assertEq(unipeer.tokenBalance(seller, Dai), 0);
     }
 
@@ -144,12 +145,73 @@ contract UnipeerTest is Test {
 
         startHoax(buyer);
         uint256 oldBalance = unipeer.tokenBalance(seller, Dai);
+        uint256 amount = 500 ether;
 
-        (uint256 fees, ) = unipeer.getArbitratorData();
-        unipeer.buyOrder{value: fees}(0, seller, Dai, 500);
+        (uint256 arbFees, ) = unipeer.getArbitratorData();
+        uint256 tradeFees = unipeer.calculateFee(amount);
+
+        vm.expectEmit(true, true, false, true);
+        emit BuyOrder(0, buyer, PAYMENT_ID, seller, Dai, amount, tradeFees);
+        unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, amount);
 
         uint256 newBalance = unipeer.tokenBalance(seller, Dai);
-        assertEq(oldBalance - newBalance, 500);
+        assertEq(oldBalance - newBalance, amount);
+    }
+
+    function testCannotBuyOrderWithOutArbitrationFees() public {
+        testAcceptPaymentMethod();
+        vm.stopPrank();
+        testDepositTokens();
+        vm.stopPrank();
+
+        startHoax(buyer);
+
+        (uint256 arbFees, ) = unipeer.getArbitratorData();
+        vm.expectRevert("Arbitration fees need to be paid");
+        unipeer.buyOrder{value: arbFees - 1}(PAYMENT_ID, seller, Dai, 500 ether);
+    }
+
+    function testCannotBuyOrderMoreThanSellerBalance() public {
+        testAcceptPaymentMethod();
+        vm.stopPrank();
+        testDepositTokens();
+        vm.stopPrank();
+
+        startHoax(buyer);
+
+        (uint256 arbFees, ) = unipeer.getArbitratorData();
+        vm.expectRevert("Not enough seller balance");
+        unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, 1001 ether);
+    }
+
+    function testCannotBuyOrderWithASellerNonAcceptedToken() public {
+        testAcceptPaymentMethod();
+        vm.stopPrank();
+        testDepositTokens();
+        vm.stopPrank();
+
+        startHoax(buyer);
+
+        (uint256 arbFees, ) = unipeer.getArbitratorData();
+        vm.expectRevert("Token is not enabled for this payment method");
+        unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, IERC20(address(99)), 1001 ether);
+    }
+
+    function testCannotBuyOrderWithASellerNonAcceptedPaymentID() public {
+        testAcceptPaymentMethod();
+        vm.stopPrank();
+        testDepositTokens();
+        vm.stopPrank();
+
+        hoax(admin);
+        unipeer.addPaymentMethod("CashApp", 1, Dai);
+        hoax(seller);
+        unipeer.acceptPaymentMethod(1, "seller@paypal.me");
+        startHoax(buyer);
+
+        (uint256 arbFees, ) = unipeer.getArbitratorData();
+        vm.expectRevert("Seller doesn't accept this payment method");
+        unipeer.buyOrder{value: arbFees}(2, seller, IERC20(address(99)), 1001 ether);
     }
 
     // ************************************* //
