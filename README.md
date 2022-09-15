@@ -1,6 +1,6 @@
 # Unipeer contracts 
 
-![Solidity](https://github.com/gakonst/foundry-rust-template/workflows/Solidity/badge.svg)
+![Solidity](https://github.com/unipeer/unipeer/actions/workflows/contracts.yml/badge.svg)](https://github.com/unipeer/unipeer/actions/workflows/contracts.yml)
 
 ## Testing
 
