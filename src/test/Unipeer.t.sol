@@ -49,6 +49,7 @@ contract UnipeerTest is Test {
     Unipeer unipeer;
 
     uint16 constant PAYMENT_ID = 0;
+    uint16 constant ORDER_ID = 0;
     uint256 constant SELLER_BALANCE = 100_000 ether;
 
     function setUp() public {
@@ -70,16 +71,26 @@ contract UnipeerTest is Test {
         unipeer.transferOwnership(admin);
     }
 
-    // ************************************* //
-    // *             Seller                * //
-    // ************************************* //
-
     function setUpPaymentMethod() public {
         startHoax(admin);
         unipeer.addMetaEvidence("ipfs://test");
         unipeer.addPaymentMethod("PayPal", 1, Dai);
         vm.stopPrank();
     }
+
+    function setUpSeller() public {
+        setUpPaymentMethod();
+        startHoax(seller);
+        unipeer.acceptPaymentMethod(PAYMENT_ID, "seller@paypal.me");
+        uint256 amount = 1000 ether;
+        Dai.approve(address(unipeer), amount);
+        unipeer.depositTokens(PAYMENT_ID, Dai, amount);
+        vm.stopPrank();
+    }
+
+    // ************************************* //
+    // *             Seller                * //
+    // ************************************* //
 
     function testAcceptPaymentMethod() public {
         setUpPaymentMethod();
@@ -138,10 +149,7 @@ contract UnipeerTest is Test {
     // ************************************* //
 
     function testBuyOrder() public {
-        testAcceptPaymentMethod();
-        vm.stopPrank();
-        testDepositTokens();
-        vm.stopPrank();
+        setUpSeller();
 
         startHoax(buyer);
         uint256 oldBalance = unipeer.tokenBalance(seller, Dai);
@@ -159,10 +167,7 @@ contract UnipeerTest is Test {
     }
 
     function testCannotBuyOrderWithOutArbitrationFees() public {
-        testAcceptPaymentMethod();
-        vm.stopPrank();
-        testDepositTokens();
-        vm.stopPrank();
+        setUpSeller();
 
         startHoax(buyer);
 
@@ -172,10 +177,7 @@ contract UnipeerTest is Test {
     }
 
     function testCannotBuyOrderMoreThanSellerBalance() public {
-        testAcceptPaymentMethod();
-        vm.stopPrank();
-        testDepositTokens();
-        vm.stopPrank();
+        setUpSeller();
 
         startHoax(buyer);
 
@@ -185,10 +187,7 @@ contract UnipeerTest is Test {
     }
 
     function testCannotBuyOrderWithASellerNonAcceptedToken() public {
-        testAcceptPaymentMethod();
-        vm.stopPrank();
-        testDepositTokens();
-        vm.stopPrank();
+        setUpSeller();
 
         startHoax(buyer);
 
@@ -198,20 +197,23 @@ contract UnipeerTest is Test {
     }
 
     function testCannotBuyOrderWithASellerNonAcceptedPaymentID() public {
-        testAcceptPaymentMethod();
-        vm.stopPrank();
-        testDepositTokens();
-        vm.stopPrank();
+        setUpSeller();
 
         hoax(admin);
+        vm.expectEmit(true, true, false, true);
+        emit PaymentMethodUpdate(1, "CashApp", 1);
         unipeer.addPaymentMethod("CashApp", 1, Dai);
-        hoax(seller);
-        unipeer.acceptPaymentMethod(1, "seller@paypal.me");
         startHoax(buyer);
 
         (uint256 arbFees, ) = unipeer.getArbitratorData();
         vm.expectRevert("Seller doesn't accept this payment method");
-        unipeer.buyOrder{value: arbFees}(2, seller, IERC20(address(99)), 1001 ether);
+        unipeer.buyOrder{value: arbFees}(1, seller, Dai, 1001 ether);
+    }
+
+    function testConfirmPaid() public {
+        testBuyOrder();
+
+        unipeer.confirmPaid(ORDER_ID);
     }
 
     // ************************************* //
@@ -237,6 +239,8 @@ contract UnipeerTest is Test {
         assertEq(unipeer.metaEvidenceUpdates(), 0);
         assertEq(unipeer.totalPaymentMethods(), 0);
         unipeer.addMetaEvidence("ipfs://test");
+        vm.expectEmit(true, true, false, true);
+        emit PaymentMethodUpdate(PAYMENT_ID, "PayPal", 1);
         unipeer.addPaymentMethod("PayPal", 1, Dai);
         assertEq(unipeer.totalPaymentMethods(), 1);
 
