@@ -20,13 +20,10 @@ jobs:
           version: nightly
 
       - name: Install deps
-        working-directory: contracts
         run: forge install
 
       - name: Check gas snapshots
-        working-directory: contracts
         run: forge snapshot --check
 
       - name: Run tests
-        working-directory: contracts
         run: forge test
