@@ -224,6 +224,23 @@ contract UnipeerTest is Test {
         unipeer.confirmPaid(ORDER_ID);
     }
 
+    function testTimeoutByBuyer() public {
+        testBuyOrder();
+
+        skip(unipeer.confirmTimeout() + 1);
+        vm.expectEmit(true, true, false, true);
+        emit TimedOutByBuyer(ORDER_ID);
+        unipeer.timeoutByBuyer(ORDER_ID);
+    }
+
+    function testCannotConfirmPaidAfterCancel() public {
+        testTimeoutByBuyer();
+
+        skip(unipeer.confirmTimeout() + 1);
+        vm.expectRevert("Order already cancelled, completed or disputed");
+        unipeer.confirmPaid(ORDER_ID);
+    }
+
     // ************************************* //
     // *           Order (Seller)          * //
     // ************************************* //
