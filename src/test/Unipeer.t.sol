@@ -18,6 +18,14 @@ contract UnipeerTest is Test {
     event Approval(address indexed owner, address indexed spender, uint256 value);
     event Transfer(address indexed from, address indexed to, uint256 value);
 
+    // IEvidence Events
+    event Dispute(
+        IArbitrator indexed _arbitrator,
+        uint256 indexed _disputeID,
+        uint256 _metaEvidenceID,
+        uint256 _evidenceGroupID
+    );
+
     event FeeWithdrawn(uint256 amount);
     event PaymentMethodUpdate(uint16 paymentID, string paymentName, uint256 metaEvidenceID);
     event SellerPaymentMethod(address sender, uint16 paymentID, string paymentAddress);
@@ -156,7 +164,7 @@ contract UnipeerTest is Test {
         uint256 amount = 500 ether;
 
         (uint256 arbFees, ) = unipeer.getArbitratorData();
-        uint256 tradeFees = unipeer.calculateFee(amount);
+        (uint256 tradeFees, ) = unipeer.calculateFees(amount);
 
         vm.expectEmit(true, true, false, true);
         emit BuyOrder(0, buyer, PAYMENT_ID, seller, Dai, amount, tradeFees);
@@ -216,10 +224,18 @@ contract UnipeerTest is Test {
         unipeer.confirmPaid(ORDER_ID);
     }
 
+    function testCannotConfirmPaidByNonBuyer() public {
+        testBuyOrder();
+        vm.stopPrank();
+
+        vm.expectRevert("Only Buyer");
+        unipeer.confirmPaid(ORDER_ID);
+    }
+
     function testCannotConfirmPaidAfterTimeout() public {
         testBuyOrder();
 
-        skip(unipeer.confirmTimeout() + 1);
+        skip(unipeer.buyerTimeout() + 1);
         vm.expectRevert("Payment confirmation period is over");
         unipeer.confirmPaid(ORDER_ID);
     }
@@ -227,7 +243,7 @@ contract UnipeerTest is Test {
     function testTimeoutByBuyer() public {
         testBuyOrder();
 
-        skip(unipeer.confirmTimeout() + 1);
+        skip(unipeer.buyerTimeout() + 1);
         vm.expectEmit(true, true, false, true);
         emit TimedOutByBuyer(ORDER_ID);
         unipeer.timeoutByBuyer(ORDER_ID);
@@ -236,7 +252,7 @@ contract UnipeerTest is Test {
     function testCannotConfirmPaidAfterCancel() public {
         testTimeoutByBuyer();
 
-        skip(unipeer.confirmTimeout() + 1);
+        skip(unipeer.buyerTimeout() + 1);
         vm.expectRevert("Order already cancelled, completed or disputed");
         unipeer.confirmPaid(ORDER_ID);
     }
@@ -249,10 +265,18 @@ contract UnipeerTest is Test {
         testConfirmPaid();
         vm.stopPrank();
 
+        uint256 amount = unipeer.getOrderAmountAfterFees(ORDER_ID);
+        uint256 fees = unipeer.getFeeAmount(ORDER_ID);
+
         startHoax(seller);
+
+        vm.expectEmit(true, true, false, true);
+        emit Transfer(address(unipeer), buyer, amount);
         vm.expectEmit(true, true, false, true);
         emit OrderComplete(ORDER_ID);
         unipeer.completeOrder(ORDER_ID);
+
+        assertEq(unipeer.protocolFeesSum(), fees);
     }
 
     function testCompleteOrderWithOutConfirm() public {
@@ -270,7 +294,7 @@ contract UnipeerTest is Test {
         vm.stopPrank();
 
         startHoax(seller);
-        skip(unipeer.orderTimeout() + 1);
+        skip(unipeer.sellerTimeout() + 1);
         vm.expectEmit(true, true, false, true);
         emit OrderComplete(ORDER_ID);
         unipeer.completeOrder(ORDER_ID);
@@ -281,9 +305,85 @@ contract UnipeerTest is Test {
         vm.stopPrank();
 
         startHoax(seller);
-        skip(unipeer.orderTimeout() + 1);
+        skip(unipeer.sellerTimeout() + 1);
         vm.expectRevert("Order already completed by timeout");
         unipeer.completeOrder(ORDER_ID);
+    }
+
+    function testCannotCompleteOrderByNonSeller() public {
+        testConfirmPaid();
+        vm.stopPrank();
+
+        vm.expectRevert("Only Seller");
+        unipeer.completeOrder(ORDER_ID);
+    }
+
+    function testDisputeOrder() public {
+        testConfirmPaid();
+        vm.stopPrank();
+
+        (uint256 arbFees, ) = unipeer.getArbitratorData();
+        IArbitrator arb = unipeer.getArbitrator();
+
+        startHoax(seller);
+        vm.expectEmit(true, true, false, true);
+        emit Dispute(arb, ORDER_ID, ORDER_ID, ORDER_ID);
+        unipeer.disputeOrder{value: arbFees}(ORDER_ID);
+    }
+
+    function testCannotDiputeOrderWithoutArbFees() public {
+        testConfirmPaid();
+        vm.stopPrank();
+
+        startHoax(seller);
+        vm.expectRevert("Arbitration fees need to be paid");
+        unipeer.disputeOrder(ORDER_ID);
+    }
+
+    function testCannotDisputeOrderAfterTimeout() public {
+        testConfirmPaid();
+        vm.stopPrank();
+
+        startHoax(seller);
+        skip(unipeer.sellerTimeout() + 1);
+        vm.expectRevert("Order already completed by timeout");
+        unipeer.disputeOrder(ORDER_ID);
+    }
+
+    function testCannotDisputeNonPaidOrder() public {
+        testBuyOrder();
+        vm.stopPrank();
+
+        startHoax(seller);
+        vm.expectRevert("Cannot dispute a not yet paid order");
+        unipeer.disputeOrder(ORDER_ID);
+    }
+
+    function testCannotDisputeOrderByNonSeller() public {
+        testBuyOrder();
+        vm.stopPrank();
+
+        vm.expectRevert("Only Seller");
+        unipeer.disputeOrder(ORDER_ID);
+    }
+
+    function testTimeoutBySeller() public {
+        testConfirmPaid();
+        vm.stopPrank();
+
+        uint256 amount = unipeer.getOrderAmountAfterFees(ORDER_ID);
+        uint256 fees = unipeer.getFeeAmount(ORDER_ID);
+
+        skip(unipeer.sellerTimeout() + 1);
+        vm.expectEmit(true, true, false, true);
+        emit Transfer(address(unipeer), buyer, amount);
+        vm.expectEmit(true, true, false, true);
+        emit TimedOutBySeller(ORDER_ID);
+        vm.expectEmit(true, true, false, true);
+        emit OrderComplete(ORDER_ID);
+        unipeer.timeoutBySeller(ORDER_ID);
+
+        assertEq(unipeer.protocolFeesSum(), fees);
     }
 
     // ************************************* //
@@ -336,14 +436,14 @@ contract UnipeerTest is Test {
         unipeer.changeArbitrator(IArbitrator(user), bytes("1"));
     }
 
-    function testChangeConfirmTimeout() public {
+    function testChangeBuyerTimeout() public {
         hoax(admin);
-        unipeer.changeConfirmTimeout(100);
+        unipeer.changeBuyerTimeout(100);
     }
 
-    function testChangeOrderTimeout() public {
+    function testChangeSellerTimeout() public {
         hoax(admin);
-        unipeer.changeOrderTimeout(100);
+        unipeer.changeSellerTimeout(100);
     }
 
     function testChangeFees() public {
@@ -380,9 +480,9 @@ contract UnipeerTest is Test {
         vm.expectRevert("Ownable: caller is not the owner");
         unipeer.updateTokenEnabled(0, Dai, false);
         vm.expectRevert("Ownable: caller is not the owner");
-        unipeer.changeConfirmTimeout(100);
+        unipeer.changeBuyerTimeout(100);
         vm.expectRevert("Ownable: caller is not the owner");
-        unipeer.changeOrderTimeout(100);
+        unipeer.changeSellerTimeout(100);
         vm.expectRevert("Ownable: caller is not the owner");
         unipeer.changeFees(100);
         vm.expectRevert("Ownable: caller is not the owner");

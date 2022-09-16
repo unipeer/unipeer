@@ -132,8 +132,8 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     ArbitratorData[] public arbitratorDataList;
     // Holds the total/count of Meta Evidence updates.
     uint256 public metaEvidenceUpdates;
-    uint256 public confirmTimeout;
-    uint256 public orderTimeout;
+    uint256 public buyerTimeout;
+    uint256 public sellerTimeout;
 
     // tokenBalance[seller][token] = balance
     mapping(address => mapping(IERC20 => uint256)) public tokenBalance;
@@ -199,8 +199,8 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
      * @param _version The version number of the contract.
      * @param _arbitrator The arbitrator of the contract.
      * @param _arbitratorExtraData Extra data for the arbitrator.
-     * @param _confirmTimeout The payment timeout for the buyer.
-     * @param _orderTimeout The general interaction timeout for the parties.
+     * @param _buyerTimeout The payment timeout for the buyer.
+     * @param _sellerTimeout The general interaction timeout for the parties.
      * @param _sharedStakeMultiplier Multiplier of the appeal cost that the
      * submitter must pay for a round when there is no winner/loser in
      * the previous round. In basis points.
@@ -213,8 +213,8 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         string memory _version,
         IArbitrator _arbitrator,
         bytes memory _arbitratorExtraData,
-        uint256 _confirmTimeout,
-        uint256 _orderTimeout,
+        uint256 _buyerTimeout,
+        uint256 _sellerTimeout,
         uint256 _sharedStakeMultiplier,
         uint256 _winnerStakeMultiplier,
         uint256 _loserStakeMultiplier,
@@ -225,8 +225,8 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         arbitratorDataList.push(
             ArbitratorData({arbitrator: _arbitrator, arbitratorExtraData: _arbitratorExtraData})
         );
-        confirmTimeout = _confirmTimeout;
-        orderTimeout = _orderTimeout;
+        buyerTimeout = _buyerTimeout;
+        sellerTimeout = _sellerTimeout;
         sharedStakeMultiplier = _sharedStakeMultiplier;
         winnerStakeMultiplier = _winnerStakeMultiplier;
         loserStakeMultiplier = _loserStakeMultiplier;
@@ -327,12 +327,12 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         pm.tokenEnabled[_token] = _enabled;
     }
 
-    function changeConfirmTimeout(uint256 _timeout) external onlyAdmin {
-        confirmTimeout = _timeout;
+    function changeBuyerTimeout(uint256 _timeout) external onlyAdmin {
+        buyerTimeout = _timeout;
     }
 
-    function changeOrderTimeout(uint256 _timeout) external onlyAdmin {
-        orderTimeout = _timeout;
+    function changeSellerTimeout(uint256 _timeout) external onlyAdmin {
+        sellerTimeout = _timeout;
     }
 
     function changeFees(uint256 _fees) external onlyAdmin {
@@ -432,7 +432,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         );
         tokenBalance[_seller][_token] -= _amount;
 
-        (uint256 fee, ) = buyQuoteWithFees(_amount);
+        (uint256 fee, ) = calculateFees(_amount);
         emit BuyOrder(
             orders.length - 1, _msgSender(), _paymentID, _seller, _token, _amount, fee
             );
@@ -440,12 +440,12 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
 
     function confirmPaid(uint256 _orderID) external {
         Order storage order = orders[_orderID];
-        require(order.buyer == _msgSender(), "Only buyer");
+        require(order.buyer == _msgSender(), "Only Buyer");
         require(
             order.status == Status.Created, "Order already cancelled, completed or disputed"
         );
         require(
-            order.lastInteraction + confirmTimeout >= block.timestamp,
+            order.lastInteraction + buyerTimeout >= block.timestamp,
             "Payment confirmation period is over"
         );
 
@@ -466,12 +466,16 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
      */
     function completeOrder(uint256 _orderID) external {
         Order storage order = orders[_orderID];
-        require(order.seller == _msgSender(), "Only seller");
+        require(order.seller == _msgSender(), "Only Seller");
         require(
             order.status < Status.Completed, "Order already cancelled, completed or disputed"
         );
+        // Lets the seller mark an order as complete before waiting for
+        // the buyer to confirmPaid every time
+        // since the buyer would make the payment off-chain,
+        // the seller can counter-factually complete the order.
         require(
-            order.status == Status.Created || order.lastInteraction + orderTimeout >= block.timestamp,
+            order.status == Status.Created || order.lastInteraction + sellerTimeout >= block.timestamp,
             "Order already completed by timeout"
         );
 
@@ -481,10 +485,10 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
 
     function disputeOrder(uint256 _orderID) external payable {
         Order storage order = orders[_orderID];
-        require(order.seller == _msgSender(), "Only seller");
+        require(order.seller == _msgSender(), "Only Seller");
         require(order.status == Status.Paid, "Cannot dispute a not yet paid order");
         require(
-            order.lastInteraction + orderTimeout >= block.timestamp,
+            order.lastInteraction + sellerTimeout >= block.timestamp,
             "Order already completed by timeout"
         );
 
@@ -516,7 +520,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
             "Order can only be cancelled immediately after creation"
         );
         require(
-            order.lastInteraction + confirmTimeout < block.timestamp,
+            order.lastInteraction + buyerTimeout < block.timestamp,
             "Confirmation period has not yet timed out"
         );
 
@@ -542,7 +546,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
             "Order can only be cancelled immediately after creation"
         );
         require(
-            order.lastInteraction + orderTimeout < block.timestamp,
+            order.lastInteraction + sellerTimeout < block.timestamp,
             "Order completion period has not yet timed out"
         );
 
@@ -744,7 +748,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     }
 
     // ************************************* //
-    // *           Pure functions          * //
+    // *              Views                * //
     // ************************************* //
 
     /**
@@ -752,7 +756,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
      * @return fee The fee amount according to the tradeFee rate.
      * @return tradeAmount The amount minus fees to be transferred to the buyer.
      */
-    function buyQuoteWithFees(uint256 _amount)
+    function calculateFees(uint256 _amount)
         public
         view
         returns (uint256 fee, uint256 tradeAmount)
@@ -760,15 +764,6 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         fee = _amount * tradeFees / MULTIPLIER_DIVISOR;
         tradeAmount = _amount - fee;
     }
-
-    function calculateFee(uint256 _amount) public view returns (uint256) {
-        (uint256 fee,) = buyQuoteWithFees(_amount);
-        return fee;
-    }
-
-    // ************************************* //
-    // *              Views                * //
-    // ************************************* //
 
     function getPaymentMethodDetails(uint16 _paymentID)
         external
@@ -814,7 +809,14 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
 
     function getFeeAmount(uint256 _orderID) external view returns (uint256) {
         Order storage order = orders[_orderID];
-        return calculateFee(order.amount);
+        (uint256 fee,) = calculateFees(order.amount);
+        return fee;
+    }
+
+    function getOrderAmountAfterFees(uint256 _orderID) external view returns (uint256) {
+        Order storage order = orders[_orderID];
+        ( ,uint256 tradeAmount) = calculateFees(order.amount);
+        return tradeAmount;
     }
 
     function getCountOrders() external view returns (uint256) {
@@ -967,11 +969,11 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         // updateTokenEnabled(uint16, address, bool)
         require(targetSig != 0xabaa14ff, "updateTokenEnabled is not delegatable");
 
-        // changeConfirmTimeout(uint256)
-        require(targetSig != 0x50a4f450, "changeConfirmTimeout is not delegatable");
+        // changeBuyerTimeout(uint256)
+        require(targetSig != 0xf07dbd00, "changeBuyerTimeout is not delegatable");
 
-        // changeOrderTimeout(uint256)
-        require(targetSig != 0xc189fde6, "changeOrderTimeout is not delegatable");
+        // changeSellerTimeout(uint256)
+        require(targetSig != 0xe8cfe7ac, "changeSellerTimeout is not delegatable");
 
         // changeFees(uint256)
         require(targetSig != 0x6cda375b, "changeFees is not delegatable");
@@ -999,7 +1001,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         order.sellerFee = 0;
         order.status = Status.Resolved;
 
-        (uint256 fee, uint256 tradeAmount) = buyQuoteWithFees(amount);
+        (uint256 fee, uint256 tradeAmount) = calculateFees(amount);
         protocolFeesSum += fee;
 
         if (dispute.ruling == Party.Buyer) {
@@ -1105,7 +1107,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         order.buyerFee = 0;
         order.status = Status.Completed;
 
-        (uint256 fee, uint256 tradeAmount) = buyQuoteWithFees(amount);
+        (uint256 fee, uint256 tradeAmount) = calculateFees(amount);
         protocolFeesSum += fee;
 
         // Return the buyers arbitration fees.
