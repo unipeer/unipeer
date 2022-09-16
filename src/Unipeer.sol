@@ -432,7 +432,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         );
         tokenBalance[_seller][_token] -= _amount;
 
-        (uint256 fee, uint256 tradeAmount) = buyQuoteWithFees(_amount);
+        (uint256 fee, ) = buyQuoteWithFees(_amount);
         emit BuyOrder(
             orders.length - 1, _msgSender(), _paymentID, _seller, _token, _amount, fee
             );
@@ -472,7 +472,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         );
         require(
             order.status == Status.Created || order.lastInteraction + orderTimeout >= block.timestamp,
-            "Order completed by timeout"
+            "Order already completed by timeout"
         );
 
         _markOrderComplete(order);

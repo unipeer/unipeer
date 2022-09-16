@@ -216,6 +216,59 @@ contract UnipeerTest is Test {
         unipeer.confirmPaid(ORDER_ID);
     }
 
+    function testCannotConfirmPaidAfterTimeout() public {
+        testBuyOrder();
+
+        skip(unipeer.confirmTimeout() + 1);
+        vm.expectRevert("Payment confirmation period is over");
+        unipeer.confirmPaid(ORDER_ID);
+    }
+
+    // ************************************* //
+    // *           Order (Seller)          * //
+    // ************************************* //
+
+    function testCompleteOrder() public {
+        testConfirmPaid();
+        vm.stopPrank();
+
+        startHoax(seller);
+        vm.expectEmit(true, true, false, true);
+        emit OrderComplete(ORDER_ID);
+        unipeer.completeOrder(ORDER_ID);
+    }
+
+    function testCompleteOrderWithOutConfirm() public {
+        testBuyOrder();
+        vm.stopPrank();
+
+        startHoax(seller);
+        vm.expectEmit(true, true, false, true);
+        emit OrderComplete(ORDER_ID);
+        unipeer.completeOrder(ORDER_ID);
+    }
+
+    function testCompleteOrderWithOutConfirmAfterTimeout() public {
+        testBuyOrder();
+        vm.stopPrank();
+
+        startHoax(seller);
+        skip(unipeer.orderTimeout() + 1);
+        vm.expectEmit(true, true, false, true);
+        emit OrderComplete(ORDER_ID);
+        unipeer.completeOrder(ORDER_ID);
+    }
+
+    function testCannotCompleteOrderAfterTimeout() public {
+        testConfirmPaid();
+        vm.stopPrank();
+
+        startHoax(seller);
+        skip(unipeer.orderTimeout() + 1);
+        vm.expectRevert("Order already completed by timeout");
+        unipeer.completeOrder(ORDER_ID);
+    }
+
     // ************************************* //
     // *           Admin only              * //
     // ************************************* //
