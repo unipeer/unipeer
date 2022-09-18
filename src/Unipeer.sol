@@ -200,7 +200,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
      * @param _arbitrator The arbitrator of the contract.
      * @param _arbitratorExtraData Extra data for the arbitrator.
      * @param _buyerTimeout The payment timeout for the buyer.
-     * @param _sellerTimeout The general interaction timeout for the parties.
+     * @param _sellerTimeout The interaction timeout for the seller.
      * @param _sharedStakeMultiplier Multiplier of the appeal cost that the
      * submitter must pay for a round when there is no winner/loser in
      * the previous round. In basis points.
@@ -439,6 +439,8 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     }
 
     function confirmPaid(uint256 _orderID) external {
+        require(_orderID < orders.length, "Invalid Order ID");
+
         Order storage order = orders[_orderID];
         require(order.buyer == _msgSender(), "Only Buyer");
         require(
@@ -465,6 +467,8 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
      * respond.
      */
     function completeOrder(uint256 _orderID) external {
+        require(_orderID < orders.length, "Invalid Order ID");
+
         Order storage order = orders[_orderID];
         require(order.seller == _msgSender(), "Only Seller");
         require(
@@ -484,6 +488,8 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     }
 
     function disputeOrder(uint256 _orderID) external payable {
+        require(_orderID < orders.length, "Invalid Order ID");
+
         Order storage order = orders[_orderID];
         require(order.seller == _msgSender(), "Only Seller");
         require(order.status == Status.Paid, "Cannot dispute a not yet paid order");
@@ -514,6 +520,8 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     // ************************************* //
 
     function timeoutByBuyer(uint256 _orderID) external {
+        require(_orderID < orders.length, "Invalid Order ID");
+
         Order storage order = orders[_orderID];
         require(
             order.status == Status.Created,
@@ -540,6 +548,8 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     }
 
     function timeoutBySeller(uint256 _orderID) external {
+        require(_orderID < orders.length, "Invalid Order ID");
+
         Order storage order = orders[_orderID];
         require(
             order.status == Status.Paid,
@@ -565,6 +575,8 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
      * @param _evidence A link to an evidence using its URI.
      */
     function submitEvidence(uint256 _orderID, string calldata _evidence) external {
+        require(_orderID < orders.length, "Invalid Order ID");
+
         Order memory order = orders[_orderID];
         require(
             order.status < Status.Resolved,
@@ -582,6 +594,8 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
      * @param _side The party that pays the appeal fee.
      */
     function fundAppeal(uint256 _orderID, Party _side) external payable {
+        require(_orderID < orders.length, "Invalid Order ID");
+
         Order storage order = orders[_orderID];
         require(_side != Party.None, "Wrong party.");
         require(order.status == Status.Disputed, "No dispute to appeal");
@@ -662,6 +676,8 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
      * @param _ruling Ruling given by the arbitrator. Note that 0 is reserved for "Refused to arbitrate".
      */
     function rule(uint256 _disputeID, uint256 _ruling) external {
+        //require(_disputeID < disputes.length, "Invalid Order ID");
+
         DisputeData storage dispute = disputes[_disputeID];
         Order storage order = orders[dispute.orderID];
         IArbitrator arbitrator = arbitratorDataList[order.arbitratorID].arbitrator;

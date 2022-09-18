@@ -19,12 +19,21 @@ contract UnipeerTest is Test {
     event Transfer(address indexed from, address indexed to, uint256 value);
 
     // IEvidence Events
+    event Evidence(
+        IArbitrator indexed _arbitrator,
+        uint256 indexed _evidenceGroupID,
+        address indexed _party,
+        string _evidence
+    );
     event Dispute(
         IArbitrator indexed _arbitrator,
         uint256 indexed _disputeID,
         uint256 _metaEvidenceID,
         uint256 _evidenceGroupID
     );
+
+    // IArbitrable
+    event Ruling(IArbitrator indexed _arbitrator, uint256 indexed _disputeID, uint256 _ruling);
 
     event FeeWithdrawn(uint256 amount);
     event PaymentMethodUpdate(uint16 paymentID, string paymentName, uint256 metaEvidenceID);
@@ -53,7 +62,7 @@ contract UnipeerTest is Test {
     address public buyer = address(4);
 
     IERC20 Dai;
-    IArbitrator arbitrator;
+    SimpleCentralizedArbitrator arbitrator;
     Unipeer unipeer;
 
     uint16 constant PAYMENT_ID = 0;
@@ -384,6 +393,44 @@ contract UnipeerTest is Test {
         unipeer.timeoutBySeller(ORDER_ID);
 
         assertEq(unipeer.protocolFeesSum(), fees);
+    }
+
+    // ************************************* //
+    // *             Arbitrator            * //
+    // ************************************* //
+
+    function testSubmitEvidence() public {
+        testDisputeOrder();
+        vm.stopPrank();
+
+        vm.expectEmit(true, true, false, true);
+        emit Evidence(arbitrator, ORDER_ID, address(this), "ipfs://test");
+        unipeer.submitEvidence(ORDER_ID, "ipfs://test");
+    }
+
+    function testRule() public {
+        testDisputeOrder();
+        vm.stopPrank();
+
+        vm.expectEmit(true, true, false, true);
+        emit Ruling(arbitrator, ORDER_ID, 1);
+        arbitrator.rule(ORDER_ID, 1);
+    }
+
+    function testCannotBeCalledByAnyoneRule() public {
+        testDisputeOrder();
+        vm.stopPrank();
+
+        hoax(admin);
+        vm.expectRevert("Only arbitrator");
+        unipeer.rule(ORDER_ID, 1);
+    }
+
+    function testFailRuleOnNonExistingDisputr() public {
+        testConfirmPaid();
+        vm.stopPrank();
+
+        arbitrator.rule(ORDER_ID, 1);
     }
 
     // ************************************* //
