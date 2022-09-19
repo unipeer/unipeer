@@ -31,6 +31,7 @@ contract UnipeerTest is Test {
         uint256 _metaEvidenceID,
         uint256 _evidenceGroupID
     );
+    event MetaEvidence(uint256 indexed _metaEvidenceID, string _evidence);
 
     // IArbitrable
     event Ruling(IArbitrator indexed _arbitrator, uint256 indexed _disputeID, uint256 _ruling);
@@ -65,6 +66,7 @@ contract UnipeerTest is Test {
     SimpleCentralizedArbitrator arbitrator;
     Unipeer unipeer;
 
+    uint16 constant METAEVIDENCE_ID = 0;
     uint16 constant PAYMENT_ID = 0;
     uint16 constant ORDER_ID = 0;
     uint256 constant SELLER_BALANCE = 100_000 ether;
@@ -90,8 +92,10 @@ contract UnipeerTest is Test {
 
     function setUpPaymentMethod() public {
         startHoax(admin);
+        vm.expectEmit(true, true, false, true);
+        emit MetaEvidence(METAEVIDENCE_ID, "ipfs://test");
         unipeer.addMetaEvidence("ipfs://test");
-        unipeer.addPaymentMethod("PayPal", 1, Dai);
+        unipeer.addPaymentMethod("PayPal", METAEVIDENCE_ID, Dai);
         vm.stopPrank();
     }
 
@@ -173,7 +177,10 @@ contract UnipeerTest is Test {
         uint256 amount = 500 ether;
 
         (uint256 arbFees, ) = unipeer.getArbitratorData();
-        (uint256 tradeFees, ) = unipeer.calculateFees(amount);
+
+        uint256 sellerFeeRate = unipeer.getPaymentMethodSellerFeeRate(PAYMENT_ID, seller);
+        uint256 feeRate = unipeer.tradeFeeRate() + sellerFeeRate;
+        (uint256 tradeFees, ) = unipeer.calculateFees(amount, feeRate);
 
         vm.expectEmit(true, true, false, true);
         emit BuyOrder(0, buyer, PAYMENT_ID, seller, Dai, amount, tradeFees);
@@ -218,8 +225,8 @@ contract UnipeerTest is Test {
 
         hoax(admin);
         vm.expectEmit(true, true, false, true);
-        emit PaymentMethodUpdate(1, "CashApp", 1);
-        unipeer.addPaymentMethod("CashApp", 1, Dai);
+        emit PaymentMethodUpdate(1, "CashApp", METAEVIDENCE_ID);
+        unipeer.addPaymentMethod("CashApp", METAEVIDENCE_ID, Dai);
         startHoax(buyer);
 
         (uint256 arbFees, ) = unipeer.getArbitratorData();
@@ -274,8 +281,7 @@ contract UnipeerTest is Test {
         testConfirmPaid();
         vm.stopPrank();
 
-        uint256 amount = unipeer.getOrderAmountAfterFees(ORDER_ID);
-        uint256 fees = unipeer.getFeeAmount(ORDER_ID);
+        (uint256 fees, uint256 amount) = unipeer.getOrderFeeAmount(ORDER_ID);
 
         startHoax(seller);
 
@@ -336,7 +342,7 @@ contract UnipeerTest is Test {
 
         startHoax(seller);
         vm.expectEmit(true, true, false, true);
-        emit Dispute(arb, ORDER_ID, ORDER_ID, ORDER_ID);
+        emit Dispute(arb, ORDER_ID, METAEVIDENCE_ID, ORDER_ID);
         unipeer.disputeOrder{value: arbFees}(ORDER_ID);
     }
 
@@ -380,8 +386,7 @@ contract UnipeerTest is Test {
         testConfirmPaid();
         vm.stopPrank();
 
-        uint256 amount = unipeer.getOrderAmountAfterFees(ORDER_ID);
-        uint256 fees = unipeer.getFeeAmount(ORDER_ID);
+        (uint256 fees, uint256 amount) = unipeer.getOrderFeeAmount(ORDER_ID);
 
         skip(unipeer.sellerTimeout() + 1);
         vm.expectEmit(true, true, false, true);
@@ -426,7 +431,7 @@ contract UnipeerTest is Test {
         unipeer.rule(ORDER_ID, 1);
     }
 
-    function testFailRuleOnNonExistingDisputr() public {
+    function testFailRuleOnNonExistingDispute() public {
         testConfirmPaid();
         vm.stopPrank();
 
@@ -450,19 +455,17 @@ contract UnipeerTest is Test {
 
     function testAddPaymentMethod() public {
         startHoax(admin);
-        vm.expectRevert("Invalid Meta Evidence ID");
-        unipeer.addPaymentMethod("PayPal", 0, Dai);
 
         assertEq(unipeer.metaEvidenceUpdates(), 0);
         assertEq(unipeer.totalPaymentMethods(), 0);
         unipeer.addMetaEvidence("ipfs://test");
         vm.expectEmit(true, true, false, true);
-        emit PaymentMethodUpdate(PAYMENT_ID, "PayPal", 1);
-        unipeer.addPaymentMethod("PayPal", 1, Dai);
+        emit PaymentMethodUpdate(PAYMENT_ID, "PayPal", METAEVIDENCE_ID);
+        unipeer.addPaymentMethod("PayPal", METAEVIDENCE_ID, Dai);
         assertEq(unipeer.totalPaymentMethods(), 1);
 
         vm.expectRevert("Invalid Meta Evidence ID");
-        unipeer.addPaymentMethod("PayPal", 2, Dai);
+        unipeer.addPaymentMethod("PayPal", 1, Dai);
     }
 
     function testWithdrawFees() public {
@@ -519,7 +522,7 @@ contract UnipeerTest is Test {
         vm.expectRevert("Ownable: caller is not the owner");
         unipeer.addMetaEvidence("ipfs://test");
         vm.expectRevert("Ownable: caller is not the owner");
-        unipeer.addPaymentMethod("PayPal", 1, Dai);
+        unipeer.addPaymentMethod("PayPal", METAEVIDENCE_ID, Dai);
         vm.expectRevert("Ownable: caller is not the owner");
         unipeer.updatePaymentMetaEvidence(0, 0);
         vm.expectRevert("Ownable: caller is not the owner");

@@ -72,13 +72,19 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         // a buyer will make payments to.
         // paymentAddress[seller] = "example@paypal.me"
         mapping(address => string) paymentAddress;
+        // Seller's feeRate for a payment method
+        // in MULTIPLIER_DIVISOR basis points
+        mapping(address => uint256) feeRate;
     }
 
     struct Order {
+        uint16 paymentID;
         address payable buyer;
         address payable seller;
         IERC20 token;
         uint256 amount;
+        // The calculated fees from tradeFeeRate + sellerFeeRate
+        uint256 fee;
         // The fee buyer has paid for arbitration at the time of placing an order.
         uint256 buyerFee;
         // The fee seller has paid for raising a dispute.
@@ -121,7 +127,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     uint256 public protocolFeesSum;
     // The fee rate applicable to trades,
     // max to the MULTIPLIER_DIVISOR decimal
-    uint256 public tradeFees;
+    uint256 public tradeFeeRate;
 
     uint16 public totalPaymentMethods;
     // List of Payment Methods by paymentID
@@ -218,7 +224,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         uint256 _sharedStakeMultiplier,
         uint256 _winnerStakeMultiplier,
         uint256 _loserStakeMultiplier,
-        uint256 _tradeFees
+        uint256 _tradeFeeRate
     )
         Delegatable("Unipeer", _version)
     {
@@ -230,7 +236,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         sharedStakeMultiplier = _sharedStakeMultiplier;
         winnerStakeMultiplier = _winnerStakeMultiplier;
         loserStakeMultiplier = _loserStakeMultiplier;
-        tradeFees = _tradeFees;
+        tradeFeeRate = _tradeFeeRate;
     }
 
     // ************************************* //
@@ -274,14 +280,14 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
 
     function addPaymentMethod(
         string calldata _paymentName,
-        uint8 _metaEvidenceID,
+        uint256 _metaEvidenceID,
         IERC20 _initalEnabledToken
     )
         external
         onlyAdmin
     {
         require(
-            _metaEvidenceID != 0 && _metaEvidenceID <= metaEvidenceUpdates,
+            _metaEvidenceID < metaEvidenceUpdates,
             "Invalid Meta Evidence ID"
         );
         PaymentMethod storage pm = paymentMethods[totalPaymentMethods++];
@@ -292,7 +298,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         emit PaymentMethodUpdate(totalPaymentMethods - 1, _paymentName, _metaEvidenceID);
     }
 
-    function updatePaymentMetaEvidence(uint16 _paymentID, uint8 _metaEvidenceID)
+    function updatePaymentMetaEvidence(uint16 _paymentID, uint256 _metaEvidenceID)
         external
         onlyAdmin
     {
@@ -335,9 +341,9 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         sellerTimeout = _timeout;
     }
 
-    function changeFees(uint256 _fees) external onlyAdmin {
-        require(_fees < MULTIPLIER_DIVISOR, "fees cannot be more than 100%");
-        tradeFees = _fees;
+    function changeFees(uint256 _feeRate) external onlyAdmin {
+        require(_feeRate < MULTIPLIER_DIVISOR, "fees cannot be more than 100%");
+        tradeFeeRate = _feeRate;
     }
 
     function withdrawFees(uint256 _amount, address payable _to) external onlyAdmin {
@@ -416,12 +422,17 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         (uint256 arbitrationCost, ) = getArbitratorData();
         require(msg.value >= arbitrationCost, "Arbitration fees need to be paid");
 
+        uint256 feeRate = tradeFeeRate + pm.feeRate[_seller];
+        (uint256 _fee, ) = calculateFees(_amount, feeRate);
+
         orders.push(
             Order({
+                paymentID: _paymentID,
                 buyer: payable(_msgSender()),
                 seller: payable(_seller),
                 token: _token,
                 amount: _amount,
+                fee: _fee,
                 buyerFee: msg.value,
                 sellerFee: 0,
                 disputeID: 0,
@@ -432,9 +443,8 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         );
         tokenBalance[_seller][_token] -= _amount;
 
-        (uint256 fee, ) = calculateFees(_amount);
         emit BuyOrder(
-            orders.length - 1, _msgSender(), _paymentID, _seller, _token, _amount, fee
+            orders.length - 1, _msgSender(), _paymentID, _seller, _token, _amount, _fee
             );
     }
 
@@ -512,7 +522,9 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         DisputeData storage dispute = disputes[order.disputeID];
         dispute.orderID = _orderID;
 
-        emit Dispute(arbitrator, order.disputeID, _orderID, _orderID);
+        PaymentMethod storage pm = paymentMethods[order.paymentID];
+
+        emit Dispute(arbitrator, order.disputeID, pm.metaEvidenceID, _orderID);
     }
 
     // ************************************* //
@@ -571,7 +583,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
 
     /**
      * @dev Submit a reference to evidence. EVENT.
-     * @param _orderID The index of the order.
+     * @param _orderID The index of the order. Used as EvidenceGroupID
      * @param _evidence A link to an evidence using its URI.
      */
     function submitEvidence(uint256 _orderID, string calldata _evidence) external {
@@ -764,7 +776,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     }
 
     // ************************************* //
-    // *              Views                * //
+    // *              Pure                 * //
     // ************************************* //
 
     /**
@@ -772,13 +784,28 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
      * @return fee The fee amount according to the tradeFee rate.
      * @return tradeAmount The amount minus fees to be transferred to the buyer.
      */
-    function calculateFees(uint256 _amount)
+    function calculateFees(uint256 _amount, uint256 _feeRate)
         public
-        view
+        pure
         returns (uint256 fee, uint256 tradeAmount)
     {
-        fee = _amount * tradeFees / MULTIPLIER_DIVISOR;
+        fee = _amount * _feeRate / MULTIPLIER_DIVISOR;
         tradeAmount = _amount - fee;
+    }
+
+    // ************************************* //
+    // *              Views                * //
+    // ************************************* //
+
+    function getOrderFeeAmount(uint256 _orderID) public view returns (uint256 fee, uint256 tradeAmount) {
+        Order storage order = orders[_orderID];
+        fee = order.fee;
+        tradeAmount = order.amount - order.fee;
+    }
+
+    function getPaymentMethodSellerFeeRate(uint16 _paymentID, address _seller) external view returns (uint256 fee) {
+        PaymentMethod storage pm = paymentMethods[_paymentID];
+        fee = pm.feeRate[_seller];
     }
 
     function getPaymentMethodDetails(uint16 _paymentID)
@@ -821,18 +848,6 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         bytes memory arbitratorExtraData = arbitratorData.arbitratorExtraData;
         uint256 arbitrationCost = arbitrator.arbitrationCost(arbitratorExtraData);
         return (arbitrationCost, arbitratorExtraData);
-    }
-
-    function getFeeAmount(uint256 _orderID) external view returns (uint256) {
-        Order storage order = orders[_orderID];
-        (uint256 fee,) = calculateFees(order.amount);
-        return fee;
-    }
-
-    function getOrderAmountAfterFees(uint256 _orderID) external view returns (uint256) {
-        Order storage order = orders[_orderID];
-        ( ,uint256 tradeAmount) = calculateFees(order.amount);
-        return tradeAmount;
     }
 
     function getCountOrders() external view returns (uint256) {
@@ -1009,15 +1024,18 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         Order storage order = orders[dispute.orderID];
 
         uint256 amount = order.amount;
+        uint256 fee = order.fee;
         uint256 buyerFee = order.buyerFee;
         uint256 sellerFee = order.sellerFee;
+        uint256 tradeAmount = amount - fee;
 
         order.amount = 0;
+        order.fee = 0;
         order.buyerFee = 0;
         order.sellerFee = 0;
         order.status = Status.Resolved;
 
-        (uint256 fee, uint256 tradeAmount) = calculateFees(amount);
+        // Collect the fees
         protocolFeesSum += fee;
 
         if (dispute.ruling == Party.Buyer) {
@@ -1117,13 +1135,16 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
 
     function _markOrderComplete(Order storage order) internal {
         uint256 amount = order.amount;
+        uint256 fee = order.fee;
         uint256 buyerFee = order.buyerFee;
+        uint256 tradeAmount = amount - fee;
 
         order.amount = 0;
+        order.fee = 0;
         order.buyerFee = 0;
         order.status = Status.Completed;
 
-        (uint256 fee, uint256 tradeAmount) = calculateFees(amount);
+        // Collect the fees
         protocolFeesSum += fee;
 
         // Return the buyers arbitration fees.
