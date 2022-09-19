@@ -1,16 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0
 pragma solidity 0.8.15;
 
-import "oz/access/Ownable.sol";
 import "oz/token/ERC20/utils/SafeERC20.sol";
 import "oz/utils/math/Math.sol";
 import "kleros/IArbitrable.sol";
 import "kleros/erc-1497/IEvidence.sol";
 import "kleros/IArbitrator.sol";
 import "delegatable/Delegatable.sol";
-import "delegatable/CaveatEnforcer.sol";
 
-contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer {
+contract Unipeer is IArbitrable, IEvidence, Delegatable {
     using SafeERC20 for IERC20;
 
     // ************************************* //
@@ -153,7 +151,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     // ************************************* //
 
     modifier onlyAdmin() {
-        _checkOwner();
+        require(admin == msg.sender, "Only Admin");
         _;
     }
 
@@ -161,17 +159,18 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     // *             Events                * //
     // ************************************* //
 
+    event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
     event FeeWithdrawn(uint256 amount);
     event PaymentMethodUpdate(uint16 paymentID, string paymentName, uint256 metaEvidenceID);
-    event SellerPaymentMethod(address sender, uint16 paymentID, string paymentAddress);
-    event SellerPaymentDisabled(address sender, uint16 paymentID);
-    event SellerDeposit(address sender, IERC20 token, uint256 amount);
-    event SellerWithdraw(address sender, IERC20 token, uint256 amount);
+    event SellerPaymentMethod(address indexed sender, uint16 paymentID, string paymentAddress);
+    event SellerPaymentDisabled(address indexed sender, uint16 paymentID);
+    event SellerDeposit(address indexed sender, IERC20 token, uint256 amount);
+    event SellerWithdraw(address indexed sender, IERC20 token, uint256 amount);
     event BuyOrder(
         uint256 orderID,
-        address buyer,
+        address indexed buyer,
         uint16 paymentID,
-        address seller,
+        address indexed seller,
         IERC20 token,
         uint256 amount,
         uint256 feeAmount
@@ -216,6 +215,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
      * has to pay for a round. In basis points.
      */
     constructor(
+        address _admin,
         string memory _version,
         IArbitrator _arbitrator,
         bytes memory _arbitratorExtraData,
@@ -228,6 +228,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     )
         Delegatable("Unipeer", _version)
     {
+        admin = _admin;
         arbitratorDataList.push(
             ArbitratorData({arbitrator: _arbitrator, arbitratorExtraData: _arbitratorExtraData})
         );
@@ -246,6 +247,15 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     // ************************************* //
     // *           Admin only              * //
     // ************************************* //
+
+    function changeAdmin(address _newAdmin)
+        external
+        onlyAdmin
+    {
+        address oldAdmin = admin;
+        admin = _newAdmin;
+        emit AdminTransferred(oldAdmin, _newAdmin);
+    }
 
     /**
      * @dev Change the arbitrator to be used for disputes.
@@ -688,8 +698,6 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
      * @param _ruling Ruling given by the arbitrator. Note that 0 is reserved for "Refused to arbitrate".
      */
     function rule(uint256 _disputeID, uint256 _ruling) external {
-        //require(_disputeID < disputes.length, "Invalid Order ID");
-
         DisputeData storage dispute = disputes[_disputeID];
         Order storage order = orders[dispute.orderID];
         IArbitrator arbitrator = arbitratorDataList[order.arbitratorID].arbitrator;
@@ -960,61 +968,6 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
         );
     }
 
-    /**
-     * @dev Implement a base caveat that prevents delegating owner and admin function.
-     */
-    function enforceCaveat(
-        bytes calldata, /* terms */
-        Transaction calldata transaction,
-        bytes32 /* delegationHash */
-    )
-        public
-        pure
-        override
-        returns (bool)
-    {
-        // Owner/Admin methods are not delegatable in this contract:
-        bytes4 targetSig = bytes4(transaction.data[0:4]);
-
-        // transferOwnership(address newOwner)
-        require(targetSig != 0xf2fde38b, "transferOwnership is not delegatable");
-
-        // renounceOwnership()
-        require(targetSig != 0x715018a6, "renounceOwnership is not delegatable");
-
-        // changeArbitrator(IArbitrator, bytes)
-        require(targetSig != 0xba7079ca, "changeArbitrator is not delegatable");
-
-        // addMetaEvidence(string)
-        require(targetSig != 0xb6694b7b, "addMetaEvidence is not delegatable");
-
-        // addPaymentMethod(string, uint8, address)
-        require(targetSig != 0x7a982eb6, "addPaymentMethod is not delegatable");
-
-        // updatePaymentMetaEvidence(uint16, uint8)
-        require(targetSig != 0x86c61ce5, "updatePaymentMetaEvidence is not delegatable");
-
-        // updatePaymentName(uint16, string)
-        require(targetSig != 0xae1a38ed, "updatePaymentName is not delegatable");
-
-        // updateTokenEnabled(uint16, address, bool)
-        require(targetSig != 0xabaa14ff, "updateTokenEnabled is not delegatable");
-
-        // changeBuyerTimeout(uint256)
-        require(targetSig != 0xf07dbd00, "changeBuyerTimeout is not delegatable");
-
-        // changeSellerTimeout(uint256)
-        require(targetSig != 0xe8cfe7ac, "changeSellerTimeout is not delegatable");
-
-        // changeFees(uint256)
-        require(targetSig != 0x6cda375b, "changeFees is not delegatable");
-
-        // withdrawFees(uint256, address)
-        require(targetSig != 0xdd2cc3f3, "withdrawFees is not delegatable");
-
-        return true;
-    }
-
     // ************************************* //
     // *            Internal               * //
     // ************************************* //
@@ -1158,7 +1111,7 @@ contract Unipeer is IArbitrable, IEvidence, Ownable, Delegatable, CaveatEnforcer
     function _msgSender()
         internal
         view
-        override (DelegatableCore, Context)
+        override (DelegatableCore)
         returns (address sender)
     {
         if (msg.sender == address(this)) {

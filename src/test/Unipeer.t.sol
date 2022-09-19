@@ -36,17 +36,18 @@ contract UnipeerTest is Test {
     // IArbitrable
     event Ruling(IArbitrator indexed _arbitrator, uint256 indexed _disputeID, uint256 _ruling);
 
+    event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
     event FeeWithdrawn(uint256 amount);
     event PaymentMethodUpdate(uint16 paymentID, string paymentName, uint256 metaEvidenceID);
-    event SellerPaymentMethod(address sender, uint16 paymentID, string paymentAddress);
-    event SellerPaymentDisabled(address sender, uint16 paymentID);
-    event SellerDeposit(address sender, IERC20 token, uint256 amount);
-    event SellerWithdraw(address sender, IERC20 token, uint256 amount);
+    event SellerPaymentMethod(address indexed sender, uint16 paymentID, string paymentAddress);
+    event SellerPaymentDisabled(address indexed sender, uint16 paymentID);
+    event SellerDeposit(address indexed sender, IERC20 token, uint256 amount);
+    event SellerWithdraw(address indexed sender, IERC20 token, uint256 amount);
     event BuyOrder(
         uint256 orderID,
-        address buyer,
+        address indexed buyer,
         uint16 paymentID,
-        address seller,
+        address indexed seller,
         IERC20 token,
         uint256 amount,
         uint256 feeAmount
@@ -76,6 +77,7 @@ contract UnipeerTest is Test {
         arbitrator = new SimpleCentralizedArbitrator();
 
         unipeer = new Unipeer(
+            admin,
             "1",
             arbitrator,
             bytes(""),
@@ -86,8 +88,6 @@ contract UnipeerTest is Test {
             20_000,
             5
         );
-
-        unipeer.transferOwnership(admin);
     }
 
     function setUpPaymentMethod() public {
@@ -517,29 +517,27 @@ contract UnipeerTest is Test {
     }
 
     function testCannotCallAdminOnlyFunctions() public {
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert("Only Admin");
+        unipeer.changeAdmin(user);
+        vm.expectRevert("Only Admin");
         unipeer.changeArbitrator(IArbitrator(user), bytes("1"));
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert("Only Admin");
         unipeer.addMetaEvidence("ipfs://test");
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert("Only Admin");
         unipeer.addPaymentMethod("PayPal", META_ID, Dai);
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert("Only Admin");
         unipeer.updatePaymentMetaEvidence(PAYMENT_ID, 0);
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert("Only Admin");
         unipeer.updatePaymentName(PAYMENT_ID, "PayPal US");
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert("Only Admin");
         unipeer.updateTokenEnabled(PAYMENT_ID, Dai, false);
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert("Only Admin");
         unipeer.changeBuyerTimeout(100);
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert("Only Admin");
         unipeer.changeSellerTimeout(100);
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert("Only Admin");
         unipeer.changeFees(100);
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert("Only Admin");
         unipeer.withdrawFees(0, payable(user));
-        vm.expectRevert("Ownable: caller is not the owner");
-        unipeer.transferOwnership(user);
-        vm.expectRevert("Ownable: caller is not the owner");
-        unipeer.renounceOwnership();
     }
 }
