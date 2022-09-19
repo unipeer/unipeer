@@ -161,25 +161,25 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
 
     event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
     event FeeWithdrawn(uint256 amount);
-    event PaymentMethodUpdate(uint16 paymentID, string paymentName, uint256 metaEvidenceID);
+    event PaymentMethodUpdate(uint16 indexed paymentID, string paymentName, uint256 metaEvidenceID);
     event SellerPaymentMethod(address indexed sender, uint16 paymentID, string paymentAddress);
     event SellerPaymentDisabled(address indexed sender, uint16 paymentID);
     event SellerDeposit(address indexed sender, IERC20 token, uint256 amount);
     event SellerWithdraw(address indexed sender, IERC20 token, uint256 amount);
     event BuyOrder(
-        uint256 orderID,
-        address indexed buyer,
+        uint256 indexed orderID,
+        address buyer,
         uint16 paymentID,
-        address indexed seller,
+        address seller,
         IERC20 token,
         uint256 amount,
         uint256 feeAmount
     );
-    event Paid(uint256 orderID);
-    event OrderComplete(uint256 orderID);
-    event OrderResolved(uint256 orderID);
-    event TimedOutByBuyer(uint256 orderID);
-    event TimedOutBySeller(uint256 orderID);
+    event Paid(uint256 indexed orderID);
+    event OrderComplete(uint256 indexed orderID);
+    event OrderResolved(uint256 indexed orderID);
+    event TimedOutByBuyer(uint256 indexed orderID);
+    event TimedOutBySeller(uint256 indexed orderID);
 
     /**
      * @dev To be emitted when the appeal fees of one of the parties are fully funded.
