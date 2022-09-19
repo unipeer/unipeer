@@ -8,6 +8,8 @@ remappings = [
     'kleros/=lib/kleros/contracts',
     'delegatable/=lib/delegatable-sol/contracts/'
 ]
+optimizer = true
+optimizer_runs = 200
 
 [fmt]
 line_length = 91
