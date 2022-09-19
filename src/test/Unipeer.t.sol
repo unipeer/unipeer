@@ -414,16 +414,78 @@ contract UnipeerTest is Test {
         unipeer.submitEvidence(ORDER_ID, "ipfs://test");
     }
 
-    function testRule() public {
+    function testRulingBuyer() public {
         testDisputeOrder();
         vm.stopPrank();
 
+        {
+        (,,,, uint256 amount, uint256 fee, uint256 buyerFee, ,,,,) = unipeer.orders(ORDER_ID);
+        uint256 oldBalanceBuyer = address(buyer).balance;
+        uint256 oldBalanceSeller = address(seller).balance;
+
+        vm.expectEmit(true, true, false, true);
+        emit Transfer(address(unipeer), buyer, amount - fee);
+        vm.expectEmit(true, true, false, true);
+        emit OrderResolved(ORDER_ID);
         vm.expectEmit(true, true, false, true);
         emit Ruling(arbitrator, ORDER_ID, 1);
         arbitrator.rule(ORDER_ID, 1);
+
+        uint256 newBalanceBuyer = address(buyer).balance;
+        uint256 newBalanceSeller = address(seller).balance;
+        assertEq(newBalanceBuyer - oldBalanceBuyer, buyerFee);
+        assertEq(newBalanceSeller - oldBalanceSeller, 0);
+        }
     }
 
-    function testCannotBeCalledByAnyoneRule() public {
+    function testRulingSeller() public {
+        testDisputeOrder();
+        vm.stopPrank();
+        (,,,, uint256 amount, ,, uint256 sellerFee, ,,,) = unipeer.orders(ORDER_ID);
+        uint256 oldBalanceBuyer = address(buyer).balance;
+        uint256 oldBalanceSeller = address(seller).balance;
+        uint256 oldTokenBalance = unipeer.tokenBalance(seller, Dai);
+
+        vm.expectEmit(true, true, false, true);
+        emit OrderResolved(ORDER_ID);
+        vm.expectEmit(true, true, false, true);
+        emit Ruling(arbitrator, ORDER_ID, 2);
+        arbitrator.rule(ORDER_ID, 2);
+
+        uint256 newBalanceBuyer = address(buyer).balance;
+        uint256 newBalanceSeller = address(seller).balance;
+        uint256 newTokenBalance = unipeer.tokenBalance(seller, Dai);
+        assertEq(newBalanceBuyer - oldBalanceBuyer, 0);
+        assertEq(newBalanceSeller - oldBalanceSeller, sellerFee);
+        assertEq(newTokenBalance - oldTokenBalance, amount);
+    }
+
+    function testRulingNone() public {
+        testDisputeOrder();
+        vm.stopPrank();
+
+        (,,,, uint256 amount, , uint256 buyerFee, ,,,,) = unipeer.orders(ORDER_ID);
+        uint256 oldBalanceBuyer = address(buyer).balance;
+        uint256 oldBalanceSeller = address(seller).balance;
+        uint256 oldTokenBalance = unipeer.tokenBalance(seller, Dai);
+
+        vm.expectEmit(true, true, false, true);
+        emit Transfer(address(unipeer), buyer, amount / 2);
+        vm.expectEmit(true, true, false, true);
+        emit OrderResolved(ORDER_ID);
+        vm.expectEmit(true, true, false, true);
+        emit Ruling(arbitrator, ORDER_ID, 0);
+        arbitrator.rule(ORDER_ID, 0);
+
+        uint256 newBalanceBuyer = address(buyer).balance;
+        uint256 newBalanceSeller = address(seller).balance;
+        uint256 newTokenBalance = unipeer.tokenBalance(seller, Dai);
+        assertEq(newBalanceBuyer - oldBalanceBuyer, buyerFee / 2);
+        assertEq(newBalanceSeller - oldBalanceSeller, buyerFee / 2);
+        assertEq(newTokenBalance - oldTokenBalance, amount / 2);
+    }
+
+    function testRuleCannotBeCalledByAnyone() public {
         testDisputeOrder();
         vm.stopPrank();
 
@@ -432,12 +494,47 @@ contract UnipeerTest is Test {
         unipeer.rule(ORDER_ID, 1);
     }
 
+    function testRuleCannotHaveInvalidRuling() public {
+        testDisputeOrder();
+        vm.stopPrank();
+
+        hoax(address(arbitrator));
+        vm.expectRevert("Invalid ruling");
+        unipeer.rule(ORDER_ID, 99);
+    }
+
     function testFailRuleOnNonExistingDispute() public {
         testConfirmPaid();
         vm.stopPrank();
 
         arbitrator.rule(ORDER_ID, 1);
     }
+
+    function testWithdrawFeeAndRewards() public {
+        testRulingBuyer();
+
+        (,,uint256 feeRewards,) = unipeer.getRoundInfo(ORDER_ID, 0);
+        assertEq(feeRewards, 0);
+    }
+
+    /*
+    function testWithdrawFeeAndRewardsWithAppeals() public {
+        _testRule(1);
+
+        (,,uint256 feeRewards,) = unipeer.getRoundInfo(ORDER_ID, 0);
+
+        uint256 oldBalance = address(seller).balance;
+        unipeer.withdrawFeesAndRewards(payable(seller), ORDER_ID, 0);
+        uint256 newBalance = address(seller).balance;
+        assertEq(newBalance - oldBalance, 0);
+
+        oldBalance = address(buyer).balance;
+        unipeer.withdrawFeesAndRewards(payable(buyer), ORDER_ID, 0);
+        newBalance = address(buyer).balance;
+        assertTrue(feeRewards != 0, "feeRewards is zero");
+        assertEq(newBalance - oldBalance, feeRewards);
+    }
+    */
 
     // ************************************* //
     // *           Admin only              * //

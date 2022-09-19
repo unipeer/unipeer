@@ -727,8 +727,8 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         IArbitrator arbitrator = arbitratorDataList[order.arbitratorID].arbitrator;
 
         require(msg.sender == address(arbitrator), "Only arbitrator");
-        require(_ruling <= RULING_OPTIONS, "Invalid ruling.");
-        require(order.status != Status.Resolved, " Dispute already resolved.");
+        require(_ruling <= RULING_OPTIONS, "Invalid ruling");
+        require(order.status != Status.Resolved, " Dispute already resolved");
 
         Round storage round = dispute.rounds[dispute.lastRoundID];
 
@@ -1012,8 +1012,11 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         order.sellerFee = 0;
         order.status = Status.Resolved;
 
-        // Collect the fees
-        protocolFeesSum += fee;
+        // Collect the fees.
+        // We don't collect in case on inconclusive ruling
+        if (dispute.ruling != Party.None) {
+            protocolFeesSum += fee;
+        }
 
         if (dispute.ruling == Party.Buyer) {
             order.buyer.send(buyerFee);
@@ -1032,7 +1035,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
             uint256 splitAmount = amount / 2;
             // non-safe transfer used here to prevent blocking on revert
             order.token.transfer(order.buyer, splitAmount);
-            order.token.transfer(order.seller, splitAmount);
+            tokenBalance[order.seller][order.token] += splitAmount;
         }
 
         emit OrderResolved(dispute.orderID);
