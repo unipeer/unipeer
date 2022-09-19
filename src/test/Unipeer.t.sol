@@ -418,13 +418,13 @@ contract UnipeerTest is Test {
         testDisputeOrder();
         vm.stopPrank();
 
-        {
-        (,,,, uint256 amount, uint256 fee, uint256 buyerFee, ,,,,) = unipeer.orders(ORDER_ID);
+        (, uint256 tradeAmount) = unipeer.getOrderFeeAmount(ORDER_ID);
+        uint256 arbFees = arbitrator.arbitrationCost("");
         uint256 oldBalanceBuyer = address(buyer).balance;
         uint256 oldBalanceSeller = address(seller).balance;
 
         vm.expectEmit(true, true, false, true);
-        emit Transfer(address(unipeer), buyer, amount - fee);
+        emit Transfer(address(unipeer), buyer, tradeAmount);
         vm.expectEmit(true, true, false, true);
         emit OrderResolved(ORDER_ID);
         vm.expectEmit(true, true, false, true);
@@ -433,15 +433,16 @@ contract UnipeerTest is Test {
 
         uint256 newBalanceBuyer = address(buyer).balance;
         uint256 newBalanceSeller = address(seller).balance;
-        assertEq(newBalanceBuyer - oldBalanceBuyer, buyerFee);
+        assertEq(newBalanceBuyer - oldBalanceBuyer, arbFees);
         assertEq(newBalanceSeller - oldBalanceSeller, 0);
-        }
     }
 
     function testRulingSeller() public {
         testDisputeOrder();
         vm.stopPrank();
-        (,,,, uint256 amount, ,, uint256 sellerFee, ,,,) = unipeer.orders(ORDER_ID);
+
+        (uint256 fee, uint256 tradeAmount) = unipeer.getOrderFeeAmount(ORDER_ID);
+        uint256 arbFees = arbitrator.arbitrationCost("");
         uint256 oldBalanceBuyer = address(buyer).balance;
         uint256 oldBalanceSeller = address(seller).balance;
         uint256 oldTokenBalance = unipeer.tokenBalance(seller, Dai);
@@ -456,21 +457,22 @@ contract UnipeerTest is Test {
         uint256 newBalanceSeller = address(seller).balance;
         uint256 newTokenBalance = unipeer.tokenBalance(seller, Dai);
         assertEq(newBalanceBuyer - oldBalanceBuyer, 0);
-        assertEq(newBalanceSeller - oldBalanceSeller, sellerFee);
-        assertEq(newTokenBalance - oldTokenBalance, amount);
+        assertEq(newBalanceSeller - oldBalanceSeller, arbFees);
+        assertEq(newTokenBalance - oldTokenBalance, tradeAmount + fee);
     }
 
     function testRulingNone() public {
         testDisputeOrder();
         vm.stopPrank();
 
-        (,,,, uint256 amount, , uint256 buyerFee, ,,,,) = unipeer.orders(ORDER_ID);
+        (uint256 fee, uint256 tradeAmount) = unipeer.getOrderFeeAmount(ORDER_ID);
+        uint256 arbFees = arbitrator.arbitrationCost("");
         uint256 oldBalanceBuyer = address(buyer).balance;
         uint256 oldBalanceSeller = address(seller).balance;
         uint256 oldTokenBalance = unipeer.tokenBalance(seller, Dai);
 
         vm.expectEmit(true, true, false, true);
-        emit Transfer(address(unipeer), buyer, amount / 2);
+        emit Transfer(address(unipeer), buyer, (tradeAmount + fee )/ 2);
         vm.expectEmit(true, true, false, true);
         emit OrderResolved(ORDER_ID);
         vm.expectEmit(true, true, false, true);
@@ -480,9 +482,9 @@ contract UnipeerTest is Test {
         uint256 newBalanceBuyer = address(buyer).balance;
         uint256 newBalanceSeller = address(seller).balance;
         uint256 newTokenBalance = unipeer.tokenBalance(seller, Dai);
-        assertEq(newBalanceBuyer - oldBalanceBuyer, buyerFee / 2);
-        assertEq(newBalanceSeller - oldBalanceSeller, buyerFee / 2);
-        assertEq(newTokenBalance - oldTokenBalance, amount / 2);
+        assertEq(newBalanceBuyer - oldBalanceBuyer, arbFees / 2);
+        assertEq(newBalanceSeller - oldBalanceSeller, arbFees / 2);
+        assertEq(newTokenBalance - oldTokenBalance, (tradeAmount + fee )/ 2);
     }
 
     function testRuleCannotBeCalledByAnyone() public {

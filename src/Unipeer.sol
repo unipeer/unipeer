@@ -582,6 +582,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         uint256 buyerFee = order.buyerFee;
 
         order.amount = 0;
+        order.fee = 0;
         order.buyerFee = 0;
         order.status = Status.Cancelled;
 
