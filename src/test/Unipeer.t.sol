@@ -66,7 +66,7 @@ contract UnipeerTest is Test {
     SimpleCentralizedArbitrator arbitrator;
     Unipeer unipeer;
 
-    uint16 constant METAEVIDENCE_ID = 0;
+    uint16 constant META_ID = 0;
     uint16 constant PAYMENT_ID = 0;
     uint16 constant ORDER_ID = 0;
     uint256 constant SELLER_BALANCE = 100_000 ether;
@@ -93,9 +93,9 @@ contract UnipeerTest is Test {
     function setUpPaymentMethod() public {
         startHoax(admin);
         vm.expectEmit(true, true, false, true);
-        emit MetaEvidence(METAEVIDENCE_ID, "ipfs://test");
+        emit MetaEvidence(META_ID, "ipfs://test");
         unipeer.addMetaEvidence("ipfs://test");
-        unipeer.addPaymentMethod("PayPal", METAEVIDENCE_ID, Dai);
+        unipeer.addPaymentMethod("PayPal", META_ID, Dai);
         vm.stopPrank();
     }
 
@@ -183,7 +183,7 @@ contract UnipeerTest is Test {
         (uint256 tradeFees, ) = unipeer.calculateFees(amount, feeRate);
 
         vm.expectEmit(true, true, false, true);
-        emit BuyOrder(0, buyer, PAYMENT_ID, seller, Dai, amount, tradeFees);
+        emit BuyOrder(ORDER_ID, buyer, PAYMENT_ID, seller, Dai, amount, tradeFees);
         unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, amount);
 
         uint256 newBalance = unipeer.tokenBalance(seller, Dai);
@@ -225,8 +225,8 @@ contract UnipeerTest is Test {
 
         hoax(admin);
         vm.expectEmit(true, true, false, true);
-        emit PaymentMethodUpdate(1, "CashApp", METAEVIDENCE_ID);
-        unipeer.addPaymentMethod("CashApp", METAEVIDENCE_ID, Dai);
+        emit PaymentMethodUpdate(1, "CashApp", META_ID);
+        unipeer.addPaymentMethod("CashApp", META_ID, Dai);
         startHoax(buyer);
 
         (uint256 arbFees, ) = unipeer.getArbitratorData();
@@ -342,7 +342,7 @@ contract UnipeerTest is Test {
 
         startHoax(seller);
         vm.expectEmit(true, true, false, true);
-        emit Dispute(arb, ORDER_ID, METAEVIDENCE_ID, ORDER_ID);
+        emit Dispute(arb, ORDER_ID, META_ID, ORDER_ID);
         unipeer.disputeOrder{value: arbFees}(ORDER_ID);
     }
 
@@ -460,12 +460,12 @@ contract UnipeerTest is Test {
         assertEq(unipeer.totalPaymentMethods(), 0);
         unipeer.addMetaEvidence("ipfs://test");
         vm.expectEmit(true, true, false, true);
-        emit PaymentMethodUpdate(PAYMENT_ID, "PayPal", METAEVIDENCE_ID);
-        unipeer.addPaymentMethod("PayPal", METAEVIDENCE_ID, Dai);
+        emit PaymentMethodUpdate(PAYMENT_ID, "PayPal", META_ID);
+        unipeer.addPaymentMethod("PayPal", META_ID, Dai);
         assertEq(unipeer.totalPaymentMethods(), 1);
 
         vm.expectRevert("Invalid Meta Evidence ID");
-        unipeer.addPaymentMethod("PayPal", 1, Dai);
+        unipeer.addPaymentMethod("PayPal", META_ID + 1, Dai);
     }
 
     function testWithdrawFees() public {
@@ -503,17 +503,17 @@ contract UnipeerTest is Test {
 
     function testUpdatePaymentMetaEvidence() public {
         testAddPaymentMethod();
-        unipeer.updatePaymentMetaEvidence(0, 1);
+        unipeer.updatePaymentMetaEvidence(PAYMENT_ID, META_ID + 1);
     }
 
     function testUpdatePaymentName() public {
         testAddPaymentMethod();
-        unipeer.updatePaymentName(0, "PayPal US");
+        unipeer.updatePaymentName(PAYMENT_ID, "PayPal US");
     }
 
     function testUpdateTokenEnabled() public {
         testAddPaymentMethod();
-        unipeer.updateTokenEnabled(0, Dai, false);
+        unipeer.updateTokenEnabled(PAYMENT_ID, Dai, false);
     }
 
     function testCannotCallAdminOnlyFunctions() public {
@@ -522,13 +522,13 @@ contract UnipeerTest is Test {
         vm.expectRevert("Ownable: caller is not the owner");
         unipeer.addMetaEvidence("ipfs://test");
         vm.expectRevert("Ownable: caller is not the owner");
-        unipeer.addPaymentMethod("PayPal", METAEVIDENCE_ID, Dai);
+        unipeer.addPaymentMethod("PayPal", META_ID, Dai);
         vm.expectRevert("Ownable: caller is not the owner");
-        unipeer.updatePaymentMetaEvidence(0, 0);
+        unipeer.updatePaymentMetaEvidence(PAYMENT_ID, 0);
         vm.expectRevert("Ownable: caller is not the owner");
-        unipeer.updatePaymentName(0, "PayPal US");
+        unipeer.updatePaymentName(PAYMENT_ID, "PayPal US");
         vm.expectRevert("Ownable: caller is not the owner");
-        unipeer.updateTokenEnabled(0, Dai, false);
+        unipeer.updateTokenEnabled(PAYMENT_ID, Dai, false);
         vm.expectRevert("Ownable: caller is not the owner");
         unipeer.changeBuyerTimeout(100);
         vm.expectRevert("Ownable: caller is not the owner");
