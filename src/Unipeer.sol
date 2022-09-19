@@ -726,7 +726,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         Order storage order = orders[dispute.orderID];
         IArbitrator arbitrator = arbitratorDataList[order.arbitratorID].arbitrator;
 
-        require(_msgSender() == address(arbitrator), "Only arbitrator");
+        require(msg.sender == address(arbitrator), "Only arbitrator");
         require(_ruling <= RULING_OPTIONS, "Invalid ruling.");
         require(order.status != Status.Resolved, " Dispute already resolved.");
 
