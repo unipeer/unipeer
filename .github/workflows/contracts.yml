@@ -1,4 +1,4 @@
-name: CI
+name: Solidity
 on:
   push:
     branches:
@@ -9,7 +9,22 @@ env:
   FOUNDRY_PROFILE: ci
 
 jobs:
-  run-ci:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install deps
+        run: forge install
+
+      - name: Run tests
+        run: forge test --gas-report
+  snapshot:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -25,5 +40,20 @@ jobs:
       - name: Check gas snapshots
         run: forge snapshot --check
 
-      - name: Run tests
-        run: forge test
+      - name: Check gas diff
+        run: forge snapshot --diff
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install deps
+        run: forge install
+
+      - name: Run test coverage
+        run: forge coverage
