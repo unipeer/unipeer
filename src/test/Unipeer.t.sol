@@ -39,7 +39,7 @@ contract UnipeerTest is Test {
     event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
     event FeeWithdrawn(uint256 amount);
     event PaymentMethodUpdate(uint16 indexed paymentID, string paymentName, uint256 metaEvidenceID);
-    event SellerPaymentMethod(address indexed sender, uint16 paymentID, string paymentAddress);
+    event SellerPaymentMethod(address indexed sender, uint16 paymentID, string paymentAddress, uint256 feeRate);
     event SellerPaymentDisabled(address indexed sender, uint16 paymentID);
     event SellerDeposit(address indexed sender, IERC20 token, uint256 amount);
     event SellerWithdraw(address indexed sender, IERC20 token, uint256 amount);
@@ -71,6 +71,7 @@ contract UnipeerTest is Test {
     uint16 constant PAYMENT_ID = 0;
     uint16 constant ORDER_ID = 0;
     uint256 constant SELLER_BALANCE = 100_000 ether;
+    uint256 constant SELLER_FEE = 0;
 
     function setUp() public {
         Dai = new ERC20Mock("Dai", "DAI", seller, SELLER_BALANCE);
@@ -102,7 +103,7 @@ contract UnipeerTest is Test {
     function setUpSeller() public {
         setUpPaymentMethod();
         startHoax(seller);
-        unipeer.acceptPaymentMethod(PAYMENT_ID, "seller@paypal.me");
+        unipeer.acceptPaymentMethod(PAYMENT_ID, "seller@paypal.me", SELLER_FEE);
         uint256 amount = 1000 ether;
         Dai.approve(address(unipeer), amount);
         unipeer.depositTokens(PAYMENT_ID, Dai, amount);
@@ -118,8 +119,8 @@ contract UnipeerTest is Test {
 
         startHoax(seller);
         vm.expectEmit(true, true, false, true);
-        emit SellerPaymentMethod(seller, PAYMENT_ID, "seller@paypal.me");
-        unipeer.acceptPaymentMethod(PAYMENT_ID, "seller@paypal.me");
+        emit SellerPaymentMethod(seller, PAYMENT_ID, "seller@paypal.me", SELLER_FEE);
+        unipeer.acceptPaymentMethod(PAYMENT_ID, "seller@paypal.me", SELLER_FEE);
         assertEq(unipeer.getPaymentMethodAddress(PAYMENT_ID, seller), "seller@paypal.me");
     }
 
