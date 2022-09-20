@@ -905,7 +905,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         uint256 totalRounds = dispute.lastRoundID;
         for (uint256 i = 0; i <= totalRounds; i++) {
             Round storage round = dispute.rounds[i];
-            if (i == totalRounds - 1) {
+            if (i == totalRounds) {
                 total += round.contributions[_beneficiary][uint256(Party.Buyer)]
                     + round.contributions[_beneficiary][uint256(Party.Seller)];
             } else if (finalRuling == uint256(Party.None)) {
@@ -1144,6 +1144,5 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         } else {
             sender = msg.sender;
         }
-        return sender;
     }
 }

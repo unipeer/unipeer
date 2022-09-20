@@ -544,10 +544,17 @@ contract UnipeerTest is Test {
         hoax(buyer);
         unipeer.fundAppeal{value: totalCost}(ORDER_ID, Unipeer.Party.Buyer);
 
+        uint256[3] memory contrib = unipeer.getContributions(ORDER_ID, 0, buyer);
+        assertEq(contrib[0], 0);
+        assertEq(contrib[1], totalCost);
+        assertEq(contrib[2], 0);
+
         (uint256[3] memory paidFees, Unipeer.Party sideFunded, , bool appealed) = unipeer.getRoundInfo(ORDER_ID, 0);
         assertEq(paidFees[1], totalCost);
         assertEq(paidFees[2], 0);
         assertEq(appealed, false);
+
+        assertEq(unipeer.getNumberOfRounds(ORDER_ID), 1);
     }
 
     function testFundAppealBuyerAppealed() public {
@@ -567,10 +574,17 @@ contract UnipeerTest is Test {
         hoax(seller);
         unipeer.fundAppeal{value: totalCost}(ORDER_ID, Unipeer.Party.Seller);
 
+        uint256[3] memory contrib = unipeer.getContributions(ORDER_ID, 0, seller);
+        assertEq(contrib[0], 0);
+        assertEq(contrib[1], 0);
+        assertEq(contrib[2], totalCost);
+
         (uint256[3] memory paidFees, Unipeer.Party sideFunded, , bool appealed) = unipeer.getRoundInfo(ORDER_ID, 0);
         assertEq(paidFees[1], totalCost / 2);
         assertEq(paidFees[2], totalCost);
         assertEq(appealed, true);
+
+        assertEq(unipeer.getNumberOfRounds(ORDER_ID), 2);
     }
 
     function testCannotActuallyAppealWithoutPaying() public {
@@ -609,10 +623,13 @@ contract UnipeerTest is Test {
         uint256 newBalance = address(seller).balance;
         assertEq(newBalance - oldBalance, 0);
 
+        uint256 amount = unipeer.amountWithdrawable(ORDER_ID, buyer);
+
         oldBalance = address(buyer).balance;
         unipeer.withdrawFeesAndRewards(payable(buyer), ORDER_ID, 0);
         newBalance = address(buyer).balance;
         assertEq(newBalance - oldBalance, feeRewards);
+        assertEq(amount, feeRewards);
     }
 
     function testCannotWithdrawFeeAndRewardsWithoutRuling() public {
