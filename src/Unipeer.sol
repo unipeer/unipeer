@@ -7,6 +7,7 @@ import "kleros/IArbitrable.sol";
 import "kleros/erc-1497/IEvidence.sol";
 import "kleros/IArbitrator.sol";
 import "delegatable/Delegatable.sol";
+import "forge-std/console2.sol";
 
 contract Unipeer is IArbitrable, IEvidence, Delegatable {
     using SafeERC20 for IERC20;
@@ -201,6 +202,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
 
     /**
      * @dev Constructor.
+     * @param _admin The administrator of the contract.
      * @param _version The version number of the contract.
      * @param _arbitrator The arbitrator of the contract.
      * @param _arbitratorExtraData Extra data for the arbitrator.

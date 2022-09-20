@@ -6,9 +6,10 @@ import "forge-std/Test.sol";
 import "oz/interfaces/IERC20.sol";
 import "oz/mocks/ERC20Mock.sol";
 import "kleros/IArbitrator.sol";
-import "kleros/examples/SimpleCentralizedArbitrator.sol";
+import "./Arbitrator.sol";
 
 import "../Unipeer.sol";
+
 
 contract UnipeerTest is Test {
     using stdStorage for StdStorage;
@@ -34,6 +35,7 @@ contract UnipeerTest is Test {
 
     // IArbitrable
     event Ruling(IArbitrator indexed _arbitrator, uint256 indexed _disputeID, uint256 _ruling);
+    event AppealDecision(uint256 indexed _disputeID, IArbitrable indexed _arbitrable);
 
     event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
     event FeeWithdrawn(uint256 amount);
@@ -56,6 +58,10 @@ contract UnipeerTest is Test {
     event OrderResolved(uint256 indexed orderID);
     event TimedOutByBuyer(uint256 indexed orderID);
     event TimedOutBySeller(uint256 indexed orderID);
+    event HasPaidAppealFee(uint256 indexed _orderID, Unipeer.Party _party);
+    event AppealContribution(
+        uint256 indexed _orderID, Unipeer.Party _party, address _contributor, uint256 _amount
+    );
 
     address public admin = address(1);
     address public user = address(2);
@@ -63,7 +69,7 @@ contract UnipeerTest is Test {
     address public buyer = address(4);
 
     IERC20 Dai;
-    SimpleCentralizedArbitrator arbitrator;
+    Arbitrator arbitrator;
     Unipeer unipeer;
 
     uint16 constant META_ID = 0;
@@ -72,9 +78,15 @@ contract UnipeerTest is Test {
     uint256 constant SELLER_BALANCE = 100_000 ether;
     uint256 constant SELLER_FEE = 0;
 
+    uint256 constant APPEAL_WINDOW = 3 minutes;
+    uint256 constant MULTIPLIER_DIVISOR = 10_000;
+    uint256 constant SHARED_MULTI = 10_000;
+    uint256 constant WIN_MULTI = 5_000;
+    uint256 constant LOSE_MULTI = 20_000;
+
     function setUp() public {
         Dai = new ERC20Mock("Dai", "DAI", seller, SELLER_BALANCE);
-        arbitrator = new SimpleCentralizedArbitrator();
+        arbitrator = new Arbitrator();
 
         unipeer = new Unipeer(
             admin,
@@ -83,9 +95,9 @@ contract UnipeerTest is Test {
             bytes(""),
             10 seconds,
             10 seconds,
-            10_000,
-            5_000,
-            20_000,
+            SHARED_MULTI,
+            WIN_MULTI,
+            LOSE_MULTI,
             5
         );
     }
@@ -421,13 +433,15 @@ contract UnipeerTest is Test {
         uint256 oldBalanceBuyer = address(buyer).balance;
         uint256 oldBalanceSeller = address(seller).balance;
 
+        arbitrator.giveRuling(ORDER_ID, 1);
+        skip(APPEAL_WINDOW + 1);
         vm.expectEmit(true, true, false, true);
         emit Transfer(address(unipeer), buyer, tradeAmount);
         vm.expectEmit(true, true, false, true);
         emit OrderResolved(ORDER_ID);
         vm.expectEmit(true, true, false, true);
         emit Ruling(arbitrator, ORDER_ID, 1);
-        arbitrator.rule(ORDER_ID, 1);
+        arbitrator.executeRuling(ORDER_ID);
 
         uint256 newBalanceBuyer = address(buyer).balance;
         uint256 newBalanceSeller = address(seller).balance;
@@ -445,11 +459,13 @@ contract UnipeerTest is Test {
         uint256 oldBalanceSeller = address(seller).balance;
         uint256 oldTokenBalance = unipeer.tokenBalance(seller, Dai);
 
+        arbitrator.giveRuling(ORDER_ID, 2);
+        skip(APPEAL_WINDOW + 1);
         vm.expectEmit(true, true, false, true);
         emit OrderResolved(ORDER_ID);
         vm.expectEmit(true, true, false, true);
         emit Ruling(arbitrator, ORDER_ID, 2);
-        arbitrator.rule(ORDER_ID, 2);
+        arbitrator.executeRuling(ORDER_ID);
 
         uint256 newBalanceBuyer = address(buyer).balance;
         uint256 newBalanceSeller = address(seller).balance;
@@ -469,13 +485,15 @@ contract UnipeerTest is Test {
         uint256 oldBalanceSeller = address(seller).balance;
         uint256 oldTokenBalance = unipeer.tokenBalance(seller, Dai);
 
+        arbitrator.giveRuling(ORDER_ID, 0);
+        skip(APPEAL_WINDOW + 1);
         vm.expectEmit(true, true, false, true);
         emit Transfer(address(unipeer), buyer, (tradeAmount + fee )/ 2);
         vm.expectEmit(true, true, false, true);
         emit OrderResolved(ORDER_ID);
         vm.expectEmit(true, true, false, true);
         emit Ruling(arbitrator, ORDER_ID, 0);
-        arbitrator.rule(ORDER_ID, 0);
+        arbitrator.executeRuling(ORDER_ID);
 
         uint256 newBalanceBuyer = address(buyer).balance;
         uint256 newBalanceSeller = address(seller).balance;
@@ -507,7 +525,64 @@ contract UnipeerTest is Test {
         testConfirmPaid();
         vm.stopPrank();
 
-        arbitrator.rule(ORDER_ID, 1);
+        arbitrator.giveRuling(ORDER_ID, 1);
+    }
+
+    function testFundAppealBuyer() public {
+        testDisputeOrder();
+        vm.stopPrank();
+
+        uint256 appealCost = arbitrator.appealCost(ORDER_ID, "");
+        uint256 totalCost = appealCost + ((appealCost * WIN_MULTI) / MULTIPLIER_DIVISOR);
+        arbitrator.giveRuling(ORDER_ID, 1);
+
+        vm.expectEmit(true, true, false, true);
+        emit AppealContribution(ORDER_ID, Unipeer.Party.Buyer, buyer, totalCost);
+        vm.expectEmit(true, true, false, true);
+        emit HasPaidAppealFee(ORDER_ID, Unipeer.Party.Buyer);
+        // Appeal as the buyer
+        hoax(buyer);
+        unipeer.fundAppeal{value: totalCost}(ORDER_ID, Unipeer.Party.Buyer);
+
+        (uint256[3] memory paidFees, Unipeer.Party sideFunded, , bool appealed) = unipeer.getRoundInfo(ORDER_ID, 0);
+        assertEq(paidFees[1], totalCost);
+        assertEq(paidFees[2], 0);
+        assertEq(appealed, false);
+    }
+
+    function testFundAppealBuyerAppealed() public {
+        testFundAppealBuyer();
+        vm.stopPrank();
+
+        uint256 appealCost = arbitrator.appealCost(ORDER_ID, "");
+        uint256 totalCost = appealCost + ((appealCost * LOSE_MULTI) / MULTIPLIER_DIVISOR);
+
+        vm.expectEmit(true, true, false, true);
+        emit AppealContribution(ORDER_ID, Unipeer.Party.Seller, seller, totalCost);
+        vm.expectEmit(true, true, false, true);
+        emit AppealDecision(ORDER_ID, unipeer);
+        vm.expectEmit(true, true, false, true);
+        emit HasPaidAppealFee(ORDER_ID, Unipeer.Party.Seller);
+        // Appeal as the seller 
+        hoax(seller);
+        unipeer.fundAppeal{value: totalCost}(ORDER_ID, Unipeer.Party.Seller);
+
+        (uint256[3] memory paidFees, Unipeer.Party sideFunded, , bool appealed) = unipeer.getRoundInfo(ORDER_ID, 0);
+        assertEq(paidFees[1], totalCost / 2);
+        assertEq(paidFees[2], totalCost);
+        assertEq(appealed, true);
+    }
+
+    function testCannotActuallyAppealWithoutPaying() public {
+        testDisputeOrder();
+        vm.stopPrank();
+
+        arbitrator.giveRuling(ORDER_ID, 1);
+        unipeer.fundAppeal(ORDER_ID, Unipeer.Party.Buyer);
+
+        (uint256[3] memory paidFees, Unipeer.Party sideFunded, , bool appealed) = unipeer.getRoundInfo(ORDER_ID, 0);
+        assertEq(paidFees[1], 0);
+        assertEq(appealed, false);
     }
 
     function testWithdrawFeeAndRewards() public {
@@ -517,11 +592,17 @@ contract UnipeerTest is Test {
         assertEq(feeRewards, 0);
     }
 
-    /*
     function testWithdrawFeeAndRewardsWithAppeals() public {
-        _testRule(1);
+        testFundAppealBuyerAppealed();
+
+        vm.expectEmit(true, true, false, true);
+        emit Ruling(arbitrator, ORDER_ID, 1);
+        arbitrator.giveRuling(ORDER_ID, 1);
+        skip(APPEAL_WINDOW + 1);
+        arbitrator.executeRuling(ORDER_ID);
 
         (,,uint256 feeRewards,) = unipeer.getRoundInfo(ORDER_ID, 0);
+        assertTrue(feeRewards != 0, "feeRewards is zero");
 
         uint256 oldBalance = address(seller).balance;
         unipeer.withdrawFeesAndRewards(payable(seller), ORDER_ID, 0);
@@ -531,10 +612,17 @@ contract UnipeerTest is Test {
         oldBalance = address(buyer).balance;
         unipeer.withdrawFeesAndRewards(payable(buyer), ORDER_ID, 0);
         newBalance = address(buyer).balance;
-        assertTrue(feeRewards != 0, "feeRewards is zero");
         assertEq(newBalance - oldBalance, feeRewards);
     }
-    */
+
+    function testCannotWithdrawFeeAndRewardsWithoutRuling() public {
+        testFundAppealBuyerAppealed();
+
+        arbitrator.giveRuling(ORDER_ID, 1);
+
+        vm.expectRevert("The order must be resolved.");
+        unipeer.withdrawFeesAndRewards(payable(seller), ORDER_ID, 0);
+    }
 
     // ************************************* //
     // *           Admin only              * //
