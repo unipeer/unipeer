@@ -10,6 +10,15 @@ remappings = [
 ]
 optimizer = true
 optimizer_runs = 200
+ignored_error_codes = []
+
+[rpc_endpoints]
+chiado = "https://rpc-chiado.gnosistestnet.com"
+gnosis = "https://rpc.gnosischain.com"
+
+[etherscan]
+chiado = { key = "${GNOSISCHAIN_MAINNET_KEY}" }
+gnosis = { key = "${GNOSISCHAIN_CHIADO_KEY}" }
 
 [fmt]
 line_length = 91

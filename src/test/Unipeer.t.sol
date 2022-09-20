@@ -2,7 +2,6 @@
 pragma solidity 0.8.15;
 
 import "forge-std/Test.sol";
-import "forge-std/console2.sol";
 
 import "oz/interfaces/IERC20.sol";
 import "oz/mocks/ERC20Mock.sol";
@@ -177,7 +176,7 @@ contract UnipeerTest is Test {
         uint256 oldBalance = unipeer.tokenBalance(seller, Dai);
         uint256 amount = 500 ether;
 
-        (uint256 arbFees, ) = unipeer.getArbitratorData();
+        (, uint256 arbFees, ) = unipeer.getArbitratorData();
 
         uint256 sellerFeeRate = unipeer.getPaymentMethodSellerFeeRate(PAYMENT_ID, seller);
         uint256 feeRate = unipeer.tradeFeeRate() + sellerFeeRate;
@@ -196,7 +195,7 @@ contract UnipeerTest is Test {
 
         startHoax(buyer);
 
-        (uint256 arbFees, ) = unipeer.getArbitratorData();
+        (, uint256 arbFees, ) = unipeer.getArbitratorData();
         vm.expectRevert("Arbitration fees need to be paid");
         unipeer.buyOrder{value: arbFees - 1}(PAYMENT_ID, seller, Dai, 500 ether);
     }
@@ -206,7 +205,7 @@ contract UnipeerTest is Test {
 
         startHoax(buyer);
 
-        (uint256 arbFees, ) = unipeer.getArbitratorData();
+        (, uint256 arbFees, ) = unipeer.getArbitratorData();
         vm.expectRevert("Not enough seller balance");
         unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, 1001 ether);
     }
@@ -216,7 +215,7 @@ contract UnipeerTest is Test {
 
         startHoax(buyer);
 
-        (uint256 arbFees, ) = unipeer.getArbitratorData();
+        (, uint256 arbFees, ) = unipeer.getArbitratorData();
         vm.expectRevert("Token is not enabled for this payment method");
         unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, IERC20(address(99)), 1001 ether);
     }
@@ -230,7 +229,7 @@ contract UnipeerTest is Test {
         unipeer.addPaymentMethod("CashApp", META_ID, Dai);
         startHoax(buyer);
 
-        (uint256 arbFees, ) = unipeer.getArbitratorData();
+        (, uint256 arbFees, ) = unipeer.getArbitratorData();
         vm.expectRevert("Seller doesn't accept this payment method");
         unipeer.buyOrder{value: arbFees}(1, seller, Dai, 1001 ether);
     }
@@ -338,8 +337,7 @@ contract UnipeerTest is Test {
         testConfirmPaid();
         vm.stopPrank();
 
-        (uint256 arbFees, ) = unipeer.getArbitratorData();
-        IArbitrator arb = unipeer.getArbitrator();
+        (IArbitrator arb, uint256 arbFees, ) = unipeer.getArbitratorData();
 
         startHoax(seller);
         vm.expectEmit(true, true, false, true);

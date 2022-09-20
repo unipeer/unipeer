@@ -453,7 +453,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         );
         require(tokenBalance[_seller][_token] >= _amount, "Not enough seller balance");
 
-        (uint256 arbitrationCost, ) = getArbitratorData();
+        (, uint256 arbitrationCost, ) = getArbitratorData();
         require(msg.value >= arbitrationCost, "Arbitration fees need to be paid");
 
         uint256 feeRate = tradeFeeRate + pm.feeRate[_seller];
@@ -542,8 +542,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
             "Order already completed by timeout"
         );
 
-        IArbitrator arbitrator = getArbitrator();
-        (uint256 arbitrationCost, bytes memory arbitratorExtraData) = getArbitratorData();
+        (IArbitrator arbitrator, uint256 arbitrationCost, bytes memory arbitratorExtraData) = getArbitratorData();
 
         // Seller can overpay to draw more jurors.
         require(msg.value >= arbitrationCost, "Arbitration fees need to be paid");
@@ -868,23 +867,13 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         return pm.tokenEnabled[_token];
     }
 
-    function getArbitrator() public view returns (IArbitrator arbitrator) {
-        ArbitratorData memory arbitratorData =
-            arbitratorDataList[arbitratorDataList.length - 1];
-        arbitrator = arbitratorData.arbitrator;
-    }
-
-    function getArbitratorData() public view returns (uint256, bytes memory) {
+    function getArbitratorData() public view returns (IArbitrator, uint256, bytes memory) {
         ArbitratorData memory arbitratorData =
             arbitratorDataList[arbitratorDataList.length - 1];
         IArbitrator arbitrator = arbitratorData.arbitrator;
         bytes memory arbitratorExtraData = arbitratorData.arbitratorExtraData;
         uint256 arbitrationCost = arbitrator.arbitrationCost(arbitratorExtraData);
-        return (arbitrationCost, arbitratorExtraData);
-    }
-
-    function getCountOrders() external view returns (uint256) {
-        return orders.length;
+        return (arbitratorData.arbitrator, arbitrationCost, arbitratorExtraData);
     }
 
     /**
