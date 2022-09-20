@@ -623,13 +623,10 @@ contract UnipeerTest is Test {
         uint256 newBalance = address(seller).balance;
         assertEq(newBalance - oldBalance, 0);
 
-        uint256 amount = unipeer.amountWithdrawable(ORDER_ID, buyer);
-
         oldBalance = address(buyer).balance;
         unipeer.withdrawFeesAndRewards(payable(buyer), ORDER_ID, 0);
         newBalance = address(buyer).balance;
         assertEq(newBalance - oldBalance, feeRewards);
-        assertEq(amount, feeRewards);
     }
 
     function testCannotWithdrawFeeAndRewardsWithoutRuling() public {

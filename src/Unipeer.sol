@@ -879,56 +879,6 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     }
 
     /**
-     * @dev Returns the sum of withdrawable wei from appeal rounds.
-     * This function is O(n), where n is the number of rounds of the order.
-     * This could exceed the gas limit, therefore this function should only
-     * be used for interface display and not by other contracts.
-     * @param _orderID The index of the order.
-     * @param _beneficiary The contributor for which to query.
-     * @return total The total amount of wei available to withdraw.
-     */
-    function amountWithdrawable(uint256 _orderID, address _beneficiary)
-        external
-        view
-        returns (uint256 total)
-    {
-        Order storage order = orders[_orderID];
-        DisputeData storage dispute = disputes[order.disputeID];
-        if (order.status != Status.Resolved) {
-            return total;
-        }
-        if (dispute.orderID != _orderID) {
-            return total;
-        }
-        uint256 finalRuling = uint256(dispute.ruling);
-
-        uint256 totalRounds = dispute.lastRoundID;
-        for (uint256 i = 0; i <= totalRounds; i++) {
-            Round storage round = dispute.rounds[i];
-            if (i == totalRounds) {
-                total += round.contributions[_beneficiary][uint256(Party.Buyer)]
-                    + round.contributions[_beneficiary][uint256(Party.Seller)];
-            } else if (finalRuling == uint256(Party.None)) {
-                uint256 totalFeesPaid = round.paidFees[uint256(Party.Buyer)]
-                    + round.paidFees[uint256(Party.Seller)];
-                uint256 totalBeneficiaryContributions = round.contributions[_beneficiary][uint256(
-                    Party.Buyer
-                )] + round.contributions[_beneficiary][uint256(Party.Seller)];
-                total +=
-                    totalFeesPaid > 0
-                    ? (totalBeneficiaryContributions * round.feeRewards) / totalFeesPaid
-                    : 0;
-            } else {
-                total +=
-                    round.paidFees[finalRuling] > 0
-                    ? (round.contributions[_beneficiary][finalRuling] * round.feeRewards)
-                        / round.paidFees[finalRuling]
-                    : 0;
-            }
-        }
-    }
-
-    /**
      * @dev Gets the number of rounds of the specific order.
      * @param _orderID The ID of the order.
      * @return The number of rounds.
