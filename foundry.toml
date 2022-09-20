@@ -4,8 +4,8 @@ out = 'out'
 libs = ['lib']
 remappings = [
     'forge-std/=lib/forge-std/src/',
-    'oz/=lib/openzeppelin-contracts/contracts',
-    'kleros/=lib/kleros/contracts',
+    'oz/=lib/openzeppelin-contracts/contracts/',
+    'kleros/=lib/kleros/contracts/',
     'delegatable/=lib/delegatable-sol/contracts/'
 ]
 optimizer = true

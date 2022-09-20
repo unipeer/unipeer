@@ -1,0 +1,9 @@
+{
+  "filter_paths": "lib",
+  "solc_remaps": [
+    "forge-std/=lib/forge-std/src/",
+    "oz/=lib/openzeppelin-contracts/contracts/",
+    "kleros/=lib/kleros/contracts/",
+    "delegatable/=lib/delegatable-sol/contracts/"
+  ]
+}
