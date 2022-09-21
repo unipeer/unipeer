@@ -70,12 +70,12 @@ contract Unipeer is IArbitrable, IEvidence {
 
     struct Order {
         uint256 amount;
-        // The calculated fees from tradeFeeRate + sellerFeeRate
+        // The calculated fees from tradeFeeRate
         uint256 fee;
         // The fee buyer has paid for arbitration at the time of placing an order.
-        uint256 buyerFee;
+        uint256 buyerCost;
         // The fee seller has paid for raising a dispute.
-        uint256 sellerFee;
+        uint256 sellerCost;
         // If dispute exists, the ID of the dispute.
         uint256 disputeID;
         uint256 lastInteraction;
@@ -178,7 +178,8 @@ contract Unipeer is IArbitrable, IEvidence {
         address seller,
         IERC20 token,
         uint256 amount,
-        uint256 feeAmount
+        uint256 feeAmount,
+        uint256 sellerFeeAmount
     );
     event Paid(uint256 indexed orderID);
     event OrderComplete(uint256 indexed orderID);
@@ -438,8 +439,9 @@ contract Unipeer is IArbitrable, IEvidence {
         uint256 arbitrationCost = arbitrator.arbitrationCost(arbitratorExtraData);
         require(msg.value >= arbitrationCost, "Arbitration fees not paid");
 
-        uint256 feeRate = tradeFeeRate + pm.feeRate[_seller];
-        (uint256 _fee,) = _calculateFees(_amount, feeRate);
+        (uint256 _fee,) = _calculateFees(_amount, tradeFeeRate);
+        (uint256 _sellerFee,) = _calculateFees(_amount, pm.feeRate[_seller]);
+        uint256 tradeAmount = _amount - _sellerFee;
 
         orders.push(
             Order({
@@ -447,10 +449,10 @@ contract Unipeer is IArbitrable, IEvidence {
                 buyer: payable(_msgSender()),
                 seller: payable(_seller),
                 token: _token,
-                amount: _amount,
+                amount: tradeAmount,
                 fee: _fee,
-                buyerFee: msg.value,
-                sellerFee: 0,
+                buyerCost: msg.value,
+                sellerCost: 0,
                 disputeID: 0,
                 arbitrator: arbitrator,
                 extraData: arbitratorExtraData,
@@ -458,10 +460,15 @@ contract Unipeer is IArbitrable, IEvidence {
                 status: Status.Created
             })
         );
-        tokenBalance[_seller][_token] -= _amount;
+
+        // Lock seller funds.
+        // We exclude the seller fee here itself
+        // since it will remain with the seller
+        // in any scenario.
+        tokenBalance[_seller][_token] -= tradeAmount;
 
         emit BuyOrder(
-            orders.length - 1, _msgSender(), _paymentID, _seller, _token, _amount, _fee
+            orders.length - 1, _msgSender(), _paymentID, _seller, _token, _amount, _fee, _sellerFee
             );
     }
 
@@ -530,7 +537,7 @@ contract Unipeer is IArbitrable, IEvidence {
         // Seller can overpay to draw more jurors.
         require(msg.value >= arbitrationCost, "Arbitration fees not paid");
 
-        order.sellerFee = msg.value;
+        order.sellerCost = msg.value;
         order.status = Status.Disputed;
         order.disputeID =
             order.arbitrator.createDispute{value: msg.value}(RULING_OPTIONS, order.extraData);
@@ -561,18 +568,18 @@ contract Unipeer is IArbitrable, IEvidence {
         );
 
         uint256 amount = order.amount;
-        uint256 buyerFee = order.buyerFee;
+        uint256 buyerCost = order.buyerCost;
 
         order.amount = 0;
         order.fee = 0;
-        order.buyerFee = 0;
+        order.buyerCost = 0;
         order.status = Status.Cancelled;
 
         // Unlock seller funds
         tokenBalance[order.seller][order.token] += amount;
 
         // Return the buyers arbitration fees.
-        order.buyer.send(buyerFee);
+        order.buyer.send(buyerCost);
         emit TimedOutByBuyer(_orderID);
     }
 
@@ -797,7 +804,7 @@ contract Unipeer is IArbitrable, IEvidence {
     {
         Order storage order = orders[_orderID];
         fee = order.fee;
-        tradeAmount = order.amount - order.fee;
+        tradeAmount = order.amount - fee;
     }
 
     function getPaymentMethodSellerFeeRate(uint16 _paymentID, address _seller)
@@ -915,33 +922,33 @@ contract Unipeer is IArbitrable, IEvidence {
 
         uint256 amount = order.amount;
         uint256 fee = order.fee;
-        uint256 buyerFee = order.buyerFee;
-        uint256 sellerFee = order.sellerFee;
+        uint256 buyerCost = order.buyerCost;
+        uint256 sellerCost = order.sellerCost;
         uint256 tradeAmount = amount - fee;
 
         order.amount = 0;
         order.fee = 0;
-        order.buyerFee = 0;
-        order.sellerFee = 0;
+        order.buyerCost = 0;
+        order.sellerCost = 0;
         order.status = Status.Resolved;
 
         // Collect the fees.
-        // We don't collect in case on inconclusive ruling
+        // We don't collect in case of inconclusive ruling
         if (dispute.ruling != Party.None) {
             protocolFeesSum += fee;
         }
 
         if (dispute.ruling == Party.Buyer) {
-            order.buyer.send(buyerFee);
+            order.buyer.send(buyerCost);
             // non-safe transfer used here to prevent blocking on revert
             order.token.transfer(order.buyer, tradeAmount);
         } else if (dispute.ruling == Party.Seller) {
-            order.seller.send(sellerFee);
+            order.seller.send(sellerCost);
             tokenBalance[order.seller][order.token] += amount;
         } else {
-            // `buyerFee` and `sellerFee` are equal to the arbitration cost.
+            // `buyerCost` and `sellerCost` are equal to the arbitration cost.
             // We take the min of the two in case someone overpaid.
-            uint256 splitArbitrationFee = Math.min(buyerFee, sellerFee) / 2;
+            uint256 splitArbitrationFee = Math.min(buyerCost, sellerCost) / 2;
             order.buyer.send(splitArbitrationFee);
             order.seller.send(splitArbitrationFee);
 
@@ -1029,19 +1036,19 @@ contract Unipeer is IArbitrable, IEvidence {
     function _markOrderComplete(Order storage order) internal {
         uint256 amount = order.amount;
         uint256 fee = order.fee;
-        uint256 buyerFee = order.buyerFee;
+        uint256 buyerCost = order.buyerCost;
         uint256 tradeAmount = amount - fee;
 
         order.amount = 0;
         order.fee = 0;
-        order.buyerFee = 0;
+        order.buyerCost = 0;
         order.status = Status.Completed;
 
         // Collect the fees
         protocolFeesSum += fee;
 
         // Return the buyers arbitration fees.
-        order.buyer.send(buyerFee);
+        order.buyer.send(buyerCost);
 
         // Actually close the order by
         // transferring the bought tokens

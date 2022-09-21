@@ -57,7 +57,8 @@ contract UnipeerTest is Test {
         address seller,
         IERC20 token,
         uint256 amount,
-        uint256 feeAmount
+        uint256 feeAmount,
+        uint256 sellerFeeAmount
     );
     event Paid(uint256 indexed orderID);
     event OrderComplete(uint256 indexed orderID);
@@ -207,11 +208,11 @@ contract UnipeerTest is Test {
         uint256 arbFees = unipeer.arbitrator().arbitrationCost(unipeer.arbitratorExtraData());
 
         uint256 sellerFeeRate = unipeer.getPaymentMethodSellerFeeRate(PAYMENT_ID, seller);
-        uint256 feeRate = unipeer.tradeFeeRate() + sellerFeeRate;
-        uint256 tradeFees = amount * feeRate / MULTIPLIER_DIVISOR;
+        uint256 tradeFees = amount * unipeer.tradeFeeRate() / MULTIPLIER_DIVISOR;
+        uint256 sellerFees = amount * sellerFeeRate / MULTIPLIER_DIVISOR;
 
         vm.expectEmit(true, true, false, true);
-        emit BuyOrder(ORDER_ID, buyer, PAYMENT_ID, seller, Dai, amount, tradeFees);
+        emit BuyOrder(ORDER_ID, buyer, PAYMENT_ID, seller, Dai, amount, tradeFees, sellerFees);
         unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, amount);
 
         uint256 newBalance = unipeer.tokenBalance(seller, Dai);
@@ -274,16 +275,17 @@ contract UnipeerTest is Test {
 
         hoax(buyer);
         unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, amount);
-        (uint256 fees1, ) = unipeer.getOrderFeeAmount(ORDER_ID);
+        (, uint256 tradeAmount1) = unipeer.getOrderFeeAmount(ORDER_ID);
 
         hoax(seller);
         unipeer.updateSellerPaymentMethod(PAYMENT_ID, "seller@paypal.me", sellerRate);
 
         hoax(buyer);
         unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, amount);
-        (uint256 fees2, ) = unipeer.getOrderFeeAmount(ORDER_ID + 1);
+        (uint256 fees2, uint256 tradeAmount2) = unipeer.getOrderFeeAmount(ORDER_ID + 1);
 
-        assertEq(fees2 - fees1, sellerFee);
+        assertEq(amount - sellerFee, tradeAmount2 + fees2);
+        assertEq(tradeAmount1 - tradeAmount2, sellerFee);
     }
 
     function testFailSellerFeeRateMoreThan100Percent() public {
