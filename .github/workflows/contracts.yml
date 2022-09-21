@@ -39,9 +39,6 @@ jobs:
 
       - name: Check gas diff
         run: forge snapshot --diff
-
-      - name: Check gas snapshots
-        run: forge snapshot --check
   coverage:
     runs-on: ubuntu-latest
     steps:
