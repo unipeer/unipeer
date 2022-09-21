@@ -3,7 +3,6 @@ pragma solidity 0.8.15;
 
 import "oz/token/ERC20/utils/SafeERC20.sol";
 import "oz/utils/math/Math.sol";
-import "kleros/IArbitrable.sol";
 import "kleros/erc-1497/IEvidence.sol";
 import "kleros/IArbitrator.sol";
 import "delegatable/Delegatable.sol";
@@ -59,11 +58,11 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     }
 
     struct PaymentMethod {
-        // User friendly name used to identify the payment method.
-        string paymentName;
         // Stores the meta evidence ID specific to the payment method
         // that is to be used in disputes.
         uint256 metaEvidenceID;
+        // User friendly name used to identify the payment method.
+        string paymentName;
         // Tokens that are accepted via this payment method.
         // tokenEnabled[token] = true
         mapping(IERC20 => bool) tokenEnabled;
@@ -77,10 +76,6 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     }
 
     struct Order {
-        uint16 paymentID;
-        address payable buyer;
-        address payable seller;
-        IERC20 token;
         uint256 amount;
         // The calculated fees from tradeFeeRate + sellerFeeRate
         uint256 fee;
@@ -92,6 +87,10 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         uint256 disputeID;
         uint256 arbitratorID;
         uint256 lastInteraction;
+        address payable buyer;
+        address payable seller;
+        IERC20 token;
+        uint16 paymentID;
         Status status;
     }
 
@@ -132,9 +131,6 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     // List of Payment Methods by paymentID
     mapping(uint16 => PaymentMethod) public paymentMethods;
 
-    // Stores the arbitrator data of the contract.
-    // Updated each time the data is changed.
-    ArbitratorData[] public arbitratorDataList;
     // Holds the total/count of Meta Evidence updates.
     uint256 public metaEvidenceUpdates;
     uint256 public buyerTimeout;
@@ -143,9 +139,14 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     // tokenBalance[seller][token] = balance
     mapping(address => mapping(IERC20 => uint256)) public tokenBalance;
     // List of dispute details by disputeID
-    mapping(uint256 => DisputeData) public disputes;
+    mapping(uint256 => DisputeData) private disputes;
+
     // List of orders by orderID
-    Order[] public orders;
+    Order[] private orders;
+
+    // Stores the arbitrator data of the contract.
+    // Updated each time the data is changed.
+    ArbitratorData[] private arbitratorDataList;
 
     // ************************************* //
     // *             Modifiers             * //

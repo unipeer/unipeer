@@ -545,15 +545,6 @@ contract UnipeerTest is Test {
         unipeer.rule(ORDER_ID, 1);
     }
 
-    function testRuleCannotHaveInvalidRuling() public {
-        testDisputeOrder();
-        vm.stopPrank();
-
-        hoax(address(arbitrator));
-        vm.expectRevert("Invalid ruling");
-        unipeer.rule(ORDER_ID, 99);
-    }
-
     function testFailRuleOnNonExistingDispute() public {
         testConfirmPaid();
         vm.stopPrank();
@@ -582,7 +573,7 @@ contract UnipeerTest is Test {
         assertEq(contrib[1], totalCost);
         assertEq(contrib[2], 0);
 
-        (uint256[3] memory paidFees, Unipeer.Party sideFunded,, bool appealed) =
+        (uint256[3] memory paidFees, ,, bool appealed) =
             unipeer.getRoundInfo(ORDER_ID, 0);
         assertEq(paidFees[1], totalCost);
         assertEq(paidFees[2], 0);
@@ -613,7 +604,7 @@ contract UnipeerTest is Test {
         assertEq(contrib[1], 0);
         assertEq(contrib[2], totalCost);
 
-        (uint256[3] memory paidFees, Unipeer.Party sideFunded,, bool appealed) =
+        (uint256[3] memory paidFees, ,, bool appealed) =
             unipeer.getRoundInfo(ORDER_ID, 0);
         assertEq(paidFees[1], totalCost / 2);
         assertEq(paidFees[2], totalCost);
@@ -629,7 +620,7 @@ contract UnipeerTest is Test {
         arbitrator.giveRuling(ORDER_ID, 1);
         unipeer.fundAppeal(ORDER_ID, Unipeer.Party.Buyer);
 
-        (uint256[3] memory paidFees, Unipeer.Party sideFunded,, bool appealed) =
+        (uint256[3] memory paidFees, ,, bool appealed) =
             unipeer.getRoundInfo(ORDER_ID, 0);
         assertEq(paidFees[1], 0);
         assertEq(appealed, false);
