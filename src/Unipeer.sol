@@ -662,8 +662,24 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
             order.disputeID, arbitratorData.arbitratorExtraData
         );
         uint256 totalCost = appealCost + ((appealCost * multiplier) / MULTIPLIER_DIVISOR);
-        uint contribution = _contribute(round, _side, payable(_msgSender()), msg.value, totalCost);
-        emit AppealContribution(_orderID, _side, _msgSender(), contribution);
+
+        {
+            // Take up to the amount necessary to fund the current round at the current costs.
+            uint256 contribution; // Amount contributed.
+            uint256 remainingETH; // Remaining ETH to send back.
+            (contribution, remainingETH) =
+                _calculateContribution(msg.value, totalCost - round.paidFees[uint256(_side)]);
+            round.contributions[_msgSender()][uint256(_side)] += contribution;
+            round.paidFees[uint256(_side)] += contribution;
+
+            emit AppealContribution(_orderID, _side, _msgSender(), contribution);
+
+            // Reimburse leftover ETH if any.
+            // Deliberate use of send in order to not block the contract in case of reverting fallback.
+            if (remainingETH > 0) {
+                payable(_msgSender()).send(remainingETH);
+            }
+        }
 
         if (round.paidFees[uint256(_side)] >= totalCost) {
             if (round.sideFunded == Party.None) {
@@ -1002,28 +1018,6 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         }
         contributionTo[uint256(Party.Buyer)] = 0;
         contributionTo[uint256(Party.Seller)] = 0;
-    }
-
-    /** @dev Make a fee contribution.
-     *  @param _round The round to contribute to.
-     *  @param _side The side to contribute to.
-     *  @param _contributor The contributor.
-     *  @param _amount The amount contributed.
-     *  @param _totalRequired The total amount required for this side.
-     *  @return The amount of fees contributed.
-     */
-    function _contribute(Round storage _round, Party _side, address payable _contributor, uint _amount, uint _totalRequired) internal returns (uint) {
-        uint contribution;
-        uint remainingETH;
-        (contribution, remainingETH) = _calculateContribution(_amount, _totalRequired - _round.paidFees[uint(_side)]);
-        _round.contributions[_contributor][uint(_side)] += contribution;
-        _round.paidFees[uint(_side)] += contribution;
-        _round.feeRewards += contribution;
-
-        if (remainingETH != 0)
-            _contributor.send(remainingETH);
-
-        return contribution;
     }
 
     /**
