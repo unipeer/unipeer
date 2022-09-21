@@ -10,7 +10,6 @@ import "./Arbitrator.sol";
 
 import "../Unipeer.sol";
 
-
 contract UnipeerTest is Test {
     using stdStorage for StdStorage;
 
@@ -34,13 +33,19 @@ contract UnipeerTest is Test {
     event MetaEvidence(uint256 indexed _metaEvidenceID, string _evidence);
 
     // IArbitrable
-    event Ruling(IArbitrator indexed _arbitrator, uint256 indexed _disputeID, uint256 _ruling);
+    event Ruling(
+        IArbitrator indexed _arbitrator, uint256 indexed _disputeID, uint256 _ruling
+    );
     event AppealDecision(uint256 indexed _disputeID, IArbitrable indexed _arbitrable);
 
     event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
     event FeeWithdrawn(uint256 amount);
-    event PaymentMethodUpdate(uint16 indexed paymentID, string paymentName, uint256 metaEvidenceID);
-    event SellerPaymentMethod(address indexed sender, uint16 paymentID, string paymentAddress, uint256 feeRate);
+    event PaymentMethodUpdate(
+        uint16 indexed paymentID, string paymentName, uint256 metaEvidenceID
+    );
+    event SellerPaymentMethod(
+        address indexed sender, uint16 paymentID, string paymentAddress, uint256 feeRate
+    );
     event SellerPaymentDisabled(address indexed sender, uint16 paymentID);
     event SellerDeposit(address indexed sender, IERC20 token, uint256 amount);
     event SellerWithdraw(address indexed sender, IERC20 token, uint256 amount);
@@ -60,7 +65,10 @@ contract UnipeerTest is Test {
     event TimedOutBySeller(uint256 indexed orderID);
     event HasPaidAppealFee(uint256 indexed _orderID, Unipeer.Party _party);
     event AppealContribution(
-        uint256 indexed _orderID, Unipeer.Party _party, address _contributor, uint256 _amount
+        uint256 indexed _orderID,
+        Unipeer.Party _party,
+        address _contributor,
+        uint256 _amount
     );
 
     address public admin = address(1);
@@ -81,7 +89,7 @@ contract UnipeerTest is Test {
     uint256 constant APPEAL_WINDOW = 3 minutes;
     uint256 constant MULTIPLIER_DIVISOR = 10_000;
     uint256 constant SHARED_MULTI = 10_000;
-    uint256 constant WIN_MULTI = 5_000;
+    uint256 constant WIN_MULTI = 5000;
     uint256 constant LOSE_MULTI = 20_000;
 
     function setUp() public {
@@ -152,7 +160,9 @@ contract UnipeerTest is Test {
         vm.expectEmit(true, true, false, true);
         emit SellerPaymentMethod(seller, PAYMENT_ID, "seller@paypal.me", SELLER_FEE + 100);
         unipeer.updateFeeRate(PAYMENT_ID, SELLER_FEE + 100);
-        assertEq(unipeer.getPaymentMethodSellerFeeRate(PAYMENT_ID, seller), SELLER_FEE + 100);
+        assertEq(
+            unipeer.getPaymentMethodSellerFeeRate(PAYMENT_ID, seller), SELLER_FEE + 100
+        );
     }
 
     function testDisablePaymentMethod() public {
@@ -194,7 +204,7 @@ contract UnipeerTest is Test {
         testDepositTokens();
 
         vm.expectRevert("Not enough balance to withdraw");
-        unipeer.withdrawTokens(Dai, 1_001 ether);
+        unipeer.withdrawTokens(Dai, 1001 ether);
     }
 
     // ************************************* //
@@ -208,11 +218,11 @@ contract UnipeerTest is Test {
         uint256 oldBalance = unipeer.tokenBalance(seller, Dai);
         uint256 amount = 500 ether;
 
-        (, uint256 arbFees, ) = unipeer.getArbitratorData();
+        (, uint256 arbFees,) = unipeer.getArbitratorData();
 
         uint256 sellerFeeRate = unipeer.getPaymentMethodSellerFeeRate(PAYMENT_ID, seller);
         uint256 feeRate = unipeer.tradeFeeRate() + sellerFeeRate;
-        (uint256 tradeFees, ) = unipeer.calculateFees(amount, feeRate);
+        (uint256 tradeFees,) = unipeer.calculateFees(amount, feeRate);
 
         vm.expectEmit(true, true, false, true);
         emit BuyOrder(ORDER_ID, buyer, PAYMENT_ID, seller, Dai, amount, tradeFees);
@@ -227,7 +237,7 @@ contract UnipeerTest is Test {
 
         startHoax(buyer);
 
-        (, uint256 arbFees, ) = unipeer.getArbitratorData();
+        (, uint256 arbFees,) = unipeer.getArbitratorData();
         vm.expectRevert("Arbitration fees need to be paid");
         unipeer.buyOrder{value: arbFees - 1}(PAYMENT_ID, seller, Dai, 500 ether);
     }
@@ -237,7 +247,7 @@ contract UnipeerTest is Test {
 
         startHoax(buyer);
 
-        (, uint256 arbFees, ) = unipeer.getArbitratorData();
+        (, uint256 arbFees,) = unipeer.getArbitratorData();
         vm.expectRevert("Not enough seller balance");
         unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, 1001 ether);
     }
@@ -247,9 +257,11 @@ contract UnipeerTest is Test {
 
         startHoax(buyer);
 
-        (, uint256 arbFees, ) = unipeer.getArbitratorData();
+        (, uint256 arbFees,) = unipeer.getArbitratorData();
         vm.expectRevert("Token is not enabled for this payment method");
-        unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, IERC20(address(99)), 1001 ether);
+        unipeer.buyOrder{value: arbFees}(
+            PAYMENT_ID, seller, IERC20(address(99)), 1001 ether
+        );
     }
 
     function testCannotBuyOrderWithASellerNonAcceptedPaymentID() public {
@@ -261,7 +273,7 @@ contract UnipeerTest is Test {
         unipeer.addPaymentMethod("CashApp", META_ID, Dai);
         startHoax(buyer);
 
-        (, uint256 arbFees, ) = unipeer.getArbitratorData();
+        (, uint256 arbFees,) = unipeer.getArbitratorData();
         vm.expectRevert("Seller doesn't accept this payment method");
         unipeer.buyOrder{value: arbFees}(1, seller, Dai, 1001 ether);
     }
@@ -369,7 +381,7 @@ contract UnipeerTest is Test {
         testConfirmPaid();
         vm.stopPrank();
 
-        (IArbitrator arb, uint256 arbFees, ) = unipeer.getArbitratorData();
+        (IArbitrator arb, uint256 arbFees,) = unipeer.getArbitratorData();
 
         startHoax(seller);
         vm.expectEmit(true, true, false, true);
@@ -508,7 +520,7 @@ contract UnipeerTest is Test {
         arbitrator.giveRuling(ORDER_ID, 0);
         skip(APPEAL_WINDOW + 1);
         vm.expectEmit(true, true, false, true);
-        emit Transfer(address(unipeer), buyer, (tradeAmount + fee )/ 2);
+        emit Transfer(address(unipeer), buyer, (tradeAmount + fee) / 2);
         vm.expectEmit(true, true, false, true);
         emit OrderResolved(ORDER_ID);
         vm.expectEmit(true, true, false, true);
@@ -520,7 +532,7 @@ contract UnipeerTest is Test {
         uint256 newTokenBalance = unipeer.tokenBalance(seller, Dai);
         assertEq(newBalanceBuyer - oldBalanceBuyer, arbFees / 2);
         assertEq(newBalanceSeller - oldBalanceSeller, arbFees / 2);
-        assertEq(newTokenBalance - oldTokenBalance, (tradeAmount + fee )/ 2);
+        assertEq(newTokenBalance - oldTokenBalance, (tradeAmount + fee) / 2);
     }
 
     function testRuleCannotBeCalledByAnyone() public {
@@ -569,7 +581,8 @@ contract UnipeerTest is Test {
         assertEq(contrib[1], totalCost);
         assertEq(contrib[2], 0);
 
-        (uint256[3] memory paidFees, Unipeer.Party sideFunded, , bool appealed) = unipeer.getRoundInfo(ORDER_ID, 0);
+        (uint256[3] memory paidFees, Unipeer.Party sideFunded,, bool appealed) =
+            unipeer.getRoundInfo(ORDER_ID, 0);
         assertEq(paidFees[1], totalCost);
         assertEq(paidFees[2], 0);
         assertEq(appealed, false);
@@ -590,7 +603,7 @@ contract UnipeerTest is Test {
         emit AppealDecision(ORDER_ID, unipeer);
         vm.expectEmit(true, true, false, true);
         emit HasPaidAppealFee(ORDER_ID, Unipeer.Party.Seller);
-        // Appeal as the seller 
+        // Appeal as the seller
         hoax(seller);
         unipeer.fundAppeal{value: totalCost}(ORDER_ID, Unipeer.Party.Seller);
 
@@ -599,7 +612,8 @@ contract UnipeerTest is Test {
         assertEq(contrib[1], 0);
         assertEq(contrib[2], totalCost);
 
-        (uint256[3] memory paidFees, Unipeer.Party sideFunded, , bool appealed) = unipeer.getRoundInfo(ORDER_ID, 0);
+        (uint256[3] memory paidFees, Unipeer.Party sideFunded,, bool appealed) =
+            unipeer.getRoundInfo(ORDER_ID, 0);
         assertEq(paidFees[1], totalCost / 2);
         assertEq(paidFees[2], totalCost);
         assertEq(appealed, true);
@@ -614,7 +628,8 @@ contract UnipeerTest is Test {
         arbitrator.giveRuling(ORDER_ID, 1);
         unipeer.fundAppeal(ORDER_ID, Unipeer.Party.Buyer);
 
-        (uint256[3] memory paidFees, Unipeer.Party sideFunded, , bool appealed) = unipeer.getRoundInfo(ORDER_ID, 0);
+        (uint256[3] memory paidFees, Unipeer.Party sideFunded,, bool appealed) =
+            unipeer.getRoundInfo(ORDER_ID, 0);
         assertEq(paidFees[1], 0);
         assertEq(appealed, false);
     }
@@ -622,7 +637,7 @@ contract UnipeerTest is Test {
     function testWithdrawFeeAndRewards() public {
         testRulingBuyer();
 
-        (,,uint256 feeRewards,) = unipeer.getRoundInfo(ORDER_ID, 0);
+        (,, uint256 feeRewards,) = unipeer.getRoundInfo(ORDER_ID, 0);
         assertEq(feeRewards, 0);
     }
 
@@ -635,7 +650,7 @@ contract UnipeerTest is Test {
         skip(APPEAL_WINDOW + 1);
         arbitrator.executeRuling(ORDER_ID);
 
-        (,,uint256 feeRewards,) = unipeer.getRoundInfo(ORDER_ID, 0);
+        (,, uint256 feeRewards,) = unipeer.getRoundInfo(ORDER_ID, 0);
         assertTrue(feeRewards != 0, "feeRewards is zero");
 
         uint256 oldBalance = address(seller).balance;
@@ -658,7 +673,7 @@ contract UnipeerTest is Test {
         skip(APPEAL_WINDOW + 1);
         arbitrator.executeRuling(ORDER_ID);
 
-        (,,uint256 feeRewards,) = unipeer.getRoundInfo(ORDER_ID, 0);
+        (,, uint256 feeRewards,) = unipeer.getRoundInfo(ORDER_ID, 0);
         assertTrue(feeRewards != 0, "feeRewards is zero");
 
         uint256 oldBalance = address(buyer).balance;
