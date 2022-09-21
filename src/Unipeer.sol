@@ -828,6 +828,10 @@ contract Unipeer is IArbitrable, IEvidence {
         return pm.tokenEnabled[_token];
     }
 
+    function getCountOrders() external view returns (uint256) {
+        return orders.length;
+    }
+
     /**
      * @dev Gets the number of rounds of the specific order.
      * @param _orderID The ID of the order.
