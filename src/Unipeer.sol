@@ -50,13 +50,6 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     // *              Structs              * //
     // ************************************* //
 
-    struct ArbitratorData {
-        // Address of the trusted arbitrator to solve disputes.
-        IArbitrator arbitrator;
-        // Extra data for the arbitrator.
-        bytes arbitratorExtraData;
-    }
-
     struct PaymentMethod {
         // Stores the meta evidence ID specific to the payment method
         // that is to be used in disputes.
@@ -85,13 +78,14 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         uint256 sellerFee;
         // If dispute exists, the ID of the dispute.
         uint256 disputeID;
-        uint256 arbitratorID;
         uint256 lastInteraction;
         address payable buyer;
         address payable seller;
+        IArbitrator arbitrator;
         IERC20 token;
         uint16 paymentID;
         Status status;
+        bytes extraData;
     }
 
     // Some arrays below have 3 elements to map with the Party enums for better readability:
@@ -144,9 +138,10 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     // List of orders by orderID
     Order[] private orders;
 
-    // Stores the arbitrator data of the contract.
-    // Updated each time the data is changed.
-    ArbitratorData[] private arbitratorDataList;
+    // Address of the trusted arbitrator to solve disputes.
+    IArbitrator public arbitrator;
+    // Extra data for the arbitrator.
+    bytes public arbitratorExtraData;
 
     // ************************************* //
     // *             Modifiers             * //
@@ -235,9 +230,8 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         Delegatable("Unipeer", _version)
     {
         admin = _admin;
-        arbitratorDataList.push(
-            ArbitratorData({arbitrator: _arbitrator, arbitratorExtraData: _arbitratorExtraData})
-        );
+        arbitrator = _arbitrator;
+        arbitratorExtraData = _arbitratorExtraData;
         buyerTimeout = _buyerTimeout;
         sellerTimeout = _sellerTimeout;
         sharedStakeMultiplier = _sharedStakeMultiplier;
@@ -270,9 +264,8 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         external
         onlyAdmin
     {
-        arbitratorDataList.push(
-            ArbitratorData({arbitrator: _arbitrator, arbitratorExtraData: _arbitratorExtraData})
-        );
+        arbitrator = _arbitrator;
+        arbitratorExtraData = _arbitratorExtraData;
     }
 
     /**
@@ -438,7 +431,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         );
         require(tokenBalance[_seller][_token] >= _amount, "Not enough seller balance");
 
-        (, uint256 arbitrationCost,) = getArbitratorData();
+        uint256 arbitrationCost = arbitrator.arbitrationCost(arbitratorExtraData);
         require(msg.value >= arbitrationCost, "Arbitration fees not paid");
 
         uint256 feeRate = tradeFeeRate + pm.feeRate[_seller];
@@ -455,7 +448,8 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
                 buyerFee: msg.value,
                 sellerFee: 0,
                 disputeID: 0,
-                arbitratorID: arbitratorDataList.length - 1,
+                arbitrator: arbitrator,
+                extraData: arbitratorExtraData,
                 lastInteraction: block.timestamp,
                 status: Status.Created
             })
@@ -527,8 +521,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
             "Order completed by timeout"
         );
 
-        (IArbitrator arbitrator, uint256 arbitrationCost, bytes memory arbitratorExtraData)
-        = getArbitratorData();
+        uint256 arbitrationCost = order.arbitrator.arbitrationCost(order.extraData);
 
         // Seller can overpay to draw more jurors.
         require(msg.value >= arbitrationCost, "Arbitration fees not paid");
@@ -536,14 +529,14 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         order.sellerFee = msg.value;
         order.status = Status.Disputed;
         order.disputeID =
-            arbitrator.createDispute{value: msg.value}(RULING_OPTIONS, arbitratorExtraData);
+            order.arbitrator.createDispute{value: msg.value}(RULING_OPTIONS, order.extraData);
 
         DisputeData storage dispute = disputes[order.disputeID];
         dispute.orderID = _orderID;
 
         PaymentMethod storage pm = paymentMethods[order.paymentID];
 
-        emit Dispute(arbitrator, order.disputeID, pm.metaEvidenceID, _orderID);
+        emit Dispute(order.arbitrator, order.disputeID, pm.metaEvidenceID, _orderID);
     }
 
     // ************************************* //
@@ -615,8 +608,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
             "Dispute is resolved"
         );
 
-        ArbitratorData memory arbitratorData = arbitratorDataList[order.arbitratorID];
-        emit Evidence(arbitratorData.arbitrator, _orderID, _msgSender(), _evidence);
+        emit Evidence(order.arbitrator, _orderID, _msgSender(), _evidence);
     }
 
     /**
@@ -632,16 +624,15 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         require(_side != Party.None, "Wrong party.");
         require(order.status == Status.Disputed, "No dispute to appeal");
 
-        ArbitratorData memory arbitratorData = arbitratorDataList[order.arbitratorID];
         (uint256 appealPeriodStart, uint256 appealPeriodEnd) =
-            arbitratorData.arbitrator.appealPeriod(order.disputeID);
+            order.arbitrator.appealPeriod(order.disputeID);
         require(
             block.timestamp >= appealPeriodStart && block.timestamp < appealPeriodEnd,
             "Funding not within appeal period"
         );
 
         uint256 multiplier;
-        uint256 winner = arbitratorData.arbitrator.currentRuling(order.disputeID);
+        uint256 winner = order.arbitrator.currentRuling(order.disputeID);
         if (winner == uint256(_side)) {
             multiplier = winnerStakeMultiplier;
         } else if (winner == 0) {
@@ -658,8 +649,8 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         Round storage round = dispute.rounds[dispute.lastRoundID];
         require(_side != round.sideFunded, "Appeal fee paid");
 
-        uint256 appealCost = arbitratorData.arbitrator.appealCost(
-            order.disputeID, arbitratorData.arbitratorExtraData
+        uint256 appealCost = order.arbitrator.appealCost(
+            order.disputeID, order.extraData
         );
         uint256 totalCost = appealCost + ((appealCost * multiplier) / MULTIPLIER_DIVISOR);
 
@@ -686,8 +677,8 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
                 round.sideFunded = _side;
             } else {
                 // Both sides are fully funded. Create an appeal.
-                arbitratorData.arbitrator.appeal{value: appealCost}(
-                    order.disputeID, arbitratorData.arbitratorExtraData
+                order.arbitrator.appeal{value: appealCost}(
+                    order.disputeID, order.extraData
                 );
                 round.feeRewards = (
                     round.paidFees[uint256(Party.Buyer)]
@@ -710,9 +701,8 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     function rule(uint256 _disputeID, uint256 _ruling) external {
         DisputeData storage dispute = disputes[_disputeID];
         Order storage order = orders[dispute.orderID];
-        IArbitrator arbitrator = arbitratorDataList[order.arbitratorID].arbitrator;
 
-        require(msg.sender == address(arbitrator), "Only arbitrator");
+        require(msg.sender == address(order.arbitrator), "Only arbitrator");
         require(order.status != Status.Resolved, " Dispute already resolved");
 
         Round storage round = dispute.rounds[dispute.lastRoundID];
@@ -728,7 +718,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
 
         _executeRuling(_disputeID);
 
-        emit Ruling(arbitrator, _disputeID, uint256(dispute.ruling));
+        emit Ruling(order.arbitrator, _disputeID, uint256(dispute.ruling));
     }
 
     /**
@@ -831,19 +821,6 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     {
         PaymentMethod storage pm = paymentMethods[_paymentID];
         return pm.tokenEnabled[_token];
-    }
-
-    function getArbitratorData()
-        public
-        view
-        returns (IArbitrator, uint256, bytes memory)
-    {
-        ArbitratorData memory arbitratorData =
-            arbitratorDataList[arbitratorDataList.length - 1];
-        IArbitrator arbitrator = arbitratorData.arbitrator;
-        bytes memory arbitratorExtraData = arbitratorData.arbitratorExtraData;
-        uint256 arbitrationCost = arbitrator.arbitrationCost(arbitratorExtraData);
-        return (arbitratorData.arbitrator, arbitrationCost, arbitratorExtraData);
     }
 
     /**
