@@ -421,7 +421,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
 
         PaymentMethod storage pm = paymentMethods[_paymentID];
-        require(pm.tokenEnabled[_token] == true, "Token not yet enabled for selling");
+        require(pm.tokenEnabled[_token] == true, "Token not enabled for selling");
 
         tokenBalance[_msgSender()][_token] += _amount;
         _token.safeTransferFrom(_msgSender(), address(this), _amount);
@@ -448,20 +448,20 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         external
         payable
     {
-        require(_paymentID < totalPaymentMethods, "Payment method does not exist");
+        require(_paymentID < totalPaymentMethods, "PaymentMethod: !Exist");
 
         PaymentMethod storage pm = paymentMethods[_paymentID];
         require(
             bytes(pm.paymentAddress[_seller]).length != 0,
-            "Seller doesn't accept this payment method"
+            "PaymentMethod: !Seller"
         );
         require(
-            pm.tokenEnabled[_token] == true, "Token is not enabled for this payment method"
+            pm.tokenEnabled[_token] == true, "PaymentMethod: !Token"
         );
         require(tokenBalance[_seller][_token] >= _amount, "Not enough seller balance");
 
         (, uint256 arbitrationCost,) = getArbitratorData();
-        require(msg.value >= arbitrationCost, "Arbitration fees need to be paid");
+        require(msg.value >= arbitrationCost, "Arbitration fees not paid");
 
         uint256 feeRate = tradeFeeRate + pm.feeRate[_seller];
         (uint256 _fee,) = _calculateFees(_amount, feeRate);
@@ -495,11 +495,11 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         Order storage order = orders[_orderID];
         require(order.buyer == _msgSender(), "Only Buyer");
         require(
-            order.status == Status.Created, "Order already cancelled, completed or disputed"
+            order.status == Status.Created, "OrderStatus: !Created"
         );
         require(
             order.lastInteraction + buyerTimeout >= block.timestamp,
-            "Payment confirmation period is over"
+            "Payment confirmation timeout"
         );
 
         order.lastInteraction = block.timestamp;
@@ -523,7 +523,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         Order storage order = orders[_orderID];
         require(order.seller == _msgSender(), "Only Seller");
         require(
-            order.status < Status.Completed, "Order already cancelled, completed or disputed"
+            order.status < Status.Completed, "OrderStatus: !<Completed"
         );
         // Lets the seller mark an order as complete before waiting for
         // the buyer to confirmPaid every time
@@ -531,7 +531,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         // the seller can counter-factually complete the order.
         require(
             order.status == Status.Created || order.lastInteraction + sellerTimeout >= block.timestamp,
-            "Order already completed by timeout"
+            "Order completed by timeout"
         );
 
         _markOrderComplete(order);
@@ -543,17 +543,17 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
 
         Order storage order = orders[_orderID];
         require(order.seller == _msgSender(), "Only Seller");
-        require(order.status == Status.Paid, "Cannot dispute a not yet paid order");
+        require(order.status == Status.Paid, "OrderStatus: !Paid");
         require(
             order.lastInteraction + sellerTimeout >= block.timestamp,
-            "Order already completed by timeout"
+            "Order completed by timeout"
         );
 
         (IArbitrator arbitrator, uint256 arbitrationCost, bytes memory arbitratorExtraData)
         = getArbitratorData();
 
         // Seller can overpay to draw more jurors.
-        require(msg.value >= arbitrationCost, "Arbitration fees need to be paid");
+        require(msg.value >= arbitrationCost, "Arbitration fees not paid");
 
         order.sellerFee = msg.value;
         order.status = Status.Disputed;
@@ -578,11 +578,11 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         Order storage order = orders[_orderID];
         require(
             order.status == Status.Created,
-            "Order can only be cancelled immediately after creation"
+            "OrderStatus: !Created"
         );
         require(
             order.lastInteraction + buyerTimeout < block.timestamp,
-            "Confirmation period has not yet timed out"
+            "Confirmation period NOT timedout"
         );
 
         uint256 amount = order.amount;
@@ -607,11 +607,11 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         Order storage order = orders[_orderID];
         require(
             order.status == Status.Paid,
-            "Order can only be cancelled immediately after creation"
+            "OrderStatus: !Paid"
         );
         require(
             order.lastInteraction + sellerTimeout < block.timestamp,
-            "Order completion period has not yet timed out"
+            "Completion period NOT timedout"
         );
 
         _markOrderComplete(order);
@@ -634,7 +634,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         Order memory order = orders[_orderID];
         require(
             order.status < Status.Resolved,
-            "Must not send evidence if the dispute is resolved."
+            "Dispute is resolved"
         );
 
         ArbitratorData memory arbitratorData = arbitratorDataList[order.arbitratorID];
@@ -659,7 +659,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
             arbitratorData.arbitrator.appealPeriod(order.disputeID);
         require(
             block.timestamp >= appealPeriodStart && block.timestamp < appealPeriodEnd,
-            "Funding must be made within the appeal period."
+            "Funding not within appeal period"
         );
 
         uint256 multiplier;
@@ -671,14 +671,14 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         } else {
             require(
                 block.timestamp < (appealPeriodEnd + appealPeriodStart) / 2,
-                "The loser must pay during the first half of the appeal period."
+                "The loser must pay during the first half of the appeal period"
             );
             multiplier = loserStakeMultiplier;
         }
 
         DisputeData storage dispute = disputes[order.disputeID];
         Round storage round = dispute.rounds[dispute.lastRoundID];
-        require(_side != round.sideFunded, "Appeal fee has already been paid.");
+        require(_side != round.sideFunded, "Appeal fee paid");
 
         uint256 appealCost = arbitratorData.arbitrator.appealCost(
             order.disputeID, arbitratorData.arbitratorExtraData
