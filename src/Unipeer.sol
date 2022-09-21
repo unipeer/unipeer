@@ -5,10 +5,10 @@ import "oz/token/ERC20/utils/SafeERC20.sol";
 import "oz/utils/math/Math.sol";
 import "kleros/erc-1497/IEvidence.sol";
 import "kleros/IArbitrator.sol";
-import "delegatable/Delegatable.sol";
+import "delegatable/DelegatableRelay.sol";
 import "forge-std/console2.sol";
 
-contract Unipeer is IArbitrable, IEvidence, Delegatable {
+contract Unipeer is IArbitrable, IEvidence {
     using SafeERC20 for IERC20;
 
     // ************************************* //
@@ -115,6 +115,11 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     // ************************************* //
 
     address public admin;
+    // A DelegatableRelay contract used to verify signatures.
+    // We use an external deploy contract instead of inheriting it to
+    // workaround contract size limits.
+    // For more details, see: https://github.com/delegatable/delegatable-sol
+    DelegatableRelay public relay;
     // Total non-withdrawn fees accumulated by the protocol.
     uint256 public protocolFeesSum;
     // The fee rate applicable to trades,
@@ -217,6 +222,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
      */
     constructor(
         address _admin,
+        DelegatableRelay _relay,
         string memory _version,
         IArbitrator _arbitrator,
         bytes memory _arbitratorExtraData,
@@ -226,10 +232,9 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         uint256 _winnerStakeMultiplier,
         uint256 _loserStakeMultiplier,
         uint256 _tradeFeeRate
-    )
-        Delegatable("Unipeer", _version)
-    {
+    ) {
         admin = _admin;
+        relay = _relay;
         arbitrator = _arbitrator;
         arbitratorExtraData = _arbitratorExtraData;
         buyerTimeout = _buyerTimeout;
@@ -1043,10 +1048,9 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     function _msgSender()
         internal
         view
-        override (DelegatableCore)
         returns (address sender)
     {
-        if (msg.sender == address(this)) {
+        if (msg.sender == address(relay)) {
             bytes memory array = msg.data;
             uint256 index = msg.data.length;
             assembly {
