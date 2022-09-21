@@ -383,7 +383,6 @@ contract Unipeer is IArbitrable, IEvidence {
         external
     {
         require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
-        require(_feeRate <= MULTIPLIER_DIVISOR, "fees cannot be more than 100%");
         address _seller = _msgSender();
 
         PaymentMethod storage pm = paymentMethods[_paymentID];

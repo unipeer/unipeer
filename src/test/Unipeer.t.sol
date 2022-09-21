@@ -208,7 +208,6 @@ contract UnipeerTest is Test {
 
         uint256 sellerFeeRate = unipeer.getPaymentMethodSellerFeeRate(PAYMENT_ID, seller);
         uint256 feeRate = unipeer.tradeFeeRate() + sellerFeeRate;
-
         uint256 tradeFees = amount * feeRate / MULTIPLIER_DIVISOR;
 
         vm.expectEmit(true, true, false, true);
@@ -263,6 +262,47 @@ contract UnipeerTest is Test {
         uint256 arbFees = unipeer.arbitrator().arbitrationCost(unipeer.arbitratorExtraData());
         vm.expectRevert("PaymentMethod: !Seller");
         unipeer.buyOrder{value: arbFees}(1, seller, Dai, 1001 ether);
+    }
+
+    function testSellerFeeRate() public {
+        setUpSeller();
+        uint256 arbFees = unipeer.arbitrator().arbitrationCost(unipeer.arbitratorExtraData());
+
+        uint256 amount = 500 ether;
+        uint256 sellerRate = SELLER_FEE + 1000;
+        uint256 sellerFee = amount * sellerRate / MULTIPLIER_DIVISOR;
+
+        hoax(buyer);
+        unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, amount);
+        (uint256 fees1, ) = unipeer.getOrderFeeAmount(ORDER_ID);
+
+        hoax(seller);
+        unipeer.updateSellerPaymentMethod(PAYMENT_ID, "seller@paypal.me", sellerRate);
+
+        hoax(buyer);
+        unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, amount);
+        (uint256 fees2, ) = unipeer.getOrderFeeAmount(ORDER_ID + 1);
+
+        assertEq(fees2 - fees1, sellerFee);
+    }
+
+    function testFailSellerFeeRateMoreThan100Percent() public {
+        setUpSeller();
+
+        uint256 amount = 500 ether;
+        uint256 sellerRate = SELLER_FEE + MULTIPLIER_DIVISOR;
+        uint256 feeRate = unipeer.tradeFeeRate() + sellerRate;
+        uint256 tradeFees = amount * feeRate / MULTIPLIER_DIVISOR;
+        uint256 arbFees = unipeer.arbitrator().arbitrationCost(unipeer.arbitratorExtraData());
+
+        hoax(seller);
+        unipeer.updateSellerPaymentMethod(PAYMENT_ID, "seller@paypal.me", sellerRate);
+
+        hoax(buyer);
+        unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, amount);
+
+        (uint256 fees, uint256 tradeAmount) = unipeer.getOrderFeeAmount(ORDER_ID);
+        assertEq(fees, tradeFees);
     }
 
     function testConfirmPaid() public {
