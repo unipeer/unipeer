@@ -837,11 +837,6 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         tradeAmount = order.amount - order.fee;
     }
 
-    function getPaymentMethodSellerFeeRate(uint16 _paymentID, address _seller) external view returns (uint256 fee) {
-        PaymentMethod storage pm = paymentMethods[_paymentID];
-        fee = pm.feeRate[_seller];
-    }
-
     function getPaymentMethodDetails(uint16 _paymentID)
         external
         view
@@ -849,6 +844,11 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     {
         PaymentMethod storage pm = paymentMethods[_paymentID];
         return (pm.paymentName, pm.metaEvidenceID);
+    }
+
+    function getPaymentMethodSellerFeeRate(uint16 _paymentID, address _seller) external view returns (uint256 fee) {
+        PaymentMethod storage pm = paymentMethods[_paymentID];
+        fee = pm.feeRate[_seller];
     }
 
     function getPaymentMethodAddress(uint16 _paymentID, address _seller)

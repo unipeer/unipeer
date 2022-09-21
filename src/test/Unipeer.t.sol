@@ -133,6 +133,26 @@ contract UnipeerTest is Test {
         emit SellerPaymentMethod(seller, PAYMENT_ID, "seller@paypal.me", SELLER_FEE);
         unipeer.acceptPaymentMethod(PAYMENT_ID, "seller@paypal.me", SELLER_FEE);
         assertEq(unipeer.getPaymentMethodAddress(PAYMENT_ID, seller), "seller@paypal.me");
+        assertEq(unipeer.getPaymentMethodSellerFeeRate(PAYMENT_ID, seller), SELLER_FEE);
+    }
+
+    function testUpdatePaymentAddress() public {
+        testAcceptPaymentMethod();
+
+        vm.expectEmit(true, true, false, true);
+        emit SellerPaymentMethod(seller, PAYMENT_ID, "seller2@paypal.me", SELLER_FEE);
+        unipeer.updatePaymentAddress(PAYMENT_ID, "seller2@paypal.me");
+        assertEq(unipeer.getPaymentMethodAddress(PAYMENT_ID, seller), "seller2@paypal.me");
+        assertEq(unipeer.getPaymentMethodSellerFeeRate(PAYMENT_ID, seller), SELLER_FEE);
+    }
+
+    function testUpdateFeeRate() public {
+        testAcceptPaymentMethod();
+
+        vm.expectEmit(true, true, false, true);
+        emit SellerPaymentMethod(seller, PAYMENT_ID, "seller@paypal.me", SELLER_FEE + 100);
+        unipeer.updateFeeRate(PAYMENT_ID, SELLER_FEE + 100);
+        assertEq(unipeer.getPaymentMethodSellerFeeRate(PAYMENT_ID, seller), SELLER_FEE + 100);
     }
 
     function testDisablePaymentMethod() public {
@@ -629,6 +649,24 @@ contract UnipeerTest is Test {
         assertEq(newBalance - oldBalance, feeRewards);
     }
 
+    function testBatchWithdrawFeeAndRewardsWithAppeals() public {
+        testFundAppealBuyerAppealed();
+
+        vm.expectEmit(true, true, false, true);
+        emit Ruling(arbitrator, ORDER_ID, 1);
+        arbitrator.giveRuling(ORDER_ID, 1);
+        skip(APPEAL_WINDOW + 1);
+        arbitrator.executeRuling(ORDER_ID);
+
+        (,,uint256 feeRewards,) = unipeer.getRoundInfo(ORDER_ID, 0);
+        assertTrue(feeRewards != 0, "feeRewards is zero");
+
+        uint256 oldBalance = address(buyer).balance;
+        unipeer.batchRoundWithdraw(payable(buyer), ORDER_ID, 0, 0);
+        uint256 newBalance = address(buyer).balance;
+        assertEq(newBalance - oldBalance, feeRewards);
+    }
+
     function testCannotWithdrawFeeAndRewardsWithoutRuling() public {
         testFundAppealBuyerAppealed();
 
@@ -679,6 +717,11 @@ contract UnipeerTest is Test {
 
         vm.expectRevert("Amount more than accrued fees");
         unipeer.withdrawFees(10, payable(user));
+    }
+
+    function testChangeAdmin() public {
+        hoax(admin);
+        unipeer.changeAdmin(user);
     }
 
     function testChangeArbitrator() public {
