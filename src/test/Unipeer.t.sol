@@ -222,7 +222,8 @@ contract UnipeerTest is Test {
 
         uint256 sellerFeeRate = unipeer.getPaymentMethodSellerFeeRate(PAYMENT_ID, seller);
         uint256 feeRate = unipeer.tradeFeeRate() + sellerFeeRate;
-        (uint256 tradeFees,) = unipeer.calculateFees(amount, feeRate);
+
+        uint256 tradeFees = amount * feeRate / MULTIPLIER_DIVISOR;
 
         vm.expectEmit(true, true, false, true);
         emit BuyOrder(ORDER_ID, buyer, PAYMENT_ID, seller, Dai, amount, tradeFees);

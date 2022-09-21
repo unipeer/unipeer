@@ -152,7 +152,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     // ************************************* //
 
     modifier onlyAdmin() {
-        require(admin == msg.sender, "Only Admin");
+        _onlyAdmin();
         _;
     }
 
@@ -463,7 +463,7 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         require(msg.value >= arbitrationCost, "Arbitration fees need to be paid");
 
         uint256 feeRate = tradeFeeRate + pm.feeRate[_seller];
-        (uint256 _fee,) = calculateFees(_amount, feeRate);
+        (uint256 _fee,) = _calculateFees(_amount, feeRate);
 
         orders.push(
             Order({
@@ -734,7 +734,6 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         IArbitrator arbitrator = arbitratorDataList[order.arbitratorID].arbitrator;
 
         require(msg.sender == address(arbitrator), "Only arbitrator");
-        require(_ruling <= RULING_OPTIONS, "Invalid ruling");
         require(order.status != Status.Resolved, " Dispute already resolved");
 
         Round storage round = dispute.rounds[dispute.lastRoundID];
@@ -815,24 +814,6 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     }
 
     // ************************************* //
-    // *              Pure                 * //
-    // ************************************* //
-
-    /**
-     * @dev Gets the trade amount after fees
-     * @return fee The fee amount according to the tradeFee rate.
-     * @return tradeAmount The amount minus fees to be transferred to the buyer.
-     */
-    function calculateFees(uint256 _amount, uint256 _feeRate)
-        public
-        pure
-        returns (uint256 fee, uint256 tradeAmount)
-    {
-        fee = _amount * _feeRate / MULTIPLIER_DIVISOR;
-        tradeAmount = _amount - fee;
-    }
-
-    // ************************************* //
     // *              Views                * //
     // ************************************* //
 
@@ -844,15 +825,6 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         Order storage order = orders[_orderID];
         fee = order.fee;
         tradeAmount = order.amount - order.fee;
-    }
-
-    function getPaymentMethodDetails(uint16 _paymentID)
-        external
-        view
-        returns (string memory, uint256)
-    {
-        PaymentMethod storage pm = paymentMethods[_paymentID];
-        return (pm.paymentName, pm.metaEvidenceID);
     }
 
     function getPaymentMethodSellerFeeRate(uint16 _paymentID, address _seller)
@@ -954,6 +926,24 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     // ************************************* //
     // *            Internal               * //
     // ************************************* //
+
+    function _onlyAdmin() private view {
+        require(admin == msg.sender, "Only Admin");
+    }
+
+    /**
+     * @dev Gets the trade amount after fees
+     * @return fee The fee amount according to the tradeFee rate.
+     * @return tradeAmount The amount minus fees to be transferred to the buyer.
+     */
+    function _calculateFees(uint256 _amount, uint256 _feeRate)
+        internal
+        pure
+        returns (uint256 fee, uint256 tradeAmount)
+    {
+        fee = _amount * _feeRate / MULTIPLIER_DIVISOR;
+        tradeAmount = _amount - fee;
+    }
 
     function _executeRuling(uint256 _disputeID) internal {
         DisputeData storage dispute = disputes[_disputeID];
