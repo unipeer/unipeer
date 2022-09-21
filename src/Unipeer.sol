@@ -169,7 +169,6 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     event SellerPaymentMethod(
         address indexed sender, uint16 paymentID, string paymentAddress, uint256 feeRate
     );
-    event SellerPaymentDisabled(address indexed sender, uint16 paymentID);
     event SellerDeposit(address indexed sender, IERC20 token, uint256 amount);
     event SellerWithdraw(address indexed sender, IERC20 token, uint256 amount);
     event BuyOrder(
@@ -367,7 +366,18 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
     // *             Seller                * //
     // ************************************* //
 
-    function acceptPaymentMethod(
+    /**
+     * @notice Accept or disable a payment methods
+     * by a seller for orders.
+     * A payment method can be disabled by setting it
+     * to an empty string.
+     * @param _paymentID The ID of the payment method
+     * @param _paymentAddress The payment address the seller will
+     *  accept off-chain payments on
+     * @param _feeRate The fee rate charged by the seller for
+     *  this payment method
+     */
+    function updateSellerPaymentMethod(
         uint16 _paymentID,
         string calldata _paymentAddress,
         uint256 _feeRate
@@ -383,38 +393,6 @@ contract Unipeer is IArbitrable, IEvidence, Delegatable {
         pm.feeRate[_seller] = _feeRate;
 
         emit SellerPaymentMethod(_seller, _paymentID, _paymentAddress, _feeRate);
-    }
-
-    function updatePaymentAddress(uint16 _paymentID, string calldata _paymentAddress)
-        external
-    {
-        require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
-        address _seller = _msgSender();
-
-        PaymentMethod storage pm = paymentMethods[_paymentID];
-        pm.paymentAddress[_seller] = _paymentAddress;
-
-        emit SellerPaymentMethod(_seller, _paymentID, _paymentAddress, pm.feeRate[_seller]);
-    }
-
-    function updateFeeRate(uint16 _paymentID, uint256 _feeRate) external {
-        require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
-        require(_feeRate <= MULTIPLIER_DIVISOR, "fees cannot be more than 100%");
-        address _seller = _msgSender();
-
-        PaymentMethod storage pm = paymentMethods[_paymentID];
-        pm.feeRate[_seller] = _feeRate;
-
-        emit SellerPaymentMethod(_seller, _paymentID, pm.paymentAddress[_seller], _feeRate);
-    }
-
-    function disablePaymentMethod(uint16 _paymentID) external {
-        require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
-
-        PaymentMethod storage pm = paymentMethods[_paymentID];
-        pm.paymentAddress[_msgSender()] = "";
-
-        emit SellerPaymentDisabled(_msgSender(), _paymentID);
     }
 
     function depositTokens(uint16 _paymentID, IERC20 _token, uint256 _amount) external {

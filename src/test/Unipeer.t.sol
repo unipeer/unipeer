@@ -122,7 +122,7 @@ contract UnipeerTest is Test {
     function setUpSeller() public {
         setUpPaymentMethod();
         startHoax(seller);
-        unipeer.acceptPaymentMethod(PAYMENT_ID, "seller@paypal.me", SELLER_FEE);
+        unipeer.updateSellerPaymentMethod(PAYMENT_ID, "seller@paypal.me", SELLER_FEE);
         uint256 amount = 1000 ether;
         Dai.approve(address(unipeer), amount);
         unipeer.depositTokens(PAYMENT_ID, Dai, amount);
@@ -133,36 +133,15 @@ contract UnipeerTest is Test {
     // *             Seller                * //
     // ************************************* //
 
-    function testAcceptPaymentMethod() public {
+    function testUpdateSellerPaymentMethod() public {
         setUpPaymentMethod();
 
         startHoax(seller);
         vm.expectEmit(true, true, false, true);
         emit SellerPaymentMethod(seller, PAYMENT_ID, "seller@paypal.me", SELLER_FEE);
-        unipeer.acceptPaymentMethod(PAYMENT_ID, "seller@paypal.me", SELLER_FEE);
+        unipeer.updateSellerPaymentMethod(PAYMENT_ID, "seller@paypal.me", SELLER_FEE);
         assertEq(unipeer.getPaymentMethodAddress(PAYMENT_ID, seller), "seller@paypal.me");
         assertEq(unipeer.getPaymentMethodSellerFeeRate(PAYMENT_ID, seller), SELLER_FEE);
-    }
-
-    function testUpdatePaymentAddress() public {
-        testAcceptPaymentMethod();
-
-        vm.expectEmit(true, true, false, true);
-        emit SellerPaymentMethod(seller, PAYMENT_ID, "seller2@paypal.me", SELLER_FEE);
-        unipeer.updatePaymentAddress(PAYMENT_ID, "seller2@paypal.me");
-        assertEq(unipeer.getPaymentMethodAddress(PAYMENT_ID, seller), "seller2@paypal.me");
-        assertEq(unipeer.getPaymentMethodSellerFeeRate(PAYMENT_ID, seller), SELLER_FEE);
-    }
-
-    function testUpdateFeeRate() public {
-        testAcceptPaymentMethod();
-
-        vm.expectEmit(true, true, false, true);
-        emit SellerPaymentMethod(seller, PAYMENT_ID, "seller@paypal.me", SELLER_FEE + 100);
-        unipeer.updateFeeRate(PAYMENT_ID, SELLER_FEE + 100);
-        assertEq(
-            unipeer.getPaymentMethodSellerFeeRate(PAYMENT_ID, seller), SELLER_FEE + 100
-        );
     }
 
     function testDisablePaymentMethod() public {
@@ -170,9 +149,12 @@ contract UnipeerTest is Test {
 
         startHoax(seller);
         vm.expectEmit(true, true, false, true);
-        emit SellerPaymentDisabled(seller, PAYMENT_ID);
-        unipeer.disablePaymentMethod(PAYMENT_ID);
+        emit SellerPaymentMethod(seller, PAYMENT_ID, "", 0);
+        unipeer.updateSellerPaymentMethod(PAYMENT_ID, "", 0);
         assertEq(unipeer.getPaymentMethodAddress(PAYMENT_ID, seller), "");
+
+        vm.expectRevert("PaymentMethod: !Seller");
+        unipeer.buyOrder(PAYMENT_ID, seller, Dai, 1);
     }
 
     function testDepositTokens() public {
@@ -239,7 +221,7 @@ contract UnipeerTest is Test {
         startHoax(buyer);
 
         (, uint256 arbFees,) = unipeer.getArbitratorData();
-        vm.expectRevert("Arbitration fees need to be paid");
+        vm.expectRevert("Arbitration fees not paid");
         unipeer.buyOrder{value: arbFees - 1}(PAYMENT_ID, seller, Dai, 500 ether);
     }
 
@@ -259,7 +241,7 @@ contract UnipeerTest is Test {
         startHoax(buyer);
 
         (, uint256 arbFees,) = unipeer.getArbitratorData();
-        vm.expectRevert("Token is not enabled for this payment method");
+        vm.expectRevert("PaymentMethod: !Token");
         unipeer.buyOrder{value: arbFees}(
             PAYMENT_ID, seller, IERC20(address(99)), 1001 ether
         );
@@ -275,7 +257,7 @@ contract UnipeerTest is Test {
         startHoax(buyer);
 
         (, uint256 arbFees,) = unipeer.getArbitratorData();
-        vm.expectRevert("Seller doesn't accept this payment method");
+        vm.expectRevert("PaymentMethod: !Seller");
         unipeer.buyOrder{value: arbFees}(1, seller, Dai, 1001 ether);
     }
 
@@ -297,7 +279,7 @@ contract UnipeerTest is Test {
         testBuyOrder();
 
         skip(unipeer.buyerTimeout() + 1);
-        vm.expectRevert("Payment confirmation period is over");
+        vm.expectRevert("Payment confirmation timeout");
         unipeer.confirmPaid(ORDER_ID);
     }
 
@@ -314,7 +296,7 @@ contract UnipeerTest is Test {
         testTimeoutByBuyer();
 
         skip(unipeer.buyerTimeout() + 1);
-        vm.expectRevert("Order already cancelled, completed or disputed");
+        vm.expectRevert("OrderStatus: !Created");
         unipeer.confirmPaid(ORDER_ID);
     }
 
@@ -366,7 +348,7 @@ contract UnipeerTest is Test {
 
         startHoax(seller);
         skip(unipeer.sellerTimeout() + 1);
-        vm.expectRevert("Order already completed by timeout");
+        vm.expectRevert("Order completed by timeout");
         unipeer.completeOrder(ORDER_ID);
     }
 
@@ -395,7 +377,7 @@ contract UnipeerTest is Test {
         vm.stopPrank();
 
         startHoax(seller);
-        vm.expectRevert("Arbitration fees need to be paid");
+        vm.expectRevert("Arbitration fees not paid");
         unipeer.disputeOrder(ORDER_ID);
     }
 
@@ -405,7 +387,7 @@ contract UnipeerTest is Test {
 
         startHoax(seller);
         skip(unipeer.sellerTimeout() + 1);
-        vm.expectRevert("Order already completed by timeout");
+        vm.expectRevert("Order completed by timeout");
         unipeer.disputeOrder(ORDER_ID);
     }
 
@@ -414,7 +396,7 @@ contract UnipeerTest is Test {
         vm.stopPrank();
 
         startHoax(seller);
-        vm.expectRevert("Cannot dispute a not yet paid order");
+        vm.expectRevert("OrderStatus: !Paid");
         unipeer.disputeOrder(ORDER_ID);
     }
 
