@@ -208,17 +208,20 @@ contract Unipeer is IArbitrable, IEvidence {
     /**
      * @dev Constructor.
      * @param _admin The administrator of the contract.
+     * @param _relay The DelegatableRelay contract address.
      * @param _arbitrator The arbitrator of the contract.
      * @param _arbitratorExtraData Extra data for the arbitrator.
      * @param _buyerTimeout The payment timeout for the buyer.
      * @param _sellerTimeout The interaction timeout for the seller.
      * @param _sharedStakeMultiplier Multiplier of the appeal cost that the
-     * submitter must pay for a round when there is no winner/loser in
-     * the previous round. In basis points.
+     *          submitter must pay for a round when there is no winner/loser in
+     *          the previous round. In basis points.
      * @param _winnerStakeMultiplier Multiplier of the appeal cost that the winner
-     * has to pay for a round. In basis points.
+     *          has to pay for a round. In basis points.
      * @param _loserStakeMultiplier Multiplier of the appeal cost that the loser
-     * has to pay for a round. In basis points.
+     *          has to pay for a round. In basis points.
+     * @param _tradeFeeRate The feeRate by MULTIPLE_DIVISOR for accruing
+     *          protocol fees.
      */
     constructor(
         address _admin,
@@ -292,10 +295,7 @@ contract Unipeer is IArbitrable, IEvidence {
         string calldata _paymentName,
         uint256 _metaEvidenceID,
         IERC20 _initalEnabledToken
-    )
-        external
-        onlyAdmin
-    {
+    ) external onlyAdmin {
         require(_metaEvidenceID < metaEvidenceUpdates, "Invalid Meta Evidence ID");
         PaymentMethod storage pm = paymentMethods[totalPaymentMethods++];
         pm.paymentName = _paymentName;
@@ -378,9 +378,7 @@ contract Unipeer is IArbitrable, IEvidence {
         uint16 _paymentID,
         string calldata _paymentAddress,
         uint256 _feeRate
-    )
-        external
-    {
+    ) external {
         require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
         address _seller = _msgSender();
 
@@ -425,13 +423,8 @@ contract Unipeer is IArbitrable, IEvidence {
         require(_paymentID < totalPaymentMethods, "PaymentMethod: !Exist");
 
         PaymentMethod storage pm = paymentMethods[_paymentID];
-        require(
-            bytes(pm.paymentAddress[_seller]).length != 0,
-            "PaymentMethod: !Seller"
-        );
-        require(
-            pm.tokenEnabled[_token] == true, "PaymentMethod: !Token"
-        );
+        require(bytes(pm.paymentAddress[_seller]).length != 0, "PaymentMethod: !Seller");
+        require(pm.tokenEnabled[_token] == true, "PaymentMethod: !Token");
         require(tokenBalance[_seller][_token] >= _amount, "Not enough seller balance");
 
         uint256 arbitrationCost = arbitrator.arbitrationCost(arbitratorExtraData);
@@ -466,7 +459,14 @@ contract Unipeer is IArbitrable, IEvidence {
         tokenBalance[_seller][_token] -= tradeAmount;
 
         emit BuyOrder(
-            orders.length - 1, _msgSender(), _paymentID, _seller, _token, _amount, _fee, _sellerFee
+            orders.length - 1,
+            _msgSender(),
+            _paymentID,
+            _seller,
+            _token,
+            _amount,
+            _fee,
+            _sellerFee
             );
     }
 
@@ -475,9 +475,7 @@ contract Unipeer is IArbitrable, IEvidence {
 
         Order storage order = orders[_orderID];
         require(order.buyer == _msgSender(), "Only Buyer");
-        require(
-            order.status == Status.Created, "OrderStatus: !Created"
-        );
+        require(order.status == Status.Created, "OrderStatus: !Created");
         require(
             order.lastInteraction + buyerTimeout >= block.timestamp,
             "Payment confirmation timeout"
@@ -503,15 +501,14 @@ contract Unipeer is IArbitrable, IEvidence {
 
         Order storage order = orders[_orderID];
         require(order.seller == _msgSender(), "Only Seller");
-        require(
-            order.status < Status.Completed, "OrderStatus: !<Completed"
-        );
+        require(order.status < Status.Completed, "OrderStatus: !<Completed");
         // Lets the seller mark an order as complete before waiting for
         // the buyer to confirmPaid every time
         // since the buyer would make the payment off-chain,
         // the seller can counter-factually complete the order.
         require(
-            order.status == Status.Created || order.lastInteraction + sellerTimeout >= block.timestamp,
+            order.status == Status.Created
+                || order.lastInteraction + sellerTimeout >= block.timestamp,
             "Order completed by timeout"
         );
 
@@ -537,8 +534,9 @@ contract Unipeer is IArbitrable, IEvidence {
 
         order.sellerCost = msg.value;
         order.status = Status.Disputed;
-        order.disputeID =
-            order.arbitrator.createDispute{value: msg.value}(RULING_OPTIONS, order.extraData);
+        order.disputeID = order.arbitrator.createDispute{value: msg.value}(
+            RULING_OPTIONS, order.extraData
+        );
 
         DisputeData storage dispute = disputes[order.disputeID];
         dispute.orderID = _orderID;
@@ -556,10 +554,7 @@ contract Unipeer is IArbitrable, IEvidence {
         require(_orderID < orders.length, "Invalid Order ID");
 
         Order storage order = orders[_orderID];
-        require(
-            order.status == Status.Created,
-            "OrderStatus: !Created"
-        );
+        require(order.status == Status.Created, "OrderStatus: !Created");
         require(
             order.lastInteraction + buyerTimeout < block.timestamp,
             "Confirmation period NOT timedout"
@@ -585,10 +580,7 @@ contract Unipeer is IArbitrable, IEvidence {
         require(_orderID < orders.length, "Invalid Order ID");
 
         Order storage order = orders[_orderID];
-        require(
-            order.status == Status.Paid,
-            "OrderStatus: !Paid"
-        );
+        require(order.status == Status.Paid, "OrderStatus: !Paid");
         require(
             order.lastInteraction + sellerTimeout < block.timestamp,
             "Completion period NOT timedout"
@@ -612,10 +604,7 @@ contract Unipeer is IArbitrable, IEvidence {
         require(_orderID < orders.length, "Invalid Order ID");
 
         Order memory order = orders[_orderID];
-        require(
-            order.status < Status.Resolved,
-            "Dispute is resolved"
-        );
+        require(order.status < Status.Resolved, "Dispute is resolved");
 
         emit Evidence(order.arbitrator, _orderID, _msgSender(), _evidence);
     }
@@ -658,17 +647,16 @@ contract Unipeer is IArbitrable, IEvidence {
         Round storage round = dispute.rounds[dispute.lastRoundID];
         require(_side != round.sideFunded, "Appeal fee paid");
 
-        uint256 appealCost = order.arbitrator.appealCost(
-            order.disputeID, order.extraData
-        );
+        uint256 appealCost = order.arbitrator.appealCost(order.disputeID, order.extraData);
         uint256 totalCost = appealCost + ((appealCost * multiplier) / MULTIPLIER_DIVISOR);
 
         {
             // Take up to the amount necessary to fund the current round at the current costs.
             uint256 contribution; // Amount contributed.
             uint256 remainingETH; // Remaining ETH to send back.
-            (contribution, remainingETH) =
-                _calculateContribution(msg.value, totalCost - round.paidFees[uint256(_side)]);
+            (contribution, remainingETH) = _calculateContribution(
+                msg.value, totalCost - round.paidFees[uint256(_side)]
+            );
             round.contributions[_msgSender()][uint256(_side)] += contribution;
             round.paidFees[uint256(_side)] += contribution;
 
@@ -743,16 +731,15 @@ contract Unipeer is IArbitrable, IEvidence {
         address payable _beneficiary,
         uint256 _orderID,
         uint256 _round
-    )
-        external
-    {
+    ) external {
         Order storage order = orders[_orderID];
         require(order.status == Status.Resolved, "The order must be resolved.");
         DisputeData storage dispute = disputes[order.disputeID];
         require(dispute.orderID == _orderID, "Undisputed order");
 
-        uint256 reward =
-            _withdrawFeesAndRewards(_beneficiary, _orderID, _round, uint256(dispute.ruling));
+        uint256 reward = _withdrawFeesAndRewards(
+            _beneficiary, _orderID, _round, uint256(dispute.ruling)
+        );
         _beneficiary.send(reward); // It is the user responsibility to accept ETH.
     }
 
@@ -772,9 +759,7 @@ contract Unipeer is IArbitrable, IEvidence {
         uint256 _orderID,
         uint256 _cursor,
         uint256 _count
-    )
-        external
-    {
+    ) external {
         Order storage order = orders[_orderID];
         require(order.status == Status.Resolved, "The order must be resolved.");
         DisputeData storage dispute = disputes[order.disputeID];
@@ -784,7 +769,9 @@ contract Unipeer is IArbitrable, IEvidence {
         uint256 reward;
         uint256 totalRounds = dispute.lastRoundID;
         for (
-            uint256 i = _cursor; i <= totalRounds && (_count == 0 || i < _cursor + _count); i++
+            uint256 i = _cursor;
+            i <= totalRounds && (_count == 0 || i < _cursor + _count);
+            i++
         ) {
             reward += _withdrawFeesAndRewards(_beneficiary, _orderID, i, finalRuling);
         }
@@ -888,7 +875,10 @@ contract Unipeer is IArbitrable, IEvidence {
         DisputeData storage dispute = disputes[order.disputeID];
         Round storage round = dispute.rounds[_round];
         return (
-            round.paidFees, round.sideFunded, round.feeRewards, _round != dispute.lastRoundID
+            round.paidFees,
+            round.sideFunded,
+            round.feeRewards,
+            _round != dispute.lastRoundID
         );
     }
 
@@ -975,10 +965,7 @@ contract Unipeer is IArbitrable, IEvidence {
         uint256 _orderID,
         uint256 _round,
         uint256 _finalRuling
-    )
-        internal
-        returns (uint256 reward)
-    {
+    ) internal returns (uint256 reward) {
         Order storage order = orders[_orderID];
         DisputeData storage dispute = disputes[order.disputeID];
         Round storage round = dispute.rounds[_round];
@@ -987,23 +974,22 @@ contract Unipeer is IArbitrable, IEvidence {
 
         if (_round == lastRound) {
             // Allow to reimburse if funding was unsuccessful.
-            reward =
-                contributionTo[uint256(Party.Buyer)] + contributionTo[uint256(Party.Seller)];
+            reward = contributionTo[uint256(Party.Buyer)]
+                + contributionTo[uint256(Party.Seller)];
         } else if (_finalRuling == uint256(Party.None)) {
             // Reimburse unspent fees proportionally if there is no winner and loser.
-            uint256 totalFeesPaid =
-                round.paidFees[uint256(Party.Buyer)] + round.paidFees[uint256(Party.Seller)];
-            uint256 totalBeneficiaryContributions =
-                contributionTo[uint256(Party.Buyer)] + contributionTo[uint256(Party.Seller)];
-            reward =
-                totalFeesPaid > 0
+            uint256 totalFeesPaid = round.paidFees[uint256(Party.Buyer)]
+                + round.paidFees[uint256(Party.Seller)];
+            uint256 totalBeneficiaryContributions = contributionTo[uint256(Party.Buyer)]
+                + contributionTo[uint256(Party.Seller)];
+            reward = totalFeesPaid > 0
                 ? (totalBeneficiaryContributions * round.feeRewards) / totalFeesPaid
                 : 0;
         } else {
             // Reward the winner.
-            reward =
-                round.paidFees[_finalRuling] > 0
-                ? (contributionTo[_finalRuling] * round.feeRewards) / round.paidFees[_finalRuling]
+            reward = round.paidFees[_finalRuling] > 0
+                ? (contributionTo[_finalRuling] * round.feeRewards)
+                    / round.paidFees[_finalRuling]
                 : 0;
         }
         contributionTo[uint256(Party.Buyer)] = 0;
@@ -1053,11 +1039,7 @@ contract Unipeer is IArbitrable, IEvidence {
         order.token.safeTransfer(order.buyer, tradeAmount);
     }
 
-    function _msgSender()
-        internal
-        view
-        returns (address sender)
-    {
+    function _msgSender() internal view returns (address sender) {
         if (msg.sender == address(relay)) {
             bytes memory array = msg.data;
             uint256 index = msg.data.length;
