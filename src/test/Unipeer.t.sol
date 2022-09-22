@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0
-pragma solidity 0.8.15;
+pragma solidity 0.8.17;
 
 import "forge-std/Test.sol";
 
 import "oz/interfaces/IERC20.sol";
 import "oz/mocks/ERC20Mock.sol";
 import "kleros/IArbitrator.sol";
-import "delegatable/DelegatableRelay.sol";
+// import "delegatable/DelegatableRelay.sol";
 
 import "./Arbitrator.sol";
 import "../Unipeer.sol";
@@ -80,7 +80,7 @@ contract UnipeerTest is Test {
 
     IERC20 Dai;
     Arbitrator arbitrator;
-    DelegatableRelay relay;
+    // DelegatableRelay relay = new DelegatableRelay();
     Unipeer unipeer;
 
     uint16 constant META_ID = 0;
@@ -98,11 +98,10 @@ contract UnipeerTest is Test {
     function setUp() public {
         Dai = new ERC20Mock("Dai", "DAI", seller, SELLER_BALANCE);
         arbitrator = new Arbitrator();
-        relay  = new DelegatableRelay();
 
         unipeer = new Unipeer(
             admin,
-            relay,
+            address(99),
             arbitrator,
             bytes(""),
             10 seconds,

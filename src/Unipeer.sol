@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0
-pragma solidity 0.8.15;
+pragma solidity 0.8.17;
 
 import "oz/token/ERC20/utils/SafeERC20.sol";
 import "oz/utils/math/Math.sol";
 import "kleros/erc-1497/IEvidence.sol";
 import "kleros/IArbitrator.sol";
-import "delegatable/DelegatableRelay.sol";
+// import "delegatable/interfaces/IDelegatable.sol";
 import "forge-std/console2.sol";
 
 contract Unipeer is IArbitrable, IEvidence {
@@ -119,7 +119,7 @@ contract Unipeer is IArbitrable, IEvidence {
     // We use an external deploy contract instead of inheriting it to
     // workaround contract size limits.
     // For more details, see: https://github.com/delegatable/delegatable-sol
-    DelegatableRelay public relay;
+    address public relay;
     // Total non-withdrawn fees accumulated by the protocol.
     uint256 public protocolFeesSum;
     // The fee rate applicable to trades,
@@ -222,7 +222,7 @@ contract Unipeer is IArbitrable, IEvidence {
      */
     constructor(
         address _admin,
-        DelegatableRelay _relay,
+        address _relay,
         IArbitrator _arbitrator,
         bytes memory _arbitratorExtraData,
         uint256 _buyerTimeout,
