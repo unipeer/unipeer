@@ -226,6 +226,7 @@ contract Unipeer is IArbitrable, IEvidence {
     constructor(
         address _admin,
         address _relay,
+        string memory _version,
         IArbitrator _arbitrator,
         bytes memory _arbitratorExtraData,
         uint256 _buyerTimeout,
@@ -427,8 +428,7 @@ contract Unipeer is IArbitrable, IEvidence {
         require(pm.tokenEnabled[_token] == true, "PaymentMethod: !Token");
         require(tokenBalance[_seller][_token] >= _amount, "Not enough seller balance");
 
-        uint256 arbitrationCost = arbitrator.arbitrationCost(arbitratorExtraData);
-        require(msg.value >= arbitrationCost, "Arbitration fees not paid");
+        require(msg.value >= arbitrator.arbitrationCost(arbitratorExtraData), "Arbitration fees not paid");
 
         (uint256 _fee,) = _calculateFees(_amount, tradeFeeRate);
         (uint256 _sellerFee,) = _calculateFees(_amount, pm.feeRate[_seller]);
@@ -527,10 +527,8 @@ contract Unipeer is IArbitrable, IEvidence {
             "Order completed by timeout"
         );
 
-        uint256 arbitrationCost = order.arbitrator.arbitrationCost(order.extraData);
-
         // Seller can overpay to draw more jurors.
-        require(msg.value >= arbitrationCost, "Arbitration fees not paid");
+        require(msg.value >= order.arbitrator.arbitrationCost(order.extraData), "Arbitration fees not paid");
 
         order.sellerCost = msg.value;
         order.status = Status.Disputed;

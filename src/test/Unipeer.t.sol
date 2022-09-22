@@ -102,6 +102,7 @@ contract UnipeerTest is Test {
         unipeer = new Unipeer(
             admin,
             address(99),
+            "1",
             arbitrator,
             bytes(""),
             10 seconds,
