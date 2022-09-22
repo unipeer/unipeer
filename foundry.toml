@@ -11,6 +11,9 @@ remappings = [
 optimizer = true
 optimizer_runs = 200
 ignored_error_codes = []
+names = true
+sizes = true
+via_ir = true
 
 [rpc_endpoints]
 chiado = "https://rpc-chiado.gnosistestnet.com"
