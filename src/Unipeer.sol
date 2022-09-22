@@ -208,7 +208,6 @@ contract Unipeer is IArbitrable, IEvidence {
     /**
      * @dev Constructor.
      * @param _admin The administrator of the contract.
-     * @param _version The version number of the contract.
      * @param _arbitrator The arbitrator of the contract.
      * @param _arbitratorExtraData Extra data for the arbitrator.
      * @param _buyerTimeout The payment timeout for the buyer.
@@ -224,7 +223,6 @@ contract Unipeer is IArbitrable, IEvidence {
     constructor(
         address _admin,
         DelegatableRelay _relay,
-        string memory _version,
         IArbitrator _arbitrator,
         bytes memory _arbitratorExtraData,
         uint256 _buyerTimeout,
