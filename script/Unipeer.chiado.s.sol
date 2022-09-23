@@ -18,7 +18,7 @@ contract Deploy is Script {
         IArbitrator arbitrator = IArbitrator(0xEF2689DB6A7b3AB383Fb14Ff7d9C2254C248103f);
         Unipeer unipeer = new Unipeer(
             0x3b434e0D2a6C7F53d5C556D7BAeE8942c351Cf1a,
-            address(0),
+            0x18c8a7ec7897177e4529065a7e7b0878358b3bff,
             "1",
             arbitrator,
             bytes(""),
