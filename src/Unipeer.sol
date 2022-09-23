@@ -6,7 +6,6 @@ import "oz/utils/math/Math.sol";
 import "kleros/erc-1497/IEvidence.sol";
 import "kleros/IArbitrator.sol";
 // import "delegatable/interfaces/IDelegatable.sol";
-import "forge-std/console2.sol";
 
 contract Unipeer is IArbitrable, IEvidence {
     using SafeERC20 for IERC20;
