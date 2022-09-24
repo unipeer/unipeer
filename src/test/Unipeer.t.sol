@@ -123,11 +123,11 @@ contract UnipeerTest is Test {
         vm.stopPrank();
     }
 
-    function setUpSeller() public {
+    function setUpSeller(uint96 amount) public {
         setUpPaymentMethod();
         startHoax(seller);
         unipeer.updateSellerPaymentMethod(PAYMENT_ID, "seller@paypal.me", SELLER_FEE);
-        uint256 amount = 1000 ether;
+        Dai.mint(seller, amount);
         Dai.approve(address(unipeer), amount);
         unipeer.depositTokens(PAYMENT_ID, Dai, amount);
         vm.stopPrank();
@@ -200,12 +200,11 @@ contract UnipeerTest is Test {
     // *           Order (Buyer)           * //
     // ************************************* //
 
-    function testBuyOrder() public {
-        setUpSeller();
+    function testBuyOrder(uint96 amount) public {
+        setUpSeller(amount);
 
         startHoax(buyer);
         uint256 oldBalance = unipeer.tokenBalance(seller, Dai);
-        uint256 amount = 500 ether;
 
         uint256 arbFees =
             unipeer.arbitrator().arbitrationCost(unipeer.arbitratorExtraData());
@@ -224,30 +223,30 @@ contract UnipeerTest is Test {
         assertEq(oldBalance - newBalance, amount);
     }
 
-    function testCannotBuyOrderWithOutArbitrationFees() public {
-        setUpSeller();
+    function testCannotBuyOrderWithOutArbitrationFees(uint96 amount) public {
+        setUpSeller(amount);
 
         startHoax(buyer);
 
         uint256 arbFees =
             unipeer.arbitrator().arbitrationCost(unipeer.arbitratorExtraData());
         vm.expectRevert("Arbitration fees not paid");
-        unipeer.buyOrder{value: arbFees - 1}(PAYMENT_ID, seller, Dai, 500 ether);
+        unipeer.buyOrder{value: arbFees - 1}(PAYMENT_ID, seller, Dai, amount);
     }
 
-    function testCannotBuyOrderMoreThanSellerBalance() public {
-        setUpSeller();
+    function testCannotBuyOrderMoreThanSellerBalance(uint96 amount) public {
+        setUpSeller(amount);
 
         startHoax(buyer);
 
         uint256 arbFees =
             unipeer.arbitrator().arbitrationCost(unipeer.arbitratorExtraData());
         vm.expectRevert("Not enough seller balance");
-        unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, 1001 ether);
+        unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, uint256(amount) + 1);
     }
 
-    function testCannotBuyOrderWithASellerNonAcceptedToken() public {
-        setUpSeller();
+    function testCannotBuyOrderWithASellerNonAcceptedToken(uint96 amount) public {
+        setUpSeller(amount);
 
         startHoax(buyer);
 
@@ -259,8 +258,8 @@ contract UnipeerTest is Test {
         );
     }
 
-    function testCannotBuyOrderWithASellerNonAcceptedPaymentID() public {
-        setUpSeller();
+    function testCannotBuyOrderWithASellerNonAcceptedPaymentID(uint96 amount) public {
+        setUpSeller(amount);
 
         hoax(admin);
         vm.expectEmit(true, true, false, true);
@@ -274,12 +273,11 @@ contract UnipeerTest is Test {
         unipeer.buyOrder{value: arbFees}(1, seller, Dai, 1001 ether);
     }
 
-    function testSellerFeeRate() public {
-        setUpSeller();
+    function testSellerFeeRate(uint96 amount) public {
+        setUpSeller(amount);
         uint256 arbFees =
             unipeer.arbitrator().arbitrationCost(unipeer.arbitratorExtraData());
 
-        uint256 amount = 500 ether;
         uint256 sellerRate = SELLER_FEE + 1000;
         uint256 sellerFee = amount * sellerRate / MULTIPLIER_DIVISOR;
 
@@ -287,8 +285,12 @@ contract UnipeerTest is Test {
         unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, amount);
         (, uint256 tradeAmount1) = unipeer.getOrderFeeAmount(ORDER_ID);
 
-        hoax(seller);
+        startHoax(seller);
         unipeer.updateSellerPaymentMethod(PAYMENT_ID, "seller@paypal.me", sellerRate);
+        Dai.mint(seller, amount);
+        Dai.approve(address(unipeer), amount);
+        unipeer.depositTokens(PAYMENT_ID, Dai, amount);
+        vm.stopPrank();
 
         hoax(buyer);
         unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, amount);
@@ -299,9 +301,9 @@ contract UnipeerTest is Test {
     }
 
     function testFailSellerFeeRateMoreThan100Percent() public {
-        setUpSeller();
+        uint96 amount = 500 ether;
+        setUpSeller(amount);
 
-        uint256 amount = 500 ether;
         uint256 sellerRate = SELLER_FEE + MULTIPLIER_DIVISOR;
         uint256 feeRate = unipeer.tradeFeeRate() + sellerRate;
         uint256 tradeFees = amount * feeRate / MULTIPLIER_DIVISOR;
@@ -318,30 +320,30 @@ contract UnipeerTest is Test {
         assertEq(fees, tradeFees);
     }
 
-    function testConfirmPaid() public {
-        testBuyOrder();
+    function testConfirmPaid(uint96 amount) public {
+        testBuyOrder(amount);
 
         unipeer.confirmPaid(ORDER_ID);
     }
 
-    function testCannotConfirmPaidByNonBuyer() public {
-        testBuyOrder();
+    function testCannotConfirmPaidByNonBuyer(uint96 amount) public {
+        testBuyOrder(amount);
         vm.stopPrank();
 
         vm.expectRevert("Only Buyer");
         unipeer.confirmPaid(ORDER_ID);
     }
 
-    function testCannotConfirmPaidAfterTimeout() public {
-        testBuyOrder();
+    function testCannotConfirmPaidAfterTimeout(uint96 amount) public {
+        testBuyOrder(amount);
 
         skip(unipeer.buyerTimeout() + 1);
         vm.expectRevert("Payment confirmation timeout");
         unipeer.confirmPaid(ORDER_ID);
     }
 
-    function testTimeoutByBuyer() public {
-        testBuyOrder();
+    function testTimeoutByBuyer(uint96 amount) public {
+        testBuyOrder(amount);
 
         skip(unipeer.buyerTimeout() + 1);
         vm.expectEmit(true, true, false, true);
@@ -350,7 +352,7 @@ contract UnipeerTest is Test {
     }
 
     function testCannotConfirmPaidAfterCancel() public {
-        testTimeoutByBuyer();
+        testTimeoutByBuyer(1);
 
         skip(unipeer.buyerTimeout() + 1);
         vm.expectRevert("OrderStatus: !Created");
@@ -361,16 +363,16 @@ contract UnipeerTest is Test {
     // *           Order (Seller)          * //
     // ************************************* //
 
-    function testCompleteOrder() public {
-        testConfirmPaid();
+    function testCompleteOrder(uint96 amount) public {
+        testConfirmPaid(amount);
         vm.stopPrank();
 
-        (uint256 fees, uint256 amount) = unipeer.getOrderFeeAmount(ORDER_ID);
+        (uint256 fees, uint256 tradeAmount) = unipeer.getOrderFeeAmount(ORDER_ID);
 
         startHoax(seller);
 
         vm.expectEmit(true, true, false, true);
-        emit Transfer(address(unipeer), buyer, amount);
+        emit Transfer(address(unipeer), buyer, tradeAmount);
         vm.expectEmit(true, true, false, true);
         emit OrderComplete(ORDER_ID);
         unipeer.completeOrder(ORDER_ID);
@@ -378,8 +380,8 @@ contract UnipeerTest is Test {
         assertEq(unipeer.protocolFeesSum(), fees);
     }
 
-    function testCompleteOrderWithOutConfirm() public {
-        testBuyOrder();
+    function testCompleteOrderWithOutConfirm(uint96 amount) public {
+        testBuyOrder(amount);
         vm.stopPrank();
 
         startHoax(seller);
@@ -388,8 +390,8 @@ contract UnipeerTest is Test {
         unipeer.completeOrder(ORDER_ID);
     }
 
-    function testCompleteOrderWithOutConfirmAfterTimeout() public {
-        testBuyOrder();
+    function testCompleteOrderWithOutConfirmAfterTimeout(uint96 amount) public {
+        testBuyOrder(amount);
         vm.stopPrank();
 
         startHoax(seller);
@@ -399,8 +401,8 @@ contract UnipeerTest is Test {
         unipeer.completeOrder(ORDER_ID);
     }
 
-    function testCannotCompleteOrderAfterTimeout() public {
-        testConfirmPaid();
+    function testCannotCompleteOrderAfterTimeout(uint96 amount) public {
+        testConfirmPaid(amount);
         vm.stopPrank();
 
         startHoax(seller);
@@ -409,16 +411,16 @@ contract UnipeerTest is Test {
         unipeer.completeOrder(ORDER_ID);
     }
 
-    function testCannotCompleteOrderByNonSeller() public {
-        testConfirmPaid();
+    function testCannotCompleteOrderByNonSeller(uint96 amount) public {
+        testConfirmPaid(amount);
         vm.stopPrank();
 
         vm.expectRevert("Only Seller");
         unipeer.completeOrder(ORDER_ID);
     }
 
-    function testDisputeOrder() public {
-        testConfirmPaid();
+    function testDisputeOrder(uint96 amount) public {
+        testConfirmPaid(amount);
         vm.stopPrank();
 
         uint256 arbFees =
@@ -430,8 +432,8 @@ contract UnipeerTest is Test {
         unipeer.disputeOrder{value: arbFees}(ORDER_ID);
     }
 
-    function testCannotDiputeOrderWithoutArbFees() public {
-        testConfirmPaid();
+    function testCannotDiputeOrderWithoutArbFees(uint96 amount) public {
+        testConfirmPaid(amount);
         vm.stopPrank();
 
         startHoax(seller);
@@ -439,8 +441,8 @@ contract UnipeerTest is Test {
         unipeer.disputeOrder(ORDER_ID);
     }
 
-    function testCannotDisputeOrderAfterTimeout() public {
-        testConfirmPaid();
+    function testCannotDisputeOrderAfterTimeout(uint96 amount) public {
+        testConfirmPaid(amount);
         vm.stopPrank();
 
         startHoax(seller);
@@ -450,7 +452,7 @@ contract UnipeerTest is Test {
     }
 
     function testCannotDisputeNonPaidOrder() public {
-        testBuyOrder();
+        testBuyOrder(1);
         vm.stopPrank();
 
         startHoax(seller);
@@ -459,15 +461,15 @@ contract UnipeerTest is Test {
     }
 
     function testCannotDisputeOrderByNonSeller() public {
-        testBuyOrder();
+        testBuyOrder(1);
         vm.stopPrank();
 
         vm.expectRevert("Only Seller");
         unipeer.disputeOrder(ORDER_ID);
     }
 
-    function testTimeoutBySeller() public {
-        testConfirmPaid();
+    function testTimeoutBySeller(uint96 amount) public {
+        testConfirmPaid(amount);
         vm.stopPrank();
 
         (uint256 fees, uint256 amount) = unipeer.getOrderFeeAmount(ORDER_ID);
@@ -489,7 +491,7 @@ contract UnipeerTest is Test {
     // ************************************* //
 
     function testSubmitEvidence() public {
-        testDisputeOrder();
+        testDisputeOrder(1);
         vm.stopPrank();
 
         vm.expectEmit(true, true, false, true);
@@ -497,8 +499,8 @@ contract UnipeerTest is Test {
         unipeer.submitEvidence(ORDER_ID, "ipfs://test");
     }
 
-    function testRulingBuyer() public {
-        testDisputeOrder();
+    function testRulingBuyer(uint96 amount) public {
+        testDisputeOrder(amount);
         vm.stopPrank();
 
         (, uint256 tradeAmount) = unipeer.getOrderFeeAmount(ORDER_ID);
@@ -522,8 +524,8 @@ contract UnipeerTest is Test {
         assertEq(newBalanceSeller - oldBalanceSeller, 0);
     }
 
-    function testRulingSeller() public {
-        testDisputeOrder();
+    function testRulingSeller(uint96 amount) public {
+        testDisputeOrder(amount);
         vm.stopPrank();
 
         (uint256 fee, uint256 tradeAmount) = unipeer.getOrderFeeAmount(ORDER_ID);
@@ -548,8 +550,8 @@ contract UnipeerTest is Test {
         assertEq(newTokenBalance - oldTokenBalance, tradeAmount + fee);
     }
 
-    function testRulingNone() public {
-        testDisputeOrder();
+    function testRulingNone(uint96 amount) public {
+        testDisputeOrder(amount);
         vm.stopPrank();
 
         (uint256 fee, uint256 tradeAmount) = unipeer.getOrderFeeAmount(ORDER_ID);
@@ -577,7 +579,7 @@ contract UnipeerTest is Test {
     }
 
     function testRuleCannotBeCalledByAnyone() public {
-        testDisputeOrder();
+        testDisputeOrder(1);
         vm.stopPrank();
 
         hoax(admin);
@@ -585,15 +587,15 @@ contract UnipeerTest is Test {
         unipeer.rule(ORDER_ID, 1);
     }
 
-    function testFailRuleOnNonExistingDispute() public {
-        testConfirmPaid();
+    function testFailRuleOnNonExistingDispute(uint96 amount) public {
+        testConfirmPaid(amount);
         vm.stopPrank();
 
         arbitrator.giveRuling(ORDER_ID, 1);
     }
 
-    function testFundAppealBuyer() public {
-        testDisputeOrder();
+    function testFundAppealBuyer(uint96 amount) public {
+        testDisputeOrder(amount);
         vm.stopPrank();
 
         uint256 appealCost = arbitrator.appealCost(ORDER_ID, "");
@@ -621,8 +623,8 @@ contract UnipeerTest is Test {
         assertEq(unipeer.getNumberOfRounds(ORDER_ID), 1);
     }
 
-    function testFundAppealBuyerAppealed() public {
-        testFundAppealBuyer();
+    function testFundAppealBuyerAppealed(uint96 amount) public {
+        testFundAppealBuyer(amount);
         vm.stopPrank();
 
         uint256 appealCost = arbitrator.appealCost(ORDER_ID, "");
@@ -652,7 +654,7 @@ contract UnipeerTest is Test {
     }
 
     function testCannotActuallyAppealWithoutPaying() public {
-        testDisputeOrder();
+        testDisputeOrder(1);
         vm.stopPrank();
 
         arbitrator.giveRuling(ORDER_ID, 1);
@@ -663,15 +665,15 @@ contract UnipeerTest is Test {
         assertEq(appealed, false);
     }
 
-    function testWithdrawFeeAndRewards() public {
-        testRulingBuyer();
+    function testWithdrawFeeAndRewards(uint96 amount) public {
+        testRulingBuyer(amount);
 
         (,, uint256 feeRewards,) = unipeer.getRoundInfo(ORDER_ID, 0);
         assertEq(feeRewards, 0);
     }
 
-    function testWithdrawFeeAndRewardsWithAppeals() public {
-        testFundAppealBuyerAppealed();
+    function testWithdrawFeeAndRewardsWithAppeals(uint96 amount) public {
+        testFundAppealBuyerAppealed(amount);
 
         vm.expectEmit(true, true, false, true);
         emit Ruling(arbitrator, ORDER_ID, 1);
@@ -693,8 +695,8 @@ contract UnipeerTest is Test {
         assertEq(newBalance - oldBalance, feeRewards);
     }
 
-    function testBatchWithdrawFeeAndRewardsWithAppeals() public {
-        testFundAppealBuyerAppealed();
+    function testBatchWithdrawFeeAndRewardsWithAppeals(uint96 amount) public {
+        testFundAppealBuyerAppealed(amount);
 
         vm.expectEmit(true, true, false, true);
         emit Ruling(arbitrator, ORDER_ID, 1);
@@ -711,8 +713,8 @@ contract UnipeerTest is Test {
         assertEq(newBalance - oldBalance, feeRewards);
     }
 
-    function testCannotWithdrawFeeAndRewardsWithoutRuling() public {
-        testFundAppealBuyerAppealed();
+    function testCannotWithdrawFeeAndRewardsWithoutRuling(uint96 amount) public {
+        testFundAppealBuyerAppealed(amount);
 
         arbitrator.giveRuling(ORDER_ID, 1);
 
