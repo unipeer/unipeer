@@ -23,6 +23,8 @@ jobs:
         run: forge install
 
       - name: Run tests
+        env:
+          FOUNDRY_FUZZ_RUNS: 1024
         run: forge test --gas-report
   snapshot:
     runs-on: ubuntu-latest
