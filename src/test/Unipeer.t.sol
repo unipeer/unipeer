@@ -78,7 +78,7 @@ contract UnipeerTest is Test {
     address public seller = address(3);
     address public buyer = address(4);
 
-    IERC20 Dai;
+    ERC20Mock Dai;
     Arbitrator arbitrator;
     // DelegatableRelay relay = new DelegatableRelay();
     Unipeer unipeer;
@@ -161,36 +161,39 @@ contract UnipeerTest is Test {
         unipeer.buyOrder(PAYMENT_ID, seller, Dai, 1);
     }
 
-    function testDepositTokens() public {
+    function testDepositTokens(uint96 amount) public {
         setUpPaymentMethod();
 
         startHoax(seller);
-        uint256 amount = 1000 ether;
+        Dai.mint(seller, amount);
         Dai.approve(address(unipeer), amount);
+        assertEq(Dai.balanceOf(seller), SELLER_BALANCE + amount);
+
         vm.expectEmit(true, true, false, true);
         emit Transfer(seller, address(unipeer), amount);
         vm.expectEmit(true, true, false, true);
         emit SellerDeposit(seller, Dai, amount);
         unipeer.depositTokens(PAYMENT_ID, Dai, amount);
-        assertEq(Dai.balanceOf(seller), SELLER_BALANCE - amount);
+
+        assertEq(Dai.balanceOf(seller), SELLER_BALANCE);
         assertEq(unipeer.tokenBalance(seller, Dai), amount);
     }
 
-    function testWithdrawTokens() public {
-        testDepositTokens();
+    function testWithdrawTokens(uint96 amount) public {
+        testDepositTokens(amount);
 
         vm.expectEmit(true, true, false, true);
-        emit SellerWithdraw(seller, Dai, 1000 ether);
-        unipeer.withdrawTokens(Dai, 1000 ether);
-        assertEq(Dai.balanceOf(seller), SELLER_BALANCE);
+        emit SellerWithdraw(seller, Dai, amount);
+        unipeer.withdrawTokens(Dai, amount);
+        assertEq(Dai.balanceOf(seller), SELLER_BALANCE + amount);
         assertEq(unipeer.tokenBalance(seller, Dai), 0);
     }
 
-    function testCannotWithdrawMoreTokensThanBalance() public {
-        testDepositTokens();
+    function testCannotWithdrawMoreTokensThanBalance(uint96 amount) public {
+        testDepositTokens(amount);
 
         vm.expectRevert("Not enough balance to withdraw");
-        unipeer.withdrawTokens(Dai, 1001 ether);
+        unipeer.withdrawTokens(Dai, uint256(amount) + 1);
     }
 
     // ************************************* //
