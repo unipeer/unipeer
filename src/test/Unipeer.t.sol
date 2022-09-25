@@ -146,6 +146,7 @@ contract UnipeerTest is Test {
         unipeer.updateSellerPaymentMethod(PAYMENT_ID, "seller@paypal.me", SELLER_FEE);
         assertEq(unipeer.getPaymentMethodAddress(PAYMENT_ID, seller), "seller@paypal.me");
         assertEq(unipeer.getPaymentMethodSellerFeeRate(PAYMENT_ID, seller), SELLER_FEE);
+        assertEq(unipeer.getPaymentMethodToken(PAYMENT_ID, Dai), true);
     }
 
     function testDisablePaymentMethod() public {
@@ -221,6 +222,7 @@ contract UnipeerTest is Test {
 
         uint256 newBalance = unipeer.tokenBalance(seller, Dai);
         assertEq(oldBalance - newBalance, amount);
+        assertEq(unipeer.getCountOrders(), 1);
     }
 
     function testCannotBuyOrderWithOutArbitrationFees(uint96 amount) public {
