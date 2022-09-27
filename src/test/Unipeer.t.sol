@@ -99,19 +99,19 @@ contract UnipeerTest is Test {
         Dai = new ERC20Mock("Dai", "DAI", seller, SELLER_BALANCE);
         arbitrator = new Arbitrator();
 
-        unipeer = new Unipeer(
-            admin,
-            address(99),
-            "1",
-            arbitrator,
-            bytes(""),
-            10 seconds,
-            10 seconds,
-            SHARED_MULTI,
-            WIN_MULTI,
-            LOSE_MULTI,
-            5
-        );
+        unipeer = new Unipeer({
+            _admin: admin,
+            _relay: address(99),
+            _version: "1",
+            _arbitrator: arbitrator,
+            _arbitratorExtraData: bytes(""),
+            _buyerTimeout: 10 seconds,
+            _sellerTimeout: 10 seconds,
+            _sharedStakeMultiplier: SHARED_MULTI,
+            _winnerStakeMultiplier: WIN_MULTI,
+            _loserStakeMultiplier: LOSE_MULTI,
+            _tradeFeeRate: 5
+        });
     }
 
     function setUpPaymentMethod() public {
@@ -218,7 +218,12 @@ contract UnipeerTest is Test {
         emit BuyOrder(
             ORDER_ID, buyer, PAYMENT_ID, seller, Dai, amount, tradeFees, sellerFees
             );
-        unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, amount);
+        unipeer.buyOrder{value: arbFees}({
+            _paymentID: PAYMENT_ID,
+            _seller: seller,
+            _token: Dai,
+            _amount: amount
+        });
 
         uint256 newBalance = unipeer.tokenBalance(seller, Dai);
         assertEq(oldBalance - newBalance, amount);
@@ -233,7 +238,12 @@ contract UnipeerTest is Test {
         uint256 arbFees =
             unipeer.arbitrator().arbitrationCost(unipeer.arbitratorExtraData());
         vm.expectRevert("Arbitration fees not paid");
-        unipeer.buyOrder{value: arbFees - 1}(PAYMENT_ID, seller, Dai, amount);
+        unipeer.buyOrder{value: arbFees - 1}({
+            _paymentID: PAYMENT_ID,
+            _seller: seller,
+            _token: Dai,
+            _amount: amount
+        });
     }
 
     function testCannotBuyOrderMoreThanSellerBalance(uint96 amount) public {
@@ -244,7 +254,12 @@ contract UnipeerTest is Test {
         uint256 arbFees =
             unipeer.arbitrator().arbitrationCost(unipeer.arbitratorExtraData());
         vm.expectRevert("Not enough seller balance");
-        unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, uint256(amount) + 1);
+        unipeer.buyOrder{value: arbFees}({
+            _paymentID: PAYMENT_ID,
+            _seller: seller,
+            _token: Dai,
+            _amount: uint256(amount) + 1
+        });
     }
 
     function testCannotBuyOrderWithASellerNonAcceptedToken(uint96 amount) public {
@@ -255,9 +270,12 @@ contract UnipeerTest is Test {
         uint256 arbFees =
             unipeer.arbitrator().arbitrationCost(unipeer.arbitratorExtraData());
         vm.expectRevert("PaymentMethod: !Token");
-        unipeer.buyOrder{value: arbFees}(
-            PAYMENT_ID, seller, IERC20(address(99)), 1001 ether
-        );
+        unipeer.buyOrder{value: arbFees}({
+            _paymentID: PAYMENT_ID,
+            _seller: seller,
+            _token: IERC20(address(99)),
+            _amount: 1001 ether
+        });
     }
 
     function testCannotBuyOrderWithASellerNonAcceptedPaymentID(uint96 amount) public {
@@ -272,7 +290,12 @@ contract UnipeerTest is Test {
         uint256 arbFees =
             unipeer.arbitrator().arbitrationCost(unipeer.arbitratorExtraData());
         vm.expectRevert("PaymentMethod: !Seller");
-        unipeer.buyOrder{value: arbFees}(1, seller, Dai, 1001 ether);
+        unipeer.buyOrder{value: arbFees}({
+            _paymentID: 1,
+            _seller: seller,
+            _token: Dai,
+            _amount: 1001 ether
+        });
     }
 
     function testSellerFeeRate(uint96 amount) public {
@@ -284,7 +307,12 @@ contract UnipeerTest is Test {
         uint256 sellerFee = amount * sellerRate / MULTIPLIER_DIVISOR;
 
         hoax(buyer);
-        unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, amount);
+        unipeer.buyOrder{value: arbFees}({
+            _paymentID: PAYMENT_ID,
+            _seller: seller,
+            _token: Dai,
+            _amount: amount
+        });
         (, uint256 tradeAmount1) = unipeer.getOrderFeeAmount(ORDER_ID);
 
         startHoax(seller);
@@ -295,7 +323,12 @@ contract UnipeerTest is Test {
         vm.stopPrank();
 
         hoax(buyer);
-        unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, amount);
+        unipeer.buyOrder{value: arbFees}({
+            _paymentID: PAYMENT_ID,
+            _seller: seller,
+            _token: Dai,
+            _amount: amount
+        });
         (uint256 fees2, uint256 tradeAmount2) = unipeer.getOrderFeeAmount(ORDER_ID + 1);
 
         assertEq(amount - sellerFee, tradeAmount2 + fees2);
@@ -316,7 +349,12 @@ contract UnipeerTest is Test {
         unipeer.updateSellerPaymentMethod(PAYMENT_ID, "seller@paypal.me", sellerRate);
 
         hoax(buyer);
-        unipeer.buyOrder{value: arbFees}(PAYMENT_ID, seller, Dai, amount);
+        unipeer.buyOrder{value: arbFees}({
+            _paymentID: PAYMENT_ID,
+            _seller: seller,
+            _token: Dai,
+            _amount: amount
+        });
 
         (uint256 fees,) = unipeer.getOrderFeeAmount(ORDER_ID);
         assertEq(fees, tradeFees);
