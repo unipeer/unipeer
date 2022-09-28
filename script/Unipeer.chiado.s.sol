@@ -16,19 +16,19 @@ contract Deploy is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         IArbitrator arbitrator = IArbitrator(0xEF2689DB6A7b3AB383Fb14Ff7d9C2254C248103f);
-        Unipeer unipeer = new Unipeer(
-            0x3b434e0D2a6C7F53d5C556D7BAeE8942c351Cf1a,
-            0x18c8a7ec7897177E4529065a7E7B0878358B3BfF,
-            "1",
-            arbitrator,
-            bytes(""),
-            30 minutes,
-            30 minutes,
-            SHARED_MULTI,
-            WIN_MULTI,
-            LOSE_MULTI,
-            0
-        );
+        Unipeer unipeer = new Unipeer({
+            _admin: 0x3b434e0D2a6C7F53d5C556D7BAeE8942c351Cf1a,
+            _relay: 0x18c8a7ec7897177E4529065a7E7B0878358B3BfF,
+            _version: "1",
+            _arbitrator: arbitrator,
+            _arbitratorExtraData: bytes(""),
+            _buyerTimeout: 30 minutes,
+            _sellerTimeout: 30 minutes,
+            _sharedStakeMultiplier: SHARED_MULTI,
+            _winnerStakeMultiplier: WIN_MULTI,
+            _loserStakeMultiplier: LOSE_MULTI,
+            _tradeFeeRate: 5
+        });
 
         vm.stopBroadcast();
     }
