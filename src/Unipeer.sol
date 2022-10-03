@@ -165,6 +165,8 @@ contract Unipeer is IArbitrable, IEvidence {
     event PaymentMethodUpdate(
         uint16 indexed paymentID, string paymentName, uint256 metaEvidenceID
     );
+    event PaymentMethodTokenEnabled(uint16 indexed paymentID, IERC20 token);
+    event PaymentMethodTokenDisabled(uint16 indexed paymentID, IERC20 token);
     event SellerPaymentMethod(
         address indexed sender, uint16 paymentID, string paymentAddress, uint256 feeRate
     );
@@ -303,6 +305,7 @@ contract Unipeer is IArbitrable, IEvidence {
         pm.tokenEnabled[_initalEnabledToken] = true;
 
         emit PaymentMethodUpdate(totalPaymentMethods - 1, _paymentName, _metaEvidenceID);
+        emit PaymentMethodTokenEnabled(totalPaymentMethods - 1, _initalEnabledToken);
     }
 
     function updatePaymentMetaEvidence(uint16 _paymentID, uint256 _metaEvidenceID)
@@ -338,6 +341,11 @@ contract Unipeer is IArbitrable, IEvidence {
 
         PaymentMethod storage pm = paymentMethods[_paymentID];
         pm.tokenEnabled[_token] = _enabled;
+
+        if (_enabled)
+            emit PaymentMethodTokenEnabled(_paymentID, _token);
+        else
+            emit PaymentMethodTokenDisabled(_paymentID, _token);
     }
 
     function changeBuyerTimeout(uint256 _timeout) external onlyAdmin {
