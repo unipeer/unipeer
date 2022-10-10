@@ -335,7 +335,7 @@ contract UnipeerTest is Test {
         assertEq(tradeAmount1 - tradeAmount2, sellerFee);
     }
 
-    function testFailSellerFeeRateMoreThan100Percent() public {
+    function testCannotHaveSellerFeeRateMoreThan100Percent() public {
         uint96 amount = 500 ether;
         setUpSeller(amount);
 
@@ -348,16 +348,14 @@ contract UnipeerTest is Test {
         hoax(seller);
         unipeer.updateSellerPaymentMethod(PAYMENT_ID, "seller@paypal.me", sellerRate);
 
-        hoax(buyer);
+        startHoax(buyer);
+        vm.expectRevert("Cummulative fees cannot be more than bought amount");
         unipeer.buyOrder{value: arbFees}({
             _paymentID: PAYMENT_ID,
             _seller: seller,
             _token: Dai,
             _amount: amount
         });
-
-        (uint256 fees,) = unipeer.getOrderFeeAmount(ORDER_ID);
-        assertEq(fees, tradeFees);
     }
 
     function testConfirmPaid(uint96 amount) public {

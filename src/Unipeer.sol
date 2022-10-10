@@ -440,6 +440,7 @@ contract Unipeer is IArbitrable, IEvidence {
         (uint256 _fee,) = _calculateFees(_amount, tradeFeeRate);
         (uint256 _sellerFee,) = _calculateFees(_amount, pm.feeRate[_seller]);
         uint256 tradeAmount = _amount - _sellerFee;
+        require(_amount >= _sellerFee + _fee, "Cummulative fees cannot be more than bought amount");
 
         orders.push(
             Order({
