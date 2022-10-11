@@ -173,7 +173,7 @@ contract Unipeer is IArbitrable, IEvidence {
     );
     event SellerDeposit(address indexed sender, IERC20 token, uint256 amount);
     event SellerWithdraw(address indexed sender, IERC20 token, uint256 amount);
-    event BuyOrder(
+    event OrderBuy(
         uint256 indexed orderID,
         address buyer,
         uint16 paymentID,
@@ -183,7 +183,7 @@ contract Unipeer is IArbitrable, IEvidence {
         uint256 feeAmount,
         uint256 sellerFeeAmount
     );
-    event Paid(uint256 indexed orderID);
+    event OrderPaid(uint256 indexed orderID);
     event OrderComplete(uint256 indexed orderID);
     event OrderResolved(uint256 indexed orderID);
     event TimedOutByBuyer(uint256 indexed orderID);
@@ -465,7 +465,7 @@ contract Unipeer is IArbitrable, IEvidence {
         // in any scenario.
         tokenBalance[_seller][_token] -= tradeAmount;
 
-        emit BuyOrder(
+        emit OrderBuy(
             orders.length - 1,
             _msgSender(),
             _paymentID,
@@ -491,7 +491,7 @@ contract Unipeer is IArbitrable, IEvidence {
         order.lastInteraction = block.timestamp;
         order.status = Status.Paid;
 
-        emit Paid(_orderID);
+        emit OrderPaid(_orderID);
     }
 
     // ************************************* //

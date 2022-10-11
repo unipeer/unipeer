@@ -50,7 +50,7 @@ contract UnipeerTest is Test {
     event SellerPaymentDisabled(address indexed sender, uint16 paymentID);
     event SellerDeposit(address indexed sender, IERC20 token, uint256 amount);
     event SellerWithdraw(address indexed sender, IERC20 token, uint256 amount);
-    event BuyOrder(
+    event OrderBuy(
         uint256 indexed orderID,
         address buyer,
         uint16 paymentID,
@@ -60,7 +60,7 @@ contract UnipeerTest is Test {
         uint256 feeAmount,
         uint256 sellerFeeAmount
     );
-    event Paid(uint256 indexed orderID);
+    event OrderPaid(uint256 indexed orderID);
     event OrderComplete(uint256 indexed orderID);
     event OrderResolved(uint256 indexed orderID);
     event TimedOutByBuyer(uint256 indexed orderID);
@@ -215,7 +215,7 @@ contract UnipeerTest is Test {
         uint256 sellerFees = amount * sellerFeeRate / MULTIPLIER_DIVISOR;
 
         vm.expectEmit(true, true, false, true);
-        emit BuyOrder(
+        emit OrderBuy(
             ORDER_ID, buyer, PAYMENT_ID, seller, Dai, amount, tradeFees, sellerFees
             );
         unipeer.buyOrder{value: arbFees}({
