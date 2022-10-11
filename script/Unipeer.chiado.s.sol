@@ -15,7 +15,7 @@ contract Deploy is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
-        IArbitrator arbitrator = IArbitrator(0xEF2689DB6A7b3AB383Fb14Ff7d9C2254C248103f);
+        IArbitrator arbitrator = IArbitrator(0x60cE8c27757399735969d736Ba3987586501e514);
         Unipeer unipeer = new Unipeer({
             _admin: 0x3b434e0D2a6C7F53d5C556D7BAeE8942c351Cf1a,
             _relay: 0x98CbFB4F664e6b35a32930c90e43F03b5Eab50DA,
