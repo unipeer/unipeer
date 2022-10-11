@@ -80,11 +80,9 @@ contract Unipeer is IArbitrable, IEvidence {
         uint256 lastInteraction;
         address payable buyer;
         address payable seller;
-        IArbitrator arbitrator;
         IERC20 token;
         uint16 paymentID;
         Status status;
-        bytes extraData;
     }
 
     // Some arrays below have 3 elements to map with the Party enums for better readability:
@@ -107,6 +105,9 @@ contract Unipeer is IArbitrable, IEvidence {
         Party ruling; // Ruling given by the arbitrator of the dispute.
         uint16 lastRoundID; // The ID of the last round.
         mapping(uint256 => Round) rounds; // Tracks the info of each funding round of the challenge.
+        IArbitrator arbitrator;
+        bytes extraData;
+        bool resolved;
     }
 
     // ************************************* //
@@ -140,7 +141,7 @@ contract Unipeer is IArbitrable, IEvidence {
     mapping(uint256 => DisputeData) private disputes;
 
     // List of orders by orderID
-    Order[] private orders;
+    Order[] public orders;
 
     // Address of the trusted arbitrator to solve disputes.
     IArbitrator public arbitrator;
@@ -453,8 +454,6 @@ contract Unipeer is IArbitrable, IEvidence {
                 buyerCost: msg.value,
                 sellerCost: 0,
                 disputeID: 0,
-                arbitrator: arbitrator,
-                extraData: arbitratorExtraData,
                 lastInteraction: block.timestamp,
                 status: Status.Created
             })
@@ -536,20 +535,22 @@ contract Unipeer is IArbitrable, IEvidence {
         );
 
         // Seller can overpay to draw more jurors.
-        require(msg.value >= order.arbitrator.arbitrationCost(order.extraData), "Arbitration fees not paid");
+        require(msg.value >= arbitrator.arbitrationCost(arbitratorExtraData), "Arbitration fees not paid");
 
         order.sellerCost = msg.value;
         order.status = Status.Disputed;
-        order.disputeID = order.arbitrator.createDispute{value: msg.value}(
-            RULING_OPTIONS, order.extraData
+        order.disputeID = arbitrator.createDispute{value: msg.value}(
+            RULING_OPTIONS, arbitratorExtraData
         );
 
         DisputeData storage dispute = disputes[order.disputeID];
         dispute.orderID = _orderID;
+        dispute.arbitrator = arbitrator;
+        dispute.extraData = arbitratorExtraData;
 
         PaymentMethod storage pm = paymentMethods[order.paymentID];
 
-        emit Dispute(order.arbitrator, order.disputeID, pm.metaEvidenceID, _orderID);
+        emit Dispute(arbitrator, order.disputeID, pm.metaEvidenceID, _orderID);
     }
 
     // ************************************* //
@@ -611,8 +612,9 @@ contract Unipeer is IArbitrable, IEvidence {
 
         Order memory order = orders[_orderID];
         require(order.status < Status.Resolved, "Dispute is resolved");
+        DisputeData storage dispute = disputes[order.disputeID];
 
-        emit Evidence(order.arbitrator, _orderID, _msgSender(), _evidence);
+        emit Evidence(dispute.arbitrator, _orderID, _msgSender(), _evidence);
     }
 
     /**
@@ -628,15 +630,16 @@ contract Unipeer is IArbitrable, IEvidence {
         require(_side != Party.None, "Wrong party.");
         require(order.status == Status.Disputed, "No dispute to appeal");
 
+        DisputeData storage dispute = disputes[order.disputeID];
         (uint256 appealPeriodStart, uint256 appealPeriodEnd) =
-            order.arbitrator.appealPeriod(order.disputeID);
+            dispute.arbitrator.appealPeriod(order.disputeID);
         require(
             block.timestamp >= appealPeriodStart && block.timestamp < appealPeriodEnd,
             "Funding not within appeal period"
         );
 
         uint256 multiplier;
-        uint256 winner = order.arbitrator.currentRuling(order.disputeID);
+        uint256 winner = dispute.arbitrator.currentRuling(order.disputeID);
         if (winner == uint256(_side)) {
             multiplier = winnerStakeMultiplier;
         } else if (winner == 0) {
@@ -649,11 +652,10 @@ contract Unipeer is IArbitrable, IEvidence {
             multiplier = loserStakeMultiplier;
         }
 
-        DisputeData storage dispute = disputes[order.disputeID];
         Round storage round = dispute.rounds[dispute.lastRoundID];
         require(_side != round.sideFunded, "Appeal fee paid");
 
-        uint256 appealCost = order.arbitrator.appealCost(order.disputeID, order.extraData);
+        uint256 appealCost = dispute.arbitrator.appealCost(order.disputeID, dispute.extraData);
         uint256 totalCost = appealCost + ((appealCost * multiplier) / MULTIPLIER_DIVISOR);
 
         {
@@ -680,8 +682,8 @@ contract Unipeer is IArbitrable, IEvidence {
                 round.sideFunded = _side;
             } else {
                 // Both sides are fully funded. Create an appeal.
-                order.arbitrator.appeal{value: appealCost}(
-                    order.disputeID, order.extraData
+                dispute.arbitrator.appeal{value: appealCost}(
+                    order.disputeID, dispute.extraData
                 );
                 round.feeRewards = (
                     round.paidFees[uint256(Party.Buyer)]
@@ -703,10 +705,9 @@ contract Unipeer is IArbitrable, IEvidence {
      */
     function rule(uint256 _disputeID, uint256 _ruling) external {
         DisputeData storage dispute = disputes[_disputeID];
-        Order storage order = orders[dispute.orderID];
 
-        require(msg.sender == address(order.arbitrator), "Only arbitrator");
-        require(order.status != Status.Resolved, " Dispute already resolved");
+        require(msg.sender == address(dispute.arbitrator), "Only arbitrator");
+        require(dispute.resolved != true, " Dispute already resolved");
 
         Round storage round = dispute.rounds[dispute.lastRoundID];
 
@@ -718,10 +719,11 @@ contract Unipeer is IArbitrable, IEvidence {
         } else {
             dispute.ruling = Party(_ruling);
         }
+        dispute.resolved = true;
 
         _executeRuling(_disputeID);
 
-        emit Ruling(order.arbitrator, _disputeID, uint256(dispute.ruling));
+        emit Ruling(dispute.arbitrator, _disputeID, uint256(dispute.ruling));
     }
 
     /**
