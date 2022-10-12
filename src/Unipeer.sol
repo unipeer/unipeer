@@ -175,9 +175,9 @@ contract Unipeer is IArbitrable, IEvidence {
     event SellerWithdraw(address indexed sender, IERC20 token, uint256 amount);
     event OrderBuy(
         uint256 indexed orderID,
-        address buyer,
+        address indexed buyer,
+        address indexed seller,
         uint16 paymentID,
-        address seller,
         IERC20 token,
         uint256 amount,
         uint256 feeAmount,
@@ -468,8 +468,8 @@ contract Unipeer is IArbitrable, IEvidence {
         emit OrderBuy(
             orders.length - 1,
             _msgSender(),
-            _paymentID,
             _seller,
+            _paymentID,
             _token,
             _amount,
             _fee,
