@@ -178,6 +178,7 @@ contract Unipeer is IArbitrable, IEvidence {
         address indexed buyer,
         address indexed seller,
         uint16 paymentID,
+        string paymentAddress,
         IERC20 token,
         uint256 amount,
         uint256 feeAmount,
@@ -465,16 +466,17 @@ contract Unipeer is IArbitrable, IEvidence {
         // in any scenario.
         tokenBalance[_seller][_token] -= tradeAmount;
 
-        emit OrderBuy(
-            orders.length - 1,
-            _msgSender(),
-            _seller,
-            _paymentID,
-            _token,
-            _amount,
-            _fee,
-            _sellerFee
-            );
+        emit OrderBuy({
+            orderID: orders.length - 1,
+            buyer: _msgSender(),
+            seller: _seller,
+            paymentID: _paymentID,
+            paymentAddress: pm.paymentAddress[_seller],
+            token: _token,
+            amount: _amount,
+            feeAmount: _fee,
+            sellerFeeAmount: _sellerFee
+        });
     }
 
     function confirmPaid(uint256 _orderID) external {
