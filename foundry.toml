@@ -15,10 +15,12 @@ ignored_error_codes = []
 [rpc_endpoints]
 chiado = "https://rpc.chiadochain.net"
 gnosis = "https://rpc.gnosischain.com"
+goerli = "https://goerli.infura.io/v3/${WEB3_INFURA_PROJECT_ID}"
 
 [etherscan]
 chiado = { key = "${GNOSISCHAIN_MAINNET_KEY}", url = "https://blockscout.chiadochain.net" }
 gnosis = { key = "${GNOSISCHAIN_CHIADO_KEY}" }
+goerli = { key = "${ETHERSCAN_API_KEY}" }
 
 [fmt]
 line_length = 91

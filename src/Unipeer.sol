@@ -38,7 +38,7 @@ contract Unipeer is IArbitrable, IEvidence {
 
     enum Status {
         Created, // The buy order has been created and seller funds locked.
-        Paid, // The buy has marked making the off-chain payment to seller.
+        Paid, // The buyer has marked making the off-chain payment to seller.
         Completed, // The seller confirms receiving the off-chain payment.
         Cancelled, // The buyer never made the off-chain payment
         Disputed, // The seller has raised a dispute, claiming to have not received the payment.
