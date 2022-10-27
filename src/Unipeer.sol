@@ -389,7 +389,7 @@ contract Unipeer is IArbitrable, IEvidence {
     // ************************************* //
 
     /**
-     * @notice Accept or disable a payment methods
+     * @notice Accept or disable a payment method
      * by a seller for orders.
      * A payment method can be disabled by setting it
      * to an empty string.

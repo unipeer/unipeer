@@ -2,6 +2,23 @@
 
 [![CI](https://github.com/unipeer/unipeer/actions/workflows/contracts.yml/badge.svg)](https://github.com/unipeer/unipeer/actions/workflows/contracts.yml)
 
+## Technical Overview
+
+The contract supports meta-transactions via the [delegatable framework][1] to support
+new users wanting to buy their first crypto/tokens.
+
+### Payment methods
+
+A payment method represents a fiat payment processor/platform with each
+having their own policy.
+Only a subset of tokens is allowed to be sold via a payment method.
+
+Sellers opt-in to each payment method they wish to accept fiat payment in
+and the payment address of the platform buyers should make the payment to.
+
+They can deposit one or more of the accepted tokens for a particular payment
+method.
+
 ## Deployments
 
 ### Gnosischain Chiado Testnet
@@ -27,3 +44,5 @@ workflows.
 ```bash
 forge test
 ```
+
+[1]: https://github.com/delegatable/delegatable-sol
