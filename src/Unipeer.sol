@@ -68,20 +68,25 @@ contract Unipeer is IArbitrable, IEvidence {
     }
 
     struct Order {
+        // The trade amount minus the sellerFee
         uint256 amount;
-        // The calculated fees from tradeFeeRate
+        // The calculated fees from tradeFeeRate i.e. protocolFee
         uint256 fee;
+        uint256 sellerFee;
         // The fee buyer has paid for arbitration at the time of placing an order.
         uint256 buyerCost;
         // The fee seller has paid for raising a dispute.
         uint256 sellerCost;
         // If dispute exists, the ID of the dispute.
         uint256 disputeID;
+        // timestamp of the lastest block the order status has changed
         uint256 lastInteraction;
         address payable buyer;
         address payable seller;
         IERC20 token;
+        // The payment method ID.
         uint16 paymentID;
+        // The order status
         Status status;
     }
 
@@ -97,15 +102,22 @@ contract Unipeer is IArbitrable, IEvidence {
         // Sum of reimbursable fees and stake rewards available to the parties
         // that made contributions to the side that ultimately wins a dispute.
         uint256 feeRewards;
-        mapping(address => uint256[3]) contributions; // Maps contributors to their contributions for each side.
+        // Maps contributors to their contributions for each side.
+        mapping(address => uint256[3]) contributions;
     }
 
     struct DisputeData {
-        uint256 orderID; // The ID of the order related to the dispute.
-        Party ruling; // Ruling given by the arbitrator of the dispute.
-        uint16 lastRoundID; // The ID of the last round.
-        mapping(uint256 => Round) rounds; // Tracks the info of each funding round of the challenge.
+        // The ID of the order related to the dispute.
+        uint256 orderID;
+        // Ruling given by the arbitrator of the dispute.
+        Party ruling;
+        // The ID of the last round.
+        uint16 lastRoundID;
+        // Tracks the info of each funding round of the challenge.
+        mapping(uint256 => Round) rounds;
+        // Arbitrator at the time a dispute is rasied.
         IArbitrator arbitrator;
+        // Corresponding arbitrator extraData at the time a dispute is raised.
         bytes extraData;
         bool resolved;
     }
@@ -121,7 +133,7 @@ contract Unipeer is IArbitrable, IEvidence {
     // For more details, see: https://github.com/delegatable/delegatable-sol
     address public relay;
     // Total non-withdrawn fees accumulated by the protocol.
-    uint256 public protocolFeesSum;
+    mapping(IERC20 => uint256) public protocolFees;
     // The fee rate applicable to trades,
     // max to the MULTIPLIER_DIVISOR decimal
     uint256 public tradeFeeRate;
@@ -132,7 +144,9 @@ contract Unipeer is IArbitrable, IEvidence {
 
     // Holds the total/count of Meta Evidence updates.
     uint256 public metaEvidenceUpdates;
+    // Time in seconds a buyer has to confirm the off-chain payment.
     uint256 public buyerTimeout;
+    // Time in seconds a seller has to dispute an order.
     uint256 public sellerTimeout;
 
     // tokenBalance[seller][token] = balance
@@ -153,7 +167,7 @@ contract Unipeer is IArbitrable, IEvidence {
     // ************************************* //
 
     modifier onlyAdmin() {
-        _onlyAdmin();
+        require(admin == msg.sender, "Only Admin");
         _;
     }
 
@@ -162,7 +176,7 @@ contract Unipeer is IArbitrable, IEvidence {
     // ************************************* //
 
     event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
-    event FeeWithdrawn(uint256 amount);
+    event FeeWithdrawn(IERC20 indexed token, uint256 amount, address to);
     event PaymentMethodUpdate(
         uint16 indexed paymentID, string paymentName, uint256 metaEvidenceID
     );
@@ -363,10 +377,11 @@ contract Unipeer is IArbitrable, IEvidence {
         tradeFeeRate = _feeRate;
     }
 
-    function withdrawFees(uint256 _amount, address payable _to) external onlyAdmin {
-        require(_amount <= protocolFeesSum, "Amount more than accrued fees");
-        protocolFeesSum -= _amount;
-        _to.send(_amount);
+    function withdrawProtocolFees(IERC20 _token, uint256 _amount, address _to) external onlyAdmin {
+        require(_amount <= protocolFees[_token], "Amount more than accrued fees");
+        protocolFees[_token] -= _amount;
+        _token.safeTransfer(_to, _amount);
+        emit FeeWithdrawn(_token, _amount, _to);
     }
 
     // ************************************* //
@@ -452,6 +467,7 @@ contract Unipeer is IArbitrable, IEvidence {
                 token: _token,
                 amount: tradeAmount,
                 fee: _fee,
+                sellerFee: _sellerFee,
                 buyerCost: msg.value,
                 sellerCost: 0,
                 disputeID: 0,
@@ -896,10 +912,6 @@ contract Unipeer is IArbitrable, IEvidence {
     // *            Internal               * //
     // ************************************* //
 
-    function _onlyAdmin() private view {
-        require(admin == msg.sender, "Only Admin");
-    }
-
     /**
      * @dev Gets the trade amount after fees
      * @return fee The fee amount according to the tradeFee rate.
@@ -933,7 +945,7 @@ contract Unipeer is IArbitrable, IEvidence {
         // Collect the fees.
         // We don't collect in case of inconclusive ruling
         if (dispute.ruling != Party.None) {
-            protocolFeesSum += fee;
+            protocolFees[order.token] += fee;
         }
 
         if (dispute.ruling == Party.Buyer) {
@@ -1039,7 +1051,7 @@ contract Unipeer is IArbitrable, IEvidence {
         order.status = Status.Completed;
 
         // Collect the fees
-        protocolFeesSum += fee;
+        protocolFees[order.token] += fee;
 
         // Return the buyers arbitration fees.
         order.buyer.send(buyerCost);

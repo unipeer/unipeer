@@ -416,7 +416,7 @@ contract UnipeerTest is Test {
         emit OrderComplete(ORDER_ID);
         unipeer.completeOrder(ORDER_ID);
 
-        assertEq(unipeer.protocolFeesSum(), fees);
+        assertEq(unipeer.protocolFees(Dai), fees);
     }
 
     function testCompleteOrderWithOutConfirm(uint96 amount) public {
@@ -522,7 +522,7 @@ contract UnipeerTest is Test {
         emit OrderComplete(ORDER_ID);
         unipeer.timeoutBySeller(ORDER_ID);
 
-        assertEq(unipeer.protocolFeesSum(), fees);
+        assertEq(unipeer.protocolFees(Dai), fees);
     }
 
     // ************************************* //
@@ -791,17 +791,21 @@ contract UnipeerTest is Test {
         unipeer.addPaymentMethod("PayPal", META_ID + 1, Dai);
     }
 
-    function testWithdrawFees() public {
+    function testWithdrawFees(uint248 amount) public {
         startHoax(admin);
 
         vm.expectRevert("Amount more than accrued fees");
-        unipeer.withdrawFees(10, payable(user));
-        stdstore.target(address(unipeer)).sig("protocolFeesSum()").checked_write(120);
-        assertEq(unipeer.protocolFeesSum(), 120);
-        unipeer.withdrawFees(120, payable(admin));
+        unipeer.withdrawProtocolFees(Dai, 10, payable(user));
+
+        Dai.mint(address(unipeer), amount);
+        stdstore.target(address(unipeer)).sig("protocolFees(address)")
+        .with_key(address(Dai))
+        .checked_write(amount);
+        assertEq(unipeer.protocolFees(Dai), amount);
+        unipeer.withdrawProtocolFees(Dai, amount, payable(admin));
 
         vm.expectRevert("Amount more than accrued fees");
-        unipeer.withdrawFees(10, payable(user));
+        unipeer.withdrawProtocolFees(Dai, 10, payable(user));
     }
 
     function testChangeAdmin() public {
@@ -866,6 +870,6 @@ contract UnipeerTest is Test {
         vm.expectRevert("Only Admin");
         unipeer.changeFees(100);
         vm.expectRevert("Only Admin");
-        unipeer.withdrawFees(0, payable(user));
+        unipeer.withdrawProtocolFees(Dai, 0, payable(user));
     }
 }
