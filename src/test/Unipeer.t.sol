@@ -835,6 +835,7 @@ contract UnipeerTest is Test {
 
     function testUpdatePaymentMetaEvidence() public {
         testAddPaymentMethod();
+        unipeer.addMetaEvidence("ipfs://evidence2");
         unipeer.updatePaymentMetaEvidence(PAYMENT_ID, META_ID + 1);
     }
 

@@ -328,7 +328,7 @@ contract Unipeer is IArbitrable, IEvidence {
         onlyAdmin
     {
         require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
-        require(_metaEvidenceID <= metaEvidenceUpdates, "Invalid Meta Evidence ID");
+        require(_metaEvidenceID < metaEvidenceUpdates, "Invalid Meta Evidence ID");
 
         PaymentMethod storage pm = paymentMethods[_paymentID];
         pm.metaEvidenceID = _metaEvidenceID;
