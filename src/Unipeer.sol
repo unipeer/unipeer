@@ -85,7 +85,7 @@ contract Unipeer is IArbitrable, IEvidence {
         address payable seller;
         IERC20 token;
         // The payment method ID.
-        uint16 paymentID;
+        uint256 paymentID;
         // The order status
         Status status;
     }
@@ -137,9 +137,8 @@ contract Unipeer is IArbitrable, IEvidence {
     // max to the MULTIPLIER_DIVISOR decimal
     uint256 public tradeFeeRate;
 
-    uint16 public totalPaymentMethods;
     // List of Payment Methods by paymentID
-    mapping(uint16 => PaymentMethod) public paymentMethods;
+    PaymentMethod[] public paymentMethods;
 
     // Holds the total/count of Meta Evidence updates.
     uint256 public metaEvidenceUpdates;
@@ -177,12 +176,12 @@ contract Unipeer is IArbitrable, IEvidence {
     event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
     event FeeWithdrawn(IERC20 indexed token, uint256 amount, address to);
     event PaymentMethodUpdate(
-        uint16 indexed paymentID, string paymentName, uint256 metaEvidenceID
+        uint256 indexed paymentID, string paymentName, uint256 metaEvidenceID
     );
-    event PaymentMethodTokenEnabled(uint16 indexed paymentID, IERC20 token);
-    event PaymentMethodTokenDisabled(uint16 indexed paymentID, IERC20 token);
+    event PaymentMethodTokenEnabled(uint256 indexed paymentID, IERC20 token);
+    event PaymentMethodTokenDisabled(uint256 indexed paymentID, IERC20 token);
     event SellerPaymentMethod(
-        address indexed sender, uint16 paymentID, string paymentAddress, uint256 feeRate
+        address indexed sender, uint256 paymentID, string paymentAddress, uint256 feeRate
     );
     event SellerDeposit(address indexed sender, IERC20 token, uint256 amount);
     event SellerWithdraw(address indexed sender, IERC20 token, uint256 amount);
@@ -190,7 +189,7 @@ contract Unipeer is IArbitrable, IEvidence {
         uint256 indexed orderID,
         address indexed buyer,
         address indexed seller,
-        uint16 paymentID,
+        uint256 paymentID,
         string paymentAddress,
         IERC20 token,
         uint256 amount,
@@ -314,20 +313,19 @@ contract Unipeer is IArbitrable, IEvidence {
         IERC20 _initalEnabledToken
     ) external onlyAdmin {
         require(_metaEvidenceID < metaEvidenceUpdates, "Invalid Meta Evidence ID");
-        PaymentMethod storage pm = paymentMethods[totalPaymentMethods++];
+        PaymentMethod storage pm =  paymentMethods.push();
         pm.paymentName = _paymentName;
         pm.metaEvidenceID = _metaEvidenceID;
         pm.tokenEnabled[_initalEnabledToken] = true;
 
-        emit PaymentMethodUpdate(totalPaymentMethods - 1, _paymentName, _metaEvidenceID);
-        emit PaymentMethodTokenEnabled(totalPaymentMethods - 1, _initalEnabledToken);
+        emit PaymentMethodUpdate(paymentMethods.length - 1, _paymentName, _metaEvidenceID);
+        emit PaymentMethodTokenEnabled(paymentMethods.length - 1, _initalEnabledToken);
     }
 
-    function updatePaymentMetaEvidence(uint16 _paymentID, uint256 _metaEvidenceID)
+    function updatePaymentMetaEvidence(uint256 _paymentID, uint256 _metaEvidenceID)
         external
         onlyAdmin
     {
-        require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
         require(_metaEvidenceID < metaEvidenceUpdates, "Invalid Meta Evidence ID");
 
         PaymentMethod storage pm = paymentMethods[_paymentID];
@@ -336,24 +334,20 @@ contract Unipeer is IArbitrable, IEvidence {
         emit PaymentMethodUpdate(_paymentID, pm.paymentName, pm.metaEvidenceID);
     }
 
-    function updatePaymentName(uint16 _paymentID, string calldata _paymentName)
+    function updatePaymentName(uint256 _paymentID, string calldata _paymentName)
         external
         onlyAdmin
     {
-        require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
-
         PaymentMethod storage pm = paymentMethods[_paymentID];
         pm.paymentName = _paymentName;
 
         emit PaymentMethodUpdate(_paymentID, pm.paymentName, pm.metaEvidenceID);
     }
 
-    function updateTokenEnabled(uint16 _paymentID, IERC20 _token, bool _enabled)
+    function updateTokenEnabled(uint256 _paymentID, IERC20 _token, bool _enabled)
         external
         onlyAdmin
     {
-        require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
-
         PaymentMethod storage pm = paymentMethods[_paymentID];
         pm.tokenEnabled[_token] = _enabled;
 
@@ -399,11 +393,10 @@ contract Unipeer is IArbitrable, IEvidence {
      *  this payment method
      */
     function updateSellerPaymentMethod(
-        uint16 _paymentID,
+        uint256 _paymentID,
         string calldata _paymentAddress,
         uint256 _feeRate
     ) external {
-        require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
         address _seller = _msgSender();
 
         PaymentMethod storage pm = paymentMethods[_paymentID];
@@ -413,9 +406,7 @@ contract Unipeer is IArbitrable, IEvidence {
         emit SellerPaymentMethod(_seller, _paymentID, _paymentAddress, _feeRate);
     }
 
-    function depositTokens(uint16 _paymentID, IERC20 _token, uint256 _amount) external {
-        require(_paymentID < totalPaymentMethods, "Payment method does not exist.");
-
+    function depositTokens(uint256 _paymentID, IERC20 _token, uint256 _amount) external {
         PaymentMethod storage pm = paymentMethods[_paymentID];
         require(pm.tokenEnabled[_token] == true, "Token not enabled for selling");
 
@@ -440,12 +431,10 @@ contract Unipeer is IArbitrable, IEvidence {
     // *           Order (Buyer)           * //
     // ************************************* //
 
-    function buyOrder(uint16 _paymentID, address _seller, IERC20 _token, uint256 _amount)
+    function buyOrder(uint256 _paymentID, address _seller, IERC20 _token, uint256 _amount)
         external
         payable
     {
-        require(_paymentID < totalPaymentMethods, "PaymentMethod: !Exist");
-
         PaymentMethod storage pm = paymentMethods[_paymentID];
         require(bytes(pm.paymentAddress[_seller]).length != 0, "PaymentMethod: !Seller");
         require(pm.tokenEnabled[_token] == true, "PaymentMethod: !Token");
@@ -817,7 +806,7 @@ contract Unipeer is IArbitrable, IEvidence {
         tradeAmount = order.amount - fee;
     }
 
-    function getPaymentMethodSellerFeeRate(uint16 _paymentID, address _seller)
+    function getPaymentMethodSellerFeeRate(uint256 _paymentID, address _seller)
         external
         view
         returns (uint256 fee)
@@ -826,7 +815,7 @@ contract Unipeer is IArbitrable, IEvidence {
         fee = pm.feeRate[_seller];
     }
 
-    function getPaymentMethodAddress(uint16 _paymentID, address _seller)
+    function getPaymentMethodAddress(uint256 _paymentID, address _seller)
         external
         view
         returns (string memory)
@@ -835,7 +824,7 @@ contract Unipeer is IArbitrable, IEvidence {
         return pm.paymentAddress[_seller];
     }
 
-    function getPaymentMethodToken(uint16 _paymentID, IERC20 _token)
+    function getPaymentMethodToken(uint256 _paymentID, IERC20 _token)
         external
         view
         returns (bool)
@@ -844,8 +833,12 @@ contract Unipeer is IArbitrable, IEvidence {
         return pm.tokenEnabled[_token];
     }
 
-    function getCountOrders() external view returns (uint256) {
+    function getOrdersCount() external view returns (uint256) {
         return orders.length;
+    }
+
+    function getPaymentMethodsCount() external view returns (uint256) {
+        return paymentMethods.length;
     }
 
     /**
