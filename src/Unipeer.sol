@@ -119,7 +119,6 @@ contract Unipeer is IArbitrable, IEvidence {
         IArbitrator arbitrator;
         // Corresponding arbitrator extraData at the time a dispute is raised.
         bytes extraData;
-        bool resolved;
     }
 
     // ************************************* //
@@ -723,9 +722,10 @@ contract Unipeer is IArbitrable, IEvidence {
      */
     function rule(uint256 _disputeID, uint256 _ruling) external {
         DisputeData storage dispute = disputes[_disputeID];
+        Order storage order = orders[dispute.orderID];
 
         require(msg.sender == address(dispute.arbitrator), "Only arbitrator");
-        require(dispute.resolved != true, " Dispute already resolved");
+        require(order.status == Status.Disputed, "Dispute already resolved");
 
         Round storage round = dispute.rounds[dispute.lastRoundID];
 
@@ -737,9 +737,8 @@ contract Unipeer is IArbitrable, IEvidence {
         } else {
             dispute.ruling = Party(_ruling);
         }
-        dispute.resolved = true;
 
-        _executeRuling(_disputeID);
+        _executeRuling(dispute, order);
 
         emit Ruling(dispute.arbitrator, _disputeID, uint256(dispute.ruling));
     }
@@ -926,10 +925,7 @@ contract Unipeer is IArbitrable, IEvidence {
         tradeAmount = _amount - fee;
     }
 
-    function _executeRuling(uint256 _disputeID) internal {
-        DisputeData storage dispute = disputes[_disputeID];
-        Order storage order = orders[dispute.orderID];
-
+    function _executeRuling(DisputeData storage dispute, Order storage order) internal {
         uint256 amount = order.amount;
         uint256 fee = order.fee;
         uint256 buyerCost = order.buyerCost;
