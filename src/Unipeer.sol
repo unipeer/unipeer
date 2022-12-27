@@ -77,6 +77,10 @@ contract Unipeer is IArbitrable, IEvidence {
         uint256 buyerCost;
         // The fee seller has paid for raising a dispute.
         uint256 sellerCost;
+        // Time in seconds a buyer has to confirm the off-chain payment.
+        uint256 buyerTimeout;
+        // Time in seconds a seller has to dispute an order.
+        uint256 sellerTimeout;
         // If dispute exists, the ID of the dispute.
         uint256 disputeID;
         // timestamp of the lastest block the order status has changed
@@ -458,6 +462,8 @@ contract Unipeer is IArbitrable, IEvidence {
                 sellerFee: _sellerFee,
                 buyerCost: msg.value,
                 sellerCost: 0,
+                buyerTimeout: buyerTimeout,
+                sellerTimeout: sellerTimeout,
                 disputeID: 0,
                 lastInteraction: block.timestamp,
                 status: Status.Created
@@ -490,7 +496,7 @@ contract Unipeer is IArbitrable, IEvidence {
         require(order.buyer == _msgSender(), "Only Buyer");
         require(order.status == Status.Created, "OrderStatus: !Created");
         require(
-            order.lastInteraction + buyerTimeout >= block.timestamp,
+            order.lastInteraction + order.buyerTimeout >= block.timestamp,
             "Payment confirmation timeout"
         );
 
@@ -521,7 +527,7 @@ contract Unipeer is IArbitrable, IEvidence {
         // the seller can counter-factually complete the order.
         require(
             order.status == Status.Created
-                || order.lastInteraction + sellerTimeout >= block.timestamp,
+                || order.lastInteraction + order.sellerTimeout >= block.timestamp,
             "Order completed by timeout"
         );
 
@@ -536,7 +542,7 @@ contract Unipeer is IArbitrable, IEvidence {
         require(order.seller == _msgSender(), "Only Seller");
         require(order.status == Status.Paid, "OrderStatus: !Paid");
         require(
-            order.lastInteraction + sellerTimeout >= block.timestamp,
+            order.lastInteraction + order.sellerTimeout >= block.timestamp,
             "Order completed by timeout"
         );
 
@@ -569,7 +575,7 @@ contract Unipeer is IArbitrable, IEvidence {
         Order storage order = orders[_orderID];
         require(order.status == Status.Created, "OrderStatus: !Created");
         require(
-            order.lastInteraction + buyerTimeout < block.timestamp,
+            order.lastInteraction + order.buyerTimeout < block.timestamp,
             "Confirmation period NOT timedout"
         );
 
@@ -595,7 +601,7 @@ contract Unipeer is IArbitrable, IEvidence {
         Order storage order = orders[_orderID];
         require(order.status == Status.Paid, "OrderStatus: !Paid");
         require(
-            order.lastInteraction + sellerTimeout < block.timestamp,
+            order.lastInteraction + order.sellerTimeout < block.timestamp,
             "Completion period NOT timedout"
         );
 
