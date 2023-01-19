@@ -445,12 +445,17 @@ contract Unipeer is IArbitrable, IEvidence {
         require(pm.tokenEnabled[_token] == true, "PaymentMethod: !Token");
         require(tokenBalance[_seller][_token] >= _amount, "Not enough seller balance");
 
-        require(msg.value >= arbitrator.arbitrationCost(arbitratorExtraData), "Arbitration fees not paid");
+        uint256 arbitrationFee = arbitrator.arbitrationCost(arbitratorExtraData);
+        require(msg.value >= arbitrationFee, "Arbitration fees not paid");
 
-        (uint256 _fee,) = _calculateFees(_amount, tradeFeeRate);
-        (uint256 _sellerFee,) = _calculateFees(_amount, pm.feeRate[_seller]);
+        // re-imburse excess arbitration fees
+        if (msg.value > arbitrationFee) {
+            payable(_msgSender()).send(msg.value - arbitrationFee);
+        }
 
-        uint256 tradeAmount = _amount - _sellerFee;
+        (uint256 _fee, ) = _calculateFees(_amount, tradeFeeRate);
+        (uint256 _sellerFee, uint256 tradeAmount) = _calculateFees(_amount, pm.feeRate[_seller]);
+
         require(_amount >= _sellerFee + _fee, "Cummulative fees cannot be more than bought amount");
 
         orders.push(
@@ -462,7 +467,7 @@ contract Unipeer is IArbitrable, IEvidence {
                 amount: tradeAmount,
                 fee: _fee,
                 sellerFee: _sellerFee,
-                buyerCost: msg.value,
+                buyerCost: arbitrationFee,
                 sellerCost: 0,
                 buyerTimeout: buyerTimeout,
                 sellerTimeout: sellerTimeout,
@@ -492,8 +497,6 @@ contract Unipeer is IArbitrable, IEvidence {
     }
 
     function confirmPaid(uint256 _orderID) external {
-        require(_orderID < orders.length, "Invalid Order ID");
-
         Order storage order = orders[_orderID];
         require(order.buyer == _msgSender(), "Only Buyer");
         require(order.status == Status.Created, "OrderStatus: !Created");
