@@ -2,7 +2,6 @@
 pragma solidity 0.8.17;
 
 import "oz/token/ERC20/utils/SafeERC20.sol";
-import "oz/utils/math/Math.sol";
 import "kleros/erc-1497/IEvidence.sol";
 import "kleros/IArbitrator.sol";
 // import "delegatable/interfaces/IDelegatable.sol";
@@ -959,12 +958,13 @@ contract Unipeer is IArbitrable, IEvidence {
             // non-safe transfer used here to prevent blocking on revert
             order.token.transfer(order.buyer, tradeAmount);
         } else if (dispute.ruling == Party.Seller) {
-            order.seller.send(sellerCost);
+            // we only have buyerCost funds available. So return those.
+            order.seller.send(buyerCost);
             tokenBalance[order.seller][order.token] += amount;
         } else {
             // `buyerCost` and `sellerCost` are equal to the arbitration cost.
             // We take the min of the two in case someone overpaid.
-            uint256 splitArbitrationFee = Math.min(buyerCost, sellerCost) / 2;
+            uint256 splitArbitrationFee = buyerCost / 2;
             order.buyer.send(splitArbitrationFee);
             order.seller.send(splitArbitrationFee);
 
@@ -1065,7 +1065,7 @@ contract Unipeer is IArbitrable, IEvidence {
     }
 
     function _msgSender() internal view returns (address sender) {
-        if (msg.sender == address(relay)) {
+        if (msg.sender == relay) {
             bytes memory array = msg.data;
             uint256 index = msg.data.length;
             assembly {
