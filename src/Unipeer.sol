@@ -628,7 +628,7 @@ contract Unipeer is IArbitrable, IEvidence {
      */
     function submitEvidence(uint256 _orderID, string calldata _evidence) external {
         Order storage order = orders[_orderID];
-        require(order.status == Status.Disputed, "Dispute is resolved");
+        require(order.status == Status.Disputed, "Order in not is disupted state");
         DisputeData storage dispute = disputes[_orderID];
 
         emit Evidence(dispute.arbitrator, _orderID, _msgSender(), _evidence);
@@ -760,8 +760,7 @@ contract Unipeer is IArbitrable, IEvidence {
         Order storage order = orders[_orderID];
         require(order.status == Status.Resolved, "The order must be resolved.");
         DisputeData storage dispute = disputes[_orderID];
-        uint256 orderID = arbitratorDisputeIDToOrderID[address(dispute.arbitrator)][dispute.disputeID];
-        require(orderID == _orderID, "Undisputed order");
+        require(_round <= dispute.lastRoundID, "Invalid round ID");
 
         uint256 reward = _withdrawFeesAndRewards(
             _beneficiary, _orderID, _round, uint256(dispute.ruling)
@@ -789,8 +788,6 @@ contract Unipeer is IArbitrable, IEvidence {
         Order storage order = orders[_orderID];
         require(order.status == Status.Resolved, "The order must be resolved.");
         DisputeData storage dispute = disputes[_orderID];
-        uint256 orderID = arbitratorDisputeIDToOrderID[address(dispute.arbitrator)][dispute.disputeID];
-        require(orderID == _orderID, "Undisputed order");
 
         uint256 finalRuling = uint256(dispute.ruling);
 
