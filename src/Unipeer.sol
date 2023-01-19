@@ -81,8 +81,6 @@ contract Unipeer is IArbitrable, IEvidence {
         uint256 buyerTimeout;
         // Time in seconds a seller has to dispute an order.
         uint256 sellerTimeout;
-        // If dispute exists, the ID of the dispute.
-        uint256 disputeID;
         // timestamp of the lastest block the order status has changed
         uint256 lastInteraction;
         address payable buyer;
@@ -111,8 +109,8 @@ contract Unipeer is IArbitrable, IEvidence {
     }
 
     struct DisputeData {
-        // The ID of the order related to the dispute.
-        uint256 orderID;
+        // The ID of the dispute provided by the arbitrator
+        uint256 disputeID;
         // Ruling given by the arbitrator of the dispute.
         Party ruling;
         // The ID of the last round.
@@ -153,11 +151,14 @@ contract Unipeer is IArbitrable, IEvidence {
 
     // tokenBalance[seller][token] = balance
     mapping(address => mapping(IERC20 => uint256)) public tokenBalance;
-    // List of dispute details by disputeID
-    mapping(uint256 => DisputeData) private disputes;
 
     // List of orders by orderID
     Order[] public orders;
+
+    // Mapping of orderID to dispute details
+    mapping(uint256 => DisputeData) private disputes;
+
+    mapping(address => mapping(uint256 => uint256)) private arbitratorDisputeIDToOrderID; // Maps a dispute ID to it's order ID. arbitratorDisputeIDToOrderID[arbitrator][disputeID].
 
     // Address of the trusted arbitrator to solve disputes.
     IArbitrator public arbitrator;
@@ -471,7 +472,6 @@ contract Unipeer is IArbitrable, IEvidence {
                 sellerCost: 0,
                 buyerTimeout: buyerTimeout,
                 sellerTimeout: sellerTimeout,
-                disputeID: 0,
                 lastInteraction: block.timestamp,
                 status: Status.Created
             })
@@ -556,18 +556,20 @@ contract Unipeer is IArbitrable, IEvidence {
 
         order.sellerCost = msg.value;
         order.status = Status.Disputed;
-        order.disputeID = arbitrator.createDispute{value: msg.value}(
+        uint256 disputeID = arbitrator.createDispute{value: msg.value}(
             RULING_OPTIONS, arbitratorExtraData
         );
 
-        DisputeData storage dispute = disputes[order.disputeID];
-        dispute.orderID = _orderID;
+        DisputeData storage dispute = disputes[_orderID];
+        dispute.disputeID = disputeID;
         dispute.arbitrator = arbitrator;
         dispute.extraData = arbitratorExtraData;
 
+        arbitratorDisputeIDToOrderID[address(arbitrator)][disputeID] = _orderID;
+
         PaymentMethod storage pm = paymentMethods[order.paymentID];
 
-        emit Dispute(arbitrator, order.disputeID, pm.metaEvidenceID, _orderID);
+        emit Dispute(arbitrator, disputeID, pm.metaEvidenceID, _orderID);
     }
 
     // ************************************* //
@@ -625,11 +627,9 @@ contract Unipeer is IArbitrable, IEvidence {
      * @param _evidence A link to an evidence using its URI.
      */
     function submitEvidence(uint256 _orderID, string calldata _evidence) external {
-        require(_orderID < orders.length, "Invalid Order ID");
-
-        Order memory order = orders[_orderID];
+        Order storage order = orders[_orderID];
         require(order.status < Status.Resolved, "Dispute is resolved");
-        DisputeData storage dispute = disputes[order.disputeID];
+        DisputeData storage dispute = disputes[_orderID];
 
         emit Evidence(dispute.arbitrator, _orderID, _msgSender(), _evidence);
     }
@@ -641,22 +641,20 @@ contract Unipeer is IArbitrable, IEvidence {
      * @param _side The party that pays the appeal fee.
      */
     function fundAppeal(uint256 _orderID, Party _side) external payable {
-        require(_orderID < orders.length, "Invalid Order ID");
-
         Order storage order = orders[_orderID];
         require(_side != Party.None, "Wrong party.");
         require(order.status == Status.Disputed, "No dispute to appeal");
 
-        DisputeData storage dispute = disputes[order.disputeID];
+        DisputeData storage dispute = disputes[_orderID];
         (uint256 appealPeriodStart, uint256 appealPeriodEnd) =
-            dispute.arbitrator.appealPeriod(order.disputeID);
+            dispute.arbitrator.appealPeriod(dispute.disputeID);
         require(
             block.timestamp >= appealPeriodStart && block.timestamp < appealPeriodEnd,
             "Funding not within appeal period"
         );
 
         uint256 multiplier;
-        uint256 winner = dispute.arbitrator.currentRuling(order.disputeID);
+        uint256 winner = dispute.arbitrator.currentRuling(dispute.disputeID);
         if (winner == uint256(_side)) {
             multiplier = winnerStakeMultiplier;
         } else if (winner == 0) {
@@ -672,7 +670,7 @@ contract Unipeer is IArbitrable, IEvidence {
         Round storage round = dispute.rounds[dispute.lastRoundID];
         require(_side != round.sideFunded, "Appeal fee paid");
 
-        uint256 appealCost = dispute.arbitrator.appealCost(order.disputeID, dispute.extraData);
+        uint256 appealCost = dispute.arbitrator.appealCost(dispute.disputeID, dispute.extraData);
         uint256 totalCost = appealCost + ((appealCost * multiplier) / MULTIPLIER_DIVISOR);
 
         {
@@ -700,7 +698,7 @@ contract Unipeer is IArbitrable, IEvidence {
             } else {
                 // Both sides are fully funded. Create an appeal.
                 dispute.arbitrator.appeal{value: appealCost}(
-                    order.disputeID, dispute.extraData
+                    dispute.disputeID, dispute.extraData
                 );
                 round.feeRewards = (
                     round.paidFees[uint256(Party.Buyer)]
@@ -721,8 +719,9 @@ contract Unipeer is IArbitrable, IEvidence {
      * @param _ruling Ruling given by the arbitrator. Note that 0 is reserved for "Refused to arbitrate".
      */
     function rule(uint256 _disputeID, uint256 _ruling) external {
-        DisputeData storage dispute = disputes[_disputeID];
-        Order storage order = orders[dispute.orderID];
+        uint256 orderID = arbitratorDisputeIDToOrderID[msg.sender][_disputeID];
+        DisputeData storage dispute = disputes[orderID];
+        Order storage order = orders[orderID];
 
         require(msg.sender == address(dispute.arbitrator), "Only arbitrator");
         require(order.status == Status.Disputed, "Dispute already resolved");
@@ -740,6 +739,7 @@ contract Unipeer is IArbitrable, IEvidence {
 
         _executeRuling(dispute, order);
 
+        emit OrderResolved(orderID);
         emit Ruling(dispute.arbitrator, _disputeID, uint256(dispute.ruling));
     }
 
@@ -759,8 +759,9 @@ contract Unipeer is IArbitrable, IEvidence {
     ) external {
         Order storage order = orders[_orderID];
         require(order.status == Status.Resolved, "The order must be resolved.");
-        DisputeData storage dispute = disputes[order.disputeID];
-        require(dispute.orderID == _orderID, "Undisputed order");
+        DisputeData storage dispute = disputes[_orderID];
+        uint256 orderID = arbitratorDisputeIDToOrderID[address(dispute.arbitrator)][dispute.disputeID];
+        require(orderID == _orderID, "Undisputed order");
 
         uint256 reward = _withdrawFeesAndRewards(
             _beneficiary, _orderID, _round, uint256(dispute.ruling)
@@ -787,8 +788,10 @@ contract Unipeer is IArbitrable, IEvidence {
     ) external {
         Order storage order = orders[_orderID];
         require(order.status == Status.Resolved, "The order must be resolved.");
-        DisputeData storage dispute = disputes[order.disputeID];
-        require(dispute.orderID == _orderID, "Undisputed order");
+        DisputeData storage dispute = disputes[_orderID];
+        uint256 orderID = arbitratorDisputeIDToOrderID[address(dispute.arbitrator)][dispute.disputeID];
+        require(orderID == _orderID, "Undisputed order");
+
         uint256 finalRuling = uint256(dispute.ruling);
 
         uint256 reward;
@@ -867,8 +870,7 @@ contract Unipeer is IArbitrable, IEvidence {
      * @return The number of rounds.
      */
     function getNumberOfRounds(uint256 _orderID) external view returns (uint256) {
-        Order storage order = orders[_orderID];
-        DisputeData storage dispute = disputes[order.disputeID];
+        DisputeData storage dispute = disputes[_orderID];
         return dispute.lastRoundID + 1;
     }
 
@@ -884,8 +886,7 @@ contract Unipeer is IArbitrable, IEvidence {
         view
         returns (uint256[3] memory contributions)
     {
-        Order storage order = orders[_orderID];
-        DisputeData storage dispute = disputes[order.disputeID];
+        DisputeData storage dispute = disputes[_orderID];
         Round storage round = dispute.rounds[_round];
         contributions = round.contributions[_contributor];
     }
@@ -909,8 +910,7 @@ contract Unipeer is IArbitrable, IEvidence {
             bool appealed
         )
     {
-        Order storage order = orders[_orderID];
-        DisputeData storage dispute = disputes[order.disputeID];
+        DisputeData storage dispute = disputes[_orderID];
         Round storage round = dispute.rounds[_round];
         return (
             round.paidFees,
@@ -976,8 +976,6 @@ contract Unipeer is IArbitrable, IEvidence {
             order.token.transfer(order.buyer, splitAmount);
             tokenBalance[order.seller][order.token] += splitAmount;
         }
-
-        emit OrderResolved(dispute.orderID);
     }
 
     /**
@@ -997,8 +995,7 @@ contract Unipeer is IArbitrable, IEvidence {
         uint256 _round,
         uint256 _finalRuling
     ) internal returns (uint256 reward) {
-        Order storage order = orders[_orderID];
-        DisputeData storage dispute = disputes[order.disputeID];
+        DisputeData storage dispute = disputes[_orderID];
         Round storage round = dispute.rounds[_round];
         uint256[3] storage contributionTo = round.contributions[_beneficiary];
         uint256 lastRound = dispute.lastRoundID;
