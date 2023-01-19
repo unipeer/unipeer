@@ -402,6 +402,7 @@ contract Unipeer is IArbitrable, IEvidence {
         uint256 _feeRate
     ) external {
         address _seller = _msgSender();
+        require(tradeFeeRate + _feeRate <= MULTIPLIER_DIVISOR, "seller plus trade fees cannot be more than 100%");
 
         PaymentMethod storage pm = paymentMethods[_paymentID];
         pm.paymentAddress[_seller] = _paymentAddress;
@@ -448,6 +449,7 @@ contract Unipeer is IArbitrable, IEvidence {
 
         (uint256 _fee,) = _calculateFees(_amount, tradeFeeRate);
         (uint256 _sellerFee,) = _calculateFees(_amount, pm.feeRate[_seller]);
+
         uint256 tradeAmount = _amount - _sellerFee;
         require(_amount >= _sellerFee + _fee, "Cummulative fees cannot be more than bought amount");
 
@@ -802,14 +804,23 @@ contract Unipeer is IArbitrable, IEvidence {
     // *              Views                * //
     // ************************************* //
 
-    function getOrderFeeAmount(uint256 _orderID)
+    function getOrderSellerFee(uint256 _orderID)
         external
         view
-        returns (uint256 fee, uint256 tradeAmount)
+        returns (uint256 sellerFee)
+    {
+        Order storage order = orders[_orderID];
+        sellerFee = order.sellerFee;
+    }
+
+    function getOrderFeeNTradeAmount(uint256 _orderID)
+        external
+        view
+        returns (uint256 fee, uint256 amountAfterFee)
     {
         Order storage order = orders[_orderID];
         fee = order.fee;
-        tradeAmount = order.amount - fee;
+        amountAfterFee = order.amount - fee;
     }
 
     function getPaymentMethodSellerFeeRate(uint256 _paymentID, address _seller)

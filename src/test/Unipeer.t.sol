@@ -88,7 +88,7 @@ contract UnipeerTest is Test {
     uint16 constant PAYMENT_ID = 0;
     uint16 constant ORDER_ID = 0;
     uint256 constant SELLER_BALANCE = 100_000 ether;
-    uint256 constant SELLER_FEE = 0;
+    uint256 constant SELLER_FEE = 50;
 
     uint256 constant APPEAL_WINDOW = 3 minutes;
     uint256 constant MULTIPLIER_DIVISOR = 10_000;
@@ -227,7 +227,7 @@ contract UnipeerTest is Test {
         });
 
         uint256 newBalance = unipeer.tokenBalance(seller, Dai);
-        assertEq(oldBalance - newBalance, amount);
+        assertEq(oldBalance - newBalance, amount - sellerFees);
         assertEq(unipeer.getOrdersCount(), 1);
     }
 
@@ -304,9 +304,6 @@ contract UnipeerTest is Test {
         uint256 arbFees =
             unipeer.arbitrator().arbitrationCost(unipeer.arbitratorExtraData());
 
-        uint256 sellerRate = SELLER_FEE + 1000;
-        uint256 sellerFee = amount * sellerRate / MULTIPLIER_DIVISOR;
-
         hoax(buyer);
         unipeer.buyOrder{value: arbFees}({
             _paymentID: PAYMENT_ID,
@@ -314,7 +311,12 @@ contract UnipeerTest is Test {
             _token: Dai,
             _amount: amount
         });
-        (, uint256 tradeAmount1) = unipeer.getOrderFeeAmount(ORDER_ID);
+        (, uint256 tradeAmount1) = unipeer.getOrderFeeNTradeAmount(ORDER_ID);
+
+        uint256 sellerFee1 = unipeer.getOrderSellerFee(ORDER_ID);
+
+        uint256 sellerRate = SELLER_FEE + 1000;
+        uint256 sellerFee2 = amount * sellerRate / MULTIPLIER_DIVISOR;
 
         startHoax(seller);
         unipeer.updateSellerPaymentMethod(PAYMENT_ID, "seller@paypal.me", sellerRate);
@@ -330,10 +332,9 @@ contract UnipeerTest is Test {
             _token: Dai,
             _amount: amount
         });
-        (uint256 fees2, uint256 tradeAmount2) = unipeer.getOrderFeeAmount(ORDER_ID + 1);
+        (uint256 fees2, uint256 tradeAmount2) = unipeer.getOrderFeeNTradeAmount(ORDER_ID + 1);
 
-        assertEq(amount - sellerFee, tradeAmount2 + fees2);
-        assertEq(tradeAmount1 - tradeAmount2, sellerFee);
+        assertEq(tradeAmount1 - tradeAmount2, sellerFee2 - sellerFee1);
     }
 
     function testCannotHaveSellerFeeRateMoreThan100Percent() public {
@@ -347,8 +348,11 @@ contract UnipeerTest is Test {
             unipeer.arbitrator().arbitrationCost(unipeer.arbitratorExtraData());
 
         hoax(seller);
+        vm.expectRevert("seller plus trade fees cannot be more than 100%");
         unipeer.updateSellerPaymentMethod(PAYMENT_ID, "seller@paypal.me", sellerRate);
 
+        hoax(admin);
+        unipeer.changeFees(MULTIPLIER_DIVISOR);
         startHoax(buyer);
         vm.expectRevert("Cummulative fees cannot be more than bought amount");
         unipeer.buyOrder{value: arbFees}({
@@ -406,7 +410,7 @@ contract UnipeerTest is Test {
         testConfirmPaid(amount);
         vm.stopPrank();
 
-        (uint256 fees, uint256 tradeAmount) = unipeer.getOrderFeeAmount(ORDER_ID);
+        (uint256 fees, uint256 tradeAmount) = unipeer.getOrderFeeNTradeAmount(ORDER_ID);
 
         startHoax(seller);
 
@@ -511,7 +515,7 @@ contract UnipeerTest is Test {
         testConfirmPaid(amount);
         vm.stopPrank();
 
-        (uint256 fees, uint256 amount) = unipeer.getOrderFeeAmount(ORDER_ID);
+        (uint256 fees, uint256 amount) = unipeer.getOrderFeeNTradeAmount(ORDER_ID);
 
         skip(unipeer.sellerTimeout() + 1);
         vm.expectEmit(true, true, false, true);
@@ -542,7 +546,7 @@ contract UnipeerTest is Test {
         testDisputeOrder(amount);
         vm.stopPrank();
 
-        (, uint256 tradeAmount) = unipeer.getOrderFeeAmount(ORDER_ID);
+        (, uint256 tradeAmount) = unipeer.getOrderFeeNTradeAmount(ORDER_ID);
         uint256 arbFees = arbitrator.arbitrationCost("");
         uint256 oldBalanceBuyer = address(buyer).balance;
         uint256 oldBalanceSeller = address(seller).balance;
@@ -567,7 +571,7 @@ contract UnipeerTest is Test {
         testDisputeOrder(amount);
         vm.stopPrank();
 
-        (uint256 fee, uint256 tradeAmount) = unipeer.getOrderFeeAmount(ORDER_ID);
+        (uint256 fee, uint256 tradeAmount) = unipeer.getOrderFeeNTradeAmount(ORDER_ID);
         uint256 arbFees = arbitrator.arbitrationCost("");
         uint256 oldBalanceBuyer = address(buyer).balance;
         uint256 oldBalanceSeller = address(seller).balance;
@@ -593,7 +597,7 @@ contract UnipeerTest is Test {
         testDisputeOrder(amount);
         vm.stopPrank();
 
-        (uint256 fee, uint256 tradeAmount) = unipeer.getOrderFeeAmount(ORDER_ID);
+        (uint256 fee, uint256 tradeAmount) = unipeer.getOrderFeeNTradeAmount(ORDER_ID);
         uint256 arbFees = arbitrator.arbitrationCost("");
         uint256 oldBalanceBuyer = address(buyer).balance;
         uint256 oldBalanceSeller = address(seller).balance;
