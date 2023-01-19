@@ -868,7 +868,7 @@ contract Unipeer is IArbitrable, IEvidence {
      */
     function getNumberOfRounds(uint256 _orderID) external view returns (uint256) {
         DisputeData storage dispute = disputes[_orderID];
-        return dispute.lastRoundID + 1;
+        return dispute.lastRoundID;
     }
 
     /**

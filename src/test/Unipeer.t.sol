@@ -663,7 +663,7 @@ contract UnipeerTest is Test {
         assertEq(paidFees[2], 0);
         assertEq(appealed, false);
 
-        assertEq(unipeer.getNumberOfRounds(ORDER_ID), 1);
+        assertEq(unipeer.getNumberOfRounds(ORDER_ID), 0);
     }
 
     function testFundAppealBuyerAppealed(uint96 amount) public {
@@ -693,7 +693,7 @@ contract UnipeerTest is Test {
         assertEq(paidFees[2], totalCost);
         assertEq(appealed, true);
 
-        assertEq(unipeer.getNumberOfRounds(ORDER_ID), 2);
+        assertEq(unipeer.getNumberOfRounds(ORDER_ID), 1);
     }
 
     function testCannotActuallyAppealWithoutPaying() public {
