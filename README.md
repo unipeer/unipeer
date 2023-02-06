@@ -16,8 +16,8 @@ Only a subset of tokens is allowed to be sold via a payment method.
 Sellers opt-in to each payment method they wish to accept fiat payment in
 and the payment address of the platform buyers should make the payment to.
 
-They can deposit one or more of the accepted tokens for a particular payment
-method.
+Sellers can deposit one or more of the accepted tokens for a particular payment
+method they want to sell.
 
 ## Deployments
 
