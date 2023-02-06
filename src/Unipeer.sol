@@ -529,8 +529,6 @@ contract Unipeer is IArbitrable, IEvidence {
      * respond.
      */
     function completeOrder(uint256 _orderID) external {
-        require(_orderID < orders.length, "Invalid Order ID");
-
         Order storage order = orders[_orderID];
         require(order.seller == _msgSender(), "Only Seller");
         require(order.status < Status.Completed, "OrderStatus: !<Completed");
@@ -549,8 +547,6 @@ contract Unipeer is IArbitrable, IEvidence {
     }
 
     function disputeOrder(uint256 _orderID) external payable {
-        require(_orderID < orders.length, "Invalid Order ID");
-
         Order storage order = orders[_orderID];
         require(order.seller == _msgSender(), "Only Seller");
         require(order.status == Status.Paid, "OrderStatus: !Paid");
@@ -585,8 +581,6 @@ contract Unipeer is IArbitrable, IEvidence {
     // ************************************* //
 
     function timeoutByBuyer(uint256 _orderID) external {
-        require(_orderID < orders.length, "Invalid Order ID");
-
         Order storage order = orders[_orderID];
         require(order.status == Status.Created, "OrderStatus: !Created");
         require(
@@ -611,8 +605,6 @@ contract Unipeer is IArbitrable, IEvidence {
     }
 
     function timeoutBySeller(uint256 _orderID) external {
-        require(_orderID < orders.length, "Invalid Order ID");
-
         Order storage order = orders[_orderID];
         require(order.status == Status.Paid, "OrderStatus: !Paid");
         require(
