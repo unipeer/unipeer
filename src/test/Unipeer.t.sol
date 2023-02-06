@@ -103,7 +103,6 @@ contract UnipeerTest is Test {
         unipeer = new Unipeer({
             _admin: admin,
             _relay: address(99),
-            _version: "1",
             _arbitrator: arbitrator,
             _arbitratorExtraData: bytes(""),
             _buyerTimeout: 10 seconds,

@@ -254,7 +254,6 @@ contract Unipeer is IArbitrable, IEvidence {
     constructor(
         address _admin,
         address _relay,
-        string memory _version,
         IArbitrator _arbitrator,
         bytes memory _arbitratorExtraData,
         uint256 _buyerTimeout,
