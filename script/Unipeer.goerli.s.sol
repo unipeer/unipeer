@@ -22,7 +22,6 @@ contract Deploy is Script {
         Unipeer unipeer = new Unipeer({
             _admin: 0x3b434e0D2a6C7F53d5C556D7BAeE8942c351Cf1a,
             _relay: 0x03d68902B6d2300427effD6354C644D613332Ed0,
-            _version: "1",
             _arbitrator: arbitrator,
             _arbitratorExtraData: bytes(""),
             _buyerTimeout: 30 minutes,
